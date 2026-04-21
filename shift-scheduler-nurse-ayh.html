@@ -417,7 +417,7 @@ function renderPosSection() {
     var s=mState.shifts[i];
     var cur=mState.colors[s]||0;
     html+='<div class="pos-row"><span class="pos-label">'+s+'</span><div class="pos-dots">';
-    for(var c=0;c<=5;c++) html+='<div class="pos-dot p'+c+(cur===c?' selected':'')+'" data-s="'+s+'" data-c="'+c+'" title="'+POS_LABELS[c]+'"></div>';
+    for(var c=1;c<=5;c++) html+='<div class="pos-dot p'+c+(cur===c?' selected':'')+'" data-s="'+s+'" data-c="'+c+'" title="'+POS_LABELS[c]+'"></div>';
     html+='</div></div>';
   }
   sec.innerHTML=html;
