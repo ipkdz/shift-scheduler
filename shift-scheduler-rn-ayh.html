@@ -44,14 +44,14 @@ body { background: var(--bg); color: var(--text); font-family: 'Sarabun', sans-s
 table { border-collapse: collapse; min-width: 100%; font-size: 12px; }
 th, td { border: 1px solid var(--border); padding: 0; text-align: center; vertical-align: middle; }
 thead th { background: var(--surface2); padding: 6px 4px; font-size: 11px; color: var(--text-dim); white-space: nowrap; position: sticky; top: 0; z-index: 2; }
-thead th.day-weekend { color: #e53935; }
-thead th.day-holiday { background: #fff8e1 !important; color: #e65100 !important; }
+thead th.day-weekend { background: #b3cef58f; color: #062480; }
+thead th.day-holiday { background: #b3cef58f !important; color: #062480 !important; }
 thead th.name-col { left: 0; z-index: 3; background: var(--surface2); min-width: 100px; text-align: left; padding-left: 10px; }
 td.name-cell { background: var(--surface); position: sticky; left: 0; z-index: 1; padding: 6px 10px; text-align: left; font-size: 12px; color: var(--text); white-space: nowrap; border-right: 2px solid var(--accent); }
 td.shift-cell { min-width: 40px; height: 34px; cursor: pointer; }
 td.shift-cell:hover { background: rgba(92,107,192,0.12) !important; }
-td.shift-cell.weekend-col { background: rgba(239,83,80,0.05); }
-td.shift-cell.holiday-col { background: rgba(255,224,130,0.3); }
+td.shift-cell.weekend-col { background: rgba(172, 197, 235, 0.2); }
+td.shift-cell.holiday-col { background: rgba(172, 197, 235, 0.2); }
 
 .shift-display { display: flex; justify-content: center; align-items: center; gap: 1px; height: 100%; font-weight: 700; font-size: 12px; }
 .shift-char { display: inline-block; line-height: 1; }
@@ -69,14 +69,14 @@ td.cell-preceptor { background: #8ADEFF !important; color: #000000; }
 
 /* summary rows */
 td.sum-label { background: #e8eaf6; position: sticky; left: 0; z-index: 1; padding: 4px 10px; text-align: left; font-size: 10px; font-weight: 700; color: var(--accent2); border-right: 2px solid var(--accent); white-space: nowrap; }
-td.sum-cell  { font-size: 11px; font-weight: 700; padding: 3px 2px; text-align: center; background: #f3f4fb; }
-td.sum-ok    { background: #c8e6c9 !important; color: #1b5e20; }
-td.sum-ng    { background: #ffcdd2 !important; color: #b71c1c; }
+td.sum-cell  { font-size: 11px; font-weight: 500; padding: 3px 2px; text-align: center; background: #f3f4fb; }
+td.sum-ok    { background: #AFF27E !important; color: #000000; }
+td.sum-ng    { background: #FFE3B8 !important; color: #000000; }
 
 /* color count columns */
 th.col-header { background: #e8eaf6 !important; font-size: 10px; font-weight: 700; color: var(--accent2) !important; min-width: 34px; }
-td.col-count  { background: #f3f4fb; font-size: 11px; font-weight: 700; padding: 3px 4px; text-align: center; }
-td.col-total  { background: #e8eaf6; font-size: 11px; font-weight: 700; padding: 3px 4px; text-align: center; color: var(--accent2); }
+td.col-count  { background: #f3f4fb; font-size: 13px; font-weight: 700; padding: 3px 4px; text-align: center; }
+td.col-total  { background: #e8eaf6; font-size: 13px; font-weight: 700; padding: 3px 4px; text-align: center; color: var(--accent2); }
 
 .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 300; align-items: center; justify-content: center; }
 .modal-overlay.open { display: flex; }
@@ -664,7 +664,7 @@ function renderDailySummary(el) {
         if(sc[sh]) sc[sh].push({name:state.persons[pi],color:cell.colors[sh]||0});
       }
     }
-    html+='<div class="day-row"><span class="day-num" style="'+(isWE?'color:#e53935':'')+'">'+ d+'</span><span style="font-size:10px;color:var(--text-dim);width:22px">'+DAYS_TH[dow]+'</span>';
+    html+='<div class="day-row"><span class="day-num" style="'+(isWE?'color:#e53935':'')+'">'+ d+'</span><span style="font-size:11px;color:var(--text-dim);width:22px">'+DAYS_TH[dow]+'</span>';
     for(var si2=0;si2<SHIFTS.length;si2++) {
       var s=SHIFTS[si2],arr=sc[s];
       var sName=s==='ช'?'เช้า':s==='บ'?'บ่าย':'ดึก';
