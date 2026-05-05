@@ -146,6 +146,7 @@ td.col-total  { background: #e8eaf6; font-size: 13px; font-weight: 700; padding:
 
 <div class="app-header">
   <div class="app-title">📋 ตารางเวร</div>
+  <div id="syncIndicator" style="font-size:11px;color:#2e7d32;opacity:0;transition:opacity 0.5s;"></div>
   <div class="month-nav">
     <button id="btnPrev">‹</button>
     <div class="month-display" id="monthDisplay"></div>
@@ -253,6 +254,24 @@ td.col-total  { background: #e8eaf6; font-size: 13px; font-weight: 700; padding:
 
 <div class="toast" id="toast"></div>
 
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script>
+  var firebaseConfig = {
+    apiKey: "AIzaSyCh_bHkty6Sn_iqjQazC2TYvsX9DQXt1FQ",
+    authDomain: "shift-scheduler-rn-ayh.firebaseapp.com",
+    projectId: "shift-scheduler-rn-ayh",
+    storageBucket: "shift-scheduler-rn-ayh.firebasestorage.app",
+    messagingSenderId: "50253427407",
+    appId: "1:50253427407:web:0394b00ad55025700a7dba"
+  };
+  try {
+    firebase.initializeApp(firebaseConfig);
+    window.db = firebase.firestore();
+  } catch(e) { console.error('Firebase init error:', e); }
+</script>
+
 <script>
 var MONTHS_TH = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
 var DAYS_TH = ['อา','จ','อ','พ','พฤ','ศ','ส'];
@@ -279,6 +298,17 @@ var state = {
 
 function save() {
   try { localStorage.setItem('shiftApp2', JSON.stringify(state)); } catch(e) {}
+  // sync to Firestore
+  if(window.db) {
+    var docRef = window.db.collection('schedules').doc('main');
+    docRef.set({
+      persons: state.persons,
+      data: state.data,
+      holidays: state.holidays,
+      special: state.special,
+      threshold: state.threshold
+    }).catch(function(e){ console.error('Firebase save error:', e); });
+  }
 }
 function load() {
   try {
@@ -294,6 +324,49 @@ function load() {
       if (p.threshold) state.threshold = p.threshold;
     }
   } catch(e) {}
+}
+function loadFromFirebase(callback) {
+  if(!window.db) { callback(); return; }
+  window.db.collection('schedules').doc('main').get().then(function(doc) {
+    if(doc.exists) {
+      var p = doc.data();
+      if(p.persons) state.persons = p.persons;
+      if(p.data) state.data = p.data;
+      if(p.holidays) state.holidays = p.holidays;
+      if(p.special) state.special = p.special;
+      if(p.threshold) state.threshold = p.threshold;
+      // sync back to localStorage
+      try { localStorage.setItem('shiftApp2', JSON.stringify(state)); } catch(e) {}
+    }
+    callback();
+  }).catch(function(e) {
+    console.error('Firebase load error:', e);
+    callback();
+  });
+}
+function listenFirebase() {
+  if(!window.db) return;
+  window.db.collection('schedules').doc('main').onSnapshot(function(doc) {
+    if(doc.exists && !window._isSaving) {
+      var p = doc.data();
+      if(p.persons) state.persons = p.persons;
+      if(p.data) state.data = p.data;
+      if(p.holidays) state.holidays = p.holidays;
+      if(p.special) state.special = p.special;
+      if(p.threshold) state.threshold = p.threshold;
+      try { localStorage.setItem('shiftApp2', JSON.stringify(state)); } catch(e) {}
+      renderSchedule();
+      renderPersonList();
+      showSyncindicator();
+    }
+  });
+}
+function showSyncIndicator() {
+  var el = document.getElementById('syncIndicator');
+  if(!el) return;
+  el.textContent = '🔄 ซิงค์แล้ว';
+  el.style.opacity = '1';
+  setTimeout(function(){ el.style.opacity = '0'; }, 2000);
 }
 
 function mk(y,m) { return y+'-'+String(m+1).padStart(2,'0'); }
@@ -818,11 +891,21 @@ document.getElementById('btnSaveThr').addEventListener('click',function(){
 });
 
 // START
-load();
+load(); // load from localStorage first (instant)
 updateMonthDisplay();
 renderSchedule();
 renderPersonList();
 renderStampButtons();
+// then load from Firebase (may update UI)
+if(window.db) {
+  loadFromFirebase(function(){
+    updateMonthDisplay();
+    renderSchedule();
+    renderPersonList();
+    loadThrInputs();
+  });
+  listenFirebase();
+}
 </script>
 </body>
 </html>
