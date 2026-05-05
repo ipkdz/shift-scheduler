@@ -70,7 +70,7 @@ td.cell-preceptor { background: #8ADEFF !important; color: #000000; }
 /* summary rows */
 td.sum-label { background: #e8eaf6; position: sticky; left: 0; z-index: 1; padding: 4px 10px; text-align: left; font-size: 10px; font-weight: 700; color: var(--accent2); border-right: 2px solid var(--accent); white-space: nowrap; }
 td.sum-cell  { font-size: 11px; font-weight: 500; padding: 3px 2px; text-align: center; background: #f3f4fb; }
-td.sum-ok    { background: #AFF27E !important; color: #000000; }
+td.sum-ok    { background: #C4FFB2 !important; color: #000000; }
 td.sum-ng    { background: #FFE3B8 !important; color: #000000; }
 
 /* color count columns */
@@ -160,7 +160,7 @@ td.col-total  { background: #e8eaf6; font-size: 13px; font-weight: 700; padding:
   <button class="tab" data-tab="settings">ตั้งค่า</button>
 </div>
 
-<div class="stamp-bar">
+<div class="stamp-bar" id="stampBar">
   <span class="stamp-bar-label">📍Stamp:</span>
   <div class="stamp-btns" id="stampButtons"></div>
   <button class="stamp-cancel" id="stampCancel">✕ ยกเลิก</button>
@@ -191,7 +191,7 @@ td.col-total  { background: #e8eaf6; font-size: 13px; font-weight: 700; padding:
 
 <div class="page" id="page-holidays">
   <div class="section-card">
-    <h3>🎌 วันหยุดราชการ</h3>
+    <h3>🎉 วันหยุดราชการ</h3>
     <div id="holidayList"></div>
     <div class="holiday-add-form">
       <input type="date" id="newHolidayDate">
@@ -440,7 +440,7 @@ function renderSchedule() {
     var hol=getHoliday(y,m,d);
     var cls=hol?'day-holiday':(isWE?'day-weekend':'');
     html+='<th class="'+cls+'">'+d+'<br><span style="font-size:9px">'+DAYS_TH[dow]+'</span>';
-    if(hol) html+='<span style="font-size:8px;display:block">🎌</span>';
+    if(hol) html+='<span style="font-size:8px;display:block"></span>';
     html+='</th>';
   }
   for(var ci1=1;ci1<=5;ci1++) {
@@ -741,6 +741,7 @@ function switchTab(name) {
   document.querySelectorAll('.tab').forEach(function(t){t.classList.toggle('active',t.getAttribute('data-tab')===name);});
   document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
   document.getElementById('page-'+name).classList.add('active');
+  document.getElementById('stampBar').style.display = name==='schedule' ? 'flex' : 'none';
   if(name==='summary') renderSummary();
   if(name==='settings') { renderPersonList(); loadThrInputs(); }
   if(name==='holidays') renderHolidayList();
@@ -805,7 +806,7 @@ document.getElementById('btnAddHoliday').addEventListener('click',function(){
   state.holidays.push({date:dateVal,name:nameVal});
   document.getElementById('newHolidayDate').value='';
   document.getElementById('newHolidayName').value='';
-  save(); renderHolidayList(); renderSchedule(); showToast('เพิ่มวันหยุด "'+nameVal+'" แล้ว 🎌');
+  save(); renderHolidayList(); renderSchedule(); showToast('เพิ่มวันหยุด "'+nameVal+'" แล้ว 🎉');
 });
 document.getElementById('newHolidayName').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('btnAddHoliday').click();});
 
