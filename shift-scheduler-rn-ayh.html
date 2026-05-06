@@ -3,177 +3,310 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ตารางเวร</title>
+<title>ER RN AYH</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Prompt:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Prompt:wght@400;600;700&display=swap');
-
+/* ===== ROOT ===== */
 :root {
-  --bg: #f5f6fa; --surface: #ffffff; --surface2: #eef0f7;
-  --border: #d0d4e8; --text: #1a1d2e; --text-dim: #6b7099;
-  --accent: #5c6bc0; --accent2: #3949ab; --header-bg: #ffffff;
-  --pos1: #111111; --pos2: #e53935; --pos3: #8e24aa; --pos4: #388e3c; --pos5: #1565c0;
+  --bg:#f0f2f8;--surface:#fff;--surface2:#eef0f7;--border:#d0d4e8;
+  --text:#1a1d2e;--text-dim:#6b7099;--accent:#3949ab;--accent2:#1d4ed8;
+  --header-bg:#fff;
+  --pos1:#111;--pos2:#e53935;--pos3:#8e24aa;--pos4:#388e3c;--pos5:#1565c0;
+  --morning:#f59e0b;--afternoon:#8b5cf6;--night:#0ea5e9;
+  --ok:#10b981;--danger:#ef4444;--radius:12px;
 }
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: var(--bg); color: var(--text); font-family: 'Sarabun', sans-serif; min-height: 100vh; }
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Sarabun',sans-serif;min-height:100vh;}
 
-.app-header { background: var(--header-bg); border-bottom: 1px solid var(--border); padding: 12px 20px; display: flex; align-items: center; gap: 16px; position: sticky; top: 0; z-index: 100; }
-.app-title { font-family: 'Prompt', sans-serif; font-size: 1.1rem; font-weight: 600; color: var(--accent2); }
-.month-nav { display: flex; align-items: center; gap: 8px; margin-left: auto; }
-.month-nav button { background: var(--surface2); border: 1px solid var(--border); color: var(--text); width: 28px; height: 28px; border-radius: 6px; cursor: pointer; font-size: 14px; }
-.month-nav button:hover { background: var(--accent); color: white; }
-.month-display { font-family: 'Prompt', sans-serif; font-weight: 600; font-size: 0.95rem; min-width: 150px; text-align: center; color: var(--accent2); }
+/* ===== NAV ===== */
+.app-header{background:var(--header-bg);border-bottom:1px solid var(--border);padding:0 16px;display:flex;align-items:center;position:sticky;top:0;z-index:200;}
+.app-title{font-family:'Prompt',sans-serif;font-size:1rem;font-weight:700;color:var(--accent);padding:13px 0;margin-right:8px;white-space:nowrap;}
+.sync-ind{font-size:11px;color:var(--ok);opacity:0;transition:opacity .5s;margin-right:auto;}
+.nav-tabs{display:flex;gap:0;overflow-x:auto;}
+.nav-tab{padding:13px 13px;font-size:12px;font-family:'Sarabun',sans-serif;cursor:pointer;border:none;background:none;color:var(--text-dim);border-bottom:3px solid transparent;transition:all .15s;font-weight:500;white-space:nowrap;flex-shrink:0;}
+.nav-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.nav-tab:hover:not(.active){color:var(--text);}
 
-.tabs { display: flex; gap: 4px; padding: 10px 20px 0; border-bottom: 1px solid var(--border); background: var(--header-bg); }
-.tab { padding: 7px 16px; border-radius: 8px 8px 0 0; border: 1px solid transparent; border-bottom: none; cursor: pointer; font-size: 13px; font-family: 'Sarabun', sans-serif; background: transparent; color: var(--text-dim); }
-.tab.active { background: var(--bg); border-color: var(--border); color: var(--text); }
-.tab:hover:not(.active) { color: var(--text); }
+/* ===== STAMP BAR ===== */
+.stamp-bar{background:var(--surface);border-bottom:2px solid var(--border);padding:7px 16px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.stamp-bar-label{font-size:11px;color:var(--text-dim);font-weight:600;white-space:nowrap;}
+.stamp-btns{display:flex;gap:3px;flex-wrap:wrap;align-items:center;}
+.sbtn{border:1.5px solid var(--border);border-radius:12px;padding:3px 8px;cursor:pointer;font-size:11px;font-family:'Sarabun',sans-serif;font-weight:700;background:var(--surface2);color:var(--text);display:inline-flex;align-items:center;gap:3px;}
+.sbtn:hover{border-color:var(--accent);}
+.sbtn.active{background:var(--accent);border-color:var(--accent);color:white;transform:scale(1.05);}
+.sdot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.stamp-cancel{background:#e53935;border:none;border-radius:8px;color:white;padding:4px 10px;cursor:pointer;font-size:12px;font-family:'Sarabun',sans-serif;font-weight:600;display:none;}
 
-.stamp-bar { background: var(--surface); border-bottom: 2px solid var(--border); padding: 8px 20px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.stamp-bar-label { font-size: 11px; color: var(--text-dim); font-weight: 600; white-space: nowrap; }
-.stamp-btns { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
-.sbtn { border: 1.5px solid var(--border); border-radius: 12px; padding: 3px 9px; cursor: pointer; font-size: 11px; font-family: 'Sarabun', sans-serif; font-weight: 700; background: var(--surface2); color: var(--text); display: inline-flex; align-items: center; gap: 3px; }
-.sbtn:hover { border-color: var(--accent); }
-.sbtn.active { background: var(--accent2); border-color: var(--accent2); color: white; transform: scale(1.06); }
-.sdot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-.stamp-cancel { background: #e53935; border: none; border-radius: 8px; color: white; padding: 4px 12px; cursor: pointer; font-size: 12px; font-family: 'Sarabun', sans-serif; font-weight: 600; display: none; }
+/* ===== PAGES ===== */
+.page{display:none;padding:16px;}
+.page.active{display:block;}
 
-.page { display: none; padding: 16px 20px; }
-.page.active { display: block; }
+/* ===== SCHEDULE TABLE ===== */
+.table-wrapper{overflow-x:auto;border-radius:10px;border:1px solid var(--border);background:var(--surface);}
+table{border-collapse:collapse;min-width:100%;font-size:12px;}
+th,td{border:1px solid var(--border);padding:0;text-align:center;vertical-align:middle;}
+thead th{background:var(--surface2);padding:5px 3px;font-size:11px;color:var(--text-dim);white-space:nowrap;position:sticky;top:0;z-index:2;}
+thead th.day-weekend{background:#5a9fd84e;color:#0d47a1;}
+thead th.day-holiday{background:#5a9fd84e!important;color:#0d47a1!important;}
+thead th.name-col{left:0;z-index:3;background:var(--surface2);min-width:100px;text-align:left;padding-left:8px;}
+td.name-cell{background:var(--surface);position:sticky;left:0;z-index:1;padding:5px 8px;text-align:left;font-size:12px;color:var(--text);white-space:nowrap;border-right:2px solid var(--accent);}
+td.shift-cell{min-width:38px;height:32px;cursor:pointer;}
+td.shift-cell:hover{background:rgba(57,73,171,.1)!important;}
+td.shift-cell.weekend-col{background:rgba(13, 72, 161, 0.075);}
+td.shift-cell.holiday-col{background:rgba(13, 72, 161, 0.075);}
+.shift-display{display:flex;justify-content:center;align-items:center;gap:1px;height:100%;font-weight:700;font-size:12px;}
+.shift-char{display:inline-block;line-height:1;}
+.pc-1{color:var(--pos1);}.pc-2{color:var(--pos2);}.pc-3{color:var(--pos3);}.pc-4{color:var(--pos4);}.pc-5{color:var(--pos5);}
+td.special-cell{height:32px;text-align:center;vertical-align:middle;font-weight:700;font-size:13px;cursor:pointer;}
+td.cell-meeting{background:#C4FFB2!important;color:#000;}
+td.cell-leave{background:#FFFAB2!important;color:#000;}
+td.cell-preceptor{background:#8ADEFF!important;color:#000;}
+td.sum-label{background:#e8eaf6;position:sticky;left:0;z-index:1;padding:3px 8px;text-align:left;font-size:10px;font-weight:700;color:var(--accent);border-right:2px solid var(--accent);white-space:nowrap;}
+td.sum-cell{font-size:10px;font-weight:500;padding:2px;text-align:center;background:#f3f4fb;}
+td.sum-ok{background:#c8e6c9!important;color:#1b5e20;}
+td.sum-ng{background:#ffcdd2!important;color:#b71c1c;}
+th.col-header{background:#e8eaf6!important;font-size:10px;font-weight:700;color:var(--accent)!important;min-width:32px;}
+td.col-count{background:#f3f4fb;font-size:13px;font-weight:700;padding:2px 3px;text-align:center;}
+td.col-total{background:#e8eaf6;font-size:12px;font-weight:700;padding:2px 3px;text-align:center;color:var(--accent);}
+.pos-legend{display:flex;gap:12px;flex-wrap:wrap;padding:7px 12px;border-top:1px solid var(--border);font-size:11px;}
+.pos-legend-item{display:flex;align-items:center;gap:4px;color:var(--text-dim);}
+.legend-dot{width:10px;height:10px;border-radius:50%;}
 
-.table-wrapper { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); }
-table { border-collapse: collapse; min-width: 100%; font-size: 12px; }
-th, td { border: 1px solid var(--border); padding: 0; text-align: center; vertical-align: middle; }
-thead th { background: var(--surface2); padding: 6px 4px; font-size: 11px; color: var(--text-dim); white-space: nowrap; position: sticky; top: 0; z-index: 2; }
-thead th.day-weekend { background: #b3cef58f; color: #062480; }
-thead th.day-holiday { background: #b3cef58f !important; color: #062480 !important; }
-thead th.name-col { left: 0; z-index: 3; background: var(--surface2); min-width: 100px; text-align: left; padding-left: 10px; }
-td.name-cell { background: var(--surface); position: sticky; left: 0; z-index: 1; padding: 6px 10px; text-align: left; font-size: 12px; color: var(--text); white-space: nowrap; border-right: 2px solid var(--accent); }
-td.shift-cell { min-width: 40px; height: 34px; cursor: pointer; }
-td.shift-cell:hover { background: rgba(92,107,192,0.12) !important; }
-td.shift-cell.weekend-col { background: rgba(172, 197, 235, 0.2); }
-td.shift-cell.holiday-col { background: rgba(172, 197, 235, 0.2); }
+/* ===== MODAL (schedule) ===== */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:400;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;min-width:290px;max-width:340px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,.15);}
+.modal-title{font-family:'Prompt',sans-serif;font-size:14px;font-weight:600;margin-bottom:3px;color:var(--accent);}
+.modal-info{font-size:12px;color:var(--text-dim);margin-bottom:12px;}
+.shift-toggles{display:flex;gap:7px;margin-bottom:12px;}
+.shift-toggle{padding:5px 12px;border-radius:20px;border:2px solid var(--border);background:transparent;color:var(--text-dim);cursor:pointer;font-family:'Sarabun',sans-serif;font-weight:700;font-size:13px;}
+.shift-toggle.on{border-color:var(--accent);color:var(--accent);background:#e8eaf6;}
+.pos-section{margin-bottom:10px;}
+.pos-section-title{font-size:11px;color:var(--text-dim);margin-bottom:6px;}
+.pos-row{display:flex;align-items:center;gap:6px;margin-bottom:5px;}
+.pos-label{width:28px;font-weight:700;font-size:13px;}
+.pos-dots{display:flex;gap:5px;}
+.pos-dot{width:20px;height:20px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:transform .1s;}
+.pos-dot:hover{transform:scale(1.2);}
+.pos-dot.selected{border-color:#333;transform:scale(1.15);}
+.pos-dot.p1{background:var(--pos1);}.pos-dot.p2{background:var(--pos2);}.pos-dot.p3{background:var(--pos3);}.pos-dot.p4{background:var(--pos4);}.pos-dot.p5{background:var(--pos5);}
+.modal-actions{display:flex;gap:7px;margin-top:12px;}
+.btn{flex:1;padding:8px;border-radius:8px;border:none;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:13px;font-weight:600;}
+.btn-primary{background:var(--accent);color:white;}
+.btn-danger{background:#e53935;color:white;}
+.btn-ghost{background:var(--surface2);color:var(--text-dim);}
 
-.shift-display { display: flex; justify-content: center; align-items: center; gap: 1px; height: 100%; font-weight: 700; font-size: 12px; }
-.shift-char { display: inline-block; line-height: 1; }
-.pc-1 { color: var(--pos1); } .pc-2 { color: var(--pos2); } .pc-3 { color: var(--pos3); } .pc-4 { color: var(--pos4); } .pc-5 { color: var(--pos5); }
+/* ===== SECTION CARD ===== */
+.section-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px;}
+.section-card h3{font-family:'Prompt',sans-serif;font-size:13px;font-weight:600;color:var(--accent);margin-bottom:10px;}
+.person-list{display:flex;flex-direction:column;gap:5px;margin-bottom:8px;}
+.add-row{display:flex;gap:7px;}
+.add-row input,.form-input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:6px 10px;font-family:'Sarabun',sans-serif;font-size:13px;outline:none;}
+.add-row input:focus,.form-input:focus{border-color:var(--accent);}
+.add-row button,.form-btn{background:var(--accent);border:none;border-radius:8px;color:white;padding:6px 12px;cursor:pointer;font-size:13px;font-family:'Sarabun',sans-serif;}
 
-.pos-legend { display: flex; gap: 14px; flex-wrap: wrap; padding: 8px 14px; border-top: 1px solid var(--border); font-size: 11px; }
-.pos-legend-item { display: flex; align-items: center; gap: 5px; color: var(--text-dim); }
-.legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+/* ===== SUMMARY ===== */
+.summary-controls{display:flex;gap:10px;margin-bottom:12px;}
+.summary-controls select{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:8px;font-family:'Sarabun',sans-serif;font-size:13px;outline:none;}
+.summary-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;}
+.summary-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;}
+.summary-name{font-weight:700;font-size:13px;margin-bottom:8px;}
+.summary-row{display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:2px 0;border-bottom:1px solid var(--border);}
+.summary-row:last-child{border-bottom:none;}
+.count-badge{background:var(--surface2);border-radius:10px;padding:2px 7px;font-size:11px;color:var(--text-dim);}
+.day-row{display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px;flex-wrap:wrap;}
+.day-num{width:26px;color:var(--text-dim);font-weight:600;}
+.shift-group{display:flex;align-items:center;gap:5px;background:var(--surface2);border-radius:6px;padding:3px 7px;}
+.shift-group-label{font-size:10px;color:var(--text-dim);}
 
-/* special cells */
-td.special-cell { height: 34px; text-align: center; vertical-align: middle; font-weight: 700; font-size: 13px; cursor: pointer; }
-td.cell-meeting { background: #C4FFB2 !important; color: #000000; }
-td.cell-leave   { background: #FFFAB2 !important; color: #000000; }
-td.cell-preceptor { background: #8ADEFF !important; color: #000000; }
+/* ===== HOLIDAY ===== */
+.holiday-list{display:flex;flex-direction:column;gap:5px;margin-bottom:10px;}
+.holiday-item{display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:12px;}
+.holiday-item .hdate{color:#e65100;font-weight:700;min-width:80px;}
+.holiday-item .hname{flex:1;}
+.holiday-item button{background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:15px;}
+.holiday-add-form{display:flex;gap:7px;flex-wrap:wrap;}
+.holiday-add-form input{background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:6px 10px;font-family:'Sarabun',sans-serif;font-size:13px;outline:none;}
+.holiday-add-form input[type="date"]{width:148px;}
+.holiday-add-form input[type="text"]{flex:1;min-width:150px;}
+.holiday-add-form button{background:#f57c00;border:none;border-radius:8px;color:white;padding:6px 12px;cursor:pointer;font-size:13px;font-family:'Sarabun',sans-serif;font-weight:700;}
 
-/* summary rows */
-td.sum-label { background: #e8eaf6; position: sticky; left: 0; z-index: 1; padding: 4px 10px; text-align: left; font-size: 10px; font-weight: 700; color: var(--accent2); border-right: 2px solid var(--accent); white-space: nowrap; }
-td.sum-cell  { font-size: 11px; font-weight: 500; padding: 3px 2px; text-align: center; background: #f3f4fb; }
-td.sum-ok    { background: #C4FFB2 !important; color: #000000; }
-td.sum-ng    { background: #FFE3B8 !important; color: #000000; }
+/* ===== ASSIGNMENT — CALENDAR ===== */
+.cal-header{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
+.cal-title-a{font-family:'Prompt',sans-serif;font-size:1.2rem;font-weight:700;}
+.cal-nav{background:var(--surface);border:1px solid var(--border);color:var(--text);width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:14px;}
+.cal-nav:hover{background:var(--accent);color:white;border-color:var(--accent);}
+.cal-grid-a{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;}
+.cal-dh{text-align:center;font-size:11px;font-weight:600;color:var(--text-dim);padding:5px 0;}
+.cal-dh.we{color:#e53935;}
+.cal-cell-a{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:7px;min-height:64px;cursor:pointer;transition:all .15s;}
+.cal-cell-a:hover{border-color:var(--accent);box-shadow:0 2px 8px rgba(57,73,171,.12);}
+.cal-cell-a.empty{background:transparent;border-color:transparent;cursor:default;}
+.cal-cell-a.today{border-color:var(--accent);background:#eff6ff;}
+.cal-cell-a.done{border-left:3px solid var(--ok);}
+.cal-date-a{font-size:12px;font-weight:600;margin-bottom:3px;}
+.cal-cell-a.we .cal-date-a{color:#e53935;}
+.cal-dots-a{display:flex;gap:3px;flex-wrap:wrap;}
+.cal-dot-a{width:6px;height:6px;border-radius:50%;}
+.cal-dot-a.n{background:var(--night);}
+.cal-dot-a.m{background:var(--morning);}
+.cal-dot-a.a{background:var(--afternoon);}
 
-/* color count columns */
-th.col-header { background: #e8eaf6 !important; font-size: 10px; font-weight: 700; color: var(--accent2) !important; min-width: 34px; }
-td.col-count  { background: #f3f4fb; font-size: 13px; font-weight: 700; padding: 3px 4px; text-align: center; }
-td.col-total  { background: #e8eaf6; font-size: 13px; font-weight: 700; padding: 3px 4px; text-align: center; color: var(--accent2); }
+/* DAILY VIEW */
+.back-btn{display:inline-flex;align-items:center;gap:5px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;margin-bottom:12px;color:var(--text-dim);font-family:'Sarabun',sans-serif;}
+.back-btn:hover{color:var(--accent);border-color:var(--accent);}
+.day-title-a{font-family:'Prompt',sans-serif;font-size:1.1rem;font-weight:700;margin-bottom:10px;}
+.day-actions{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+.auto-btn{display:inline-flex;align-items:center;gap:6px;background:var(--accent);border:none;border-radius:10px;color:white;padding:8px 16px;cursor:pointer;font-size:13px;font-family:'Prompt',sans-serif;font-weight:600;}
+.auto-btn:hover{background:var(--accent2);}
+.export-btn{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:8px 16px;cursor:pointer;font-size:13px;font-family:'Sarabun',sans-serif;font-weight:600;}
+.export-btn:hover{border-color:var(--accent);color:var(--accent);}
 
-.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 300; align-items: center; justify-content: center; }
-.modal-overlay.open { display: flex; }
-.modal { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px; min-width: 300px; max-width: 360px; width: 90%; box-shadow: 0 8px 40px rgba(0,0,0,0.15); }
-.modal-title { font-family: 'Prompt', sans-serif; font-size: 14px; font-weight: 600; margin-bottom: 4px; color: var(--accent2); }
-.modal-info { font-size: 12px; color: var(--text-dim); margin-bottom: 14px; }
-.shift-toggles { display: flex; gap: 8px; margin-bottom: 14px; }
-.shift-toggle { padding: 6px 14px; border-radius: 20px; border: 2px solid var(--border); background: transparent; color: var(--text-dim); cursor: pointer; font-family: 'Sarabun', sans-serif; font-weight: 700; font-size: 13px; }
-.shift-toggle.on { border-color: var(--accent2); color: var(--accent2); background: #e8eaf6; }
-.pos-section { margin-bottom: 12px; }
-.pos-section-title { font-size: 11px; color: var(--text-dim); margin-bottom: 6px; }
-.pos-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-.pos-label { width: 30px; font-weight: 700; font-size: 13px; }
-.pos-dots { display: flex; gap: 6px; }
-.pos-dot { width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: transform 0.1s; }
-.pos-dot:hover { transform: scale(1.2); }
-.pos-dot.selected { border-color: #333; transform: scale(1.15); }
-.pos-dot.p0 { background: #e0e0e0; } .pos-dot.p1 { background: var(--pos1); } .pos-dot.p2 { background: var(--pos2); } .pos-dot.p3 { background: var(--pos3); } .pos-dot.p4 { background: var(--pos4); } .pos-dot.p5 { background: var(--pos5); }
-.modal-actions { display: flex; gap: 8px; margin-top: 14px; }
-.btn { flex: 1; padding: 8px; border-radius: 8px; border: none; cursor: pointer; font-family: 'Sarabun', sans-serif; font-size: 13px; font-weight: 600; }
-.btn-primary { background: var(--accent); color: white; } .btn-danger { background: #e53935; color: white; } .btn-ghost { background: var(--surface2); color: var(--text-dim); }
+.shift-cols{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+@media(max-width:680px){.shift-cols{grid-template-columns:1fr;}}
+.shift-card{background:var(--surface);border-radius:14px;border:1px solid var(--border);overflow:hidden;}
+.shift-hdr{padding:10px 14px;display:flex;align-items:center;justify-content:space-between;}
+.shift-hdr.morning{background:linear-gradient(135deg,#fef3c7,#fde68a);}
+.shift-hdr.afternoon{background:linear-gradient(135deg,#ede9fe,#ddd6fe);}
+.shift-hdr.night{background:linear-gradient(135deg,#e0f2fe,#bae6fd);}
+.shift-hdr-title{font-family:'Prompt',sans-serif;font-size:13px;font-weight:700;}
+.shift-hdr-title.morning{color:#92400e;}
+.shift-hdr-title.afternoon{color:#4c1d95;}
+.shift-hdr-title.night{color:#0c4a6e;}
+.shift-badge{font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px;}
+.shift-badge.morning{background:#fde68a;color:#92400e;}
+.shift-badge.afternoon{background:#ddd6fe;color:#4c1d95;}
+.shift-badge.night{background:#bae6fd;color:#0c4a6e;}
+.assign-row{display:flex;align-items:center;padding:5px 12px;gap:7px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s;}
+.assign-row:last-child{border-bottom:none;}
+.assign-row:hover{background:#f5f7ff;}
+.assign-role{font-size:10px;font-weight:700;color:var(--text-dim);width:62px;flex-shrink:0;}
+.assign-name{flex:1;font-size:12px;font-weight:600;}
+.assign-name.empty{color:var(--text-dim);font-style:italic;font-weight:400;}
+.assign-break{font-size:10px;color:var(--text-dim);font-family:'IBM Plex Mono',monospace;white-space:nowrap;}
 
-.section-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 14px; }
-.section-card h3 { font-family: 'Prompt', sans-serif; font-size: 13px; font-weight: 600; color: var(--accent2); margin-bottom: 12px; }
-.person-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
-.person-tag { display: flex; align-items: center; gap: 6px; background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; padding: 4px 10px; font-size: 12px; }
-.person-tag button { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 14px; }
-.person-tag button:hover { color: #e53935; }
-.add-row { display: flex; gap: 8px; }
-.add-row input { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 7px 10px; font-family: 'Sarabun', sans-serif; font-size: 13px; outline: none; }
-.add-row input:focus { border-color: var(--accent); }
-.add-row button { background: var(--accent); border: none; border-radius: 8px; color: white; padding: 7px 14px; cursor: pointer; font-size: 13px; font-family: 'Sarabun', sans-serif; }
+/* IMPORT ROSTER */
+.import-section{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px;}
+.import-section h3{font-family:'Prompt',sans-serif;font-size:13px;font-weight:600;color:var(--accent);margin-bottom:8px;}
+.roster-grid{display:flex;gap:10px;flex-wrap:wrap;}
+.roster-card{flex:1;min-width:180px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px;}
+.roster-card-title{font-size:11px;font-weight:700;margin-bottom:6px;}
+.roster-card-title.morning{color:#92400e;}
+.roster-card-title.afternoon{color:#4c1d95;}
+.roster-card-title.night{color:#0c4a6e;}
+.roster-names{font-size:11px;color:var(--text-dim);line-height:1.6;}
 
-.summary-controls { display: flex; gap: 10px; margin-bottom: 14px; }
-.summary-controls select { background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 7px 12px; border-radius: 8px; font-family: 'Sarabun', sans-serif; font-size: 13px; outline: none; }
-.summary-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(260px,1fr)); gap: 12px; }
-.summary-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
-.summary-name { font-weight: 700; font-size: 14px; margin-bottom: 10px; }
-.summary-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; padding: 3px 0; border-bottom: 1px solid var(--border); }
-.summary-row:last-child { border-bottom: none; }
-.count-badge { background: var(--surface2); border-radius: 10px; padding: 2px 8px; font-size: 11px; color: var(--text-dim); }
-.day-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 12px; flex-wrap: wrap; }
-.day-num { width: 28px; color: var(--text-dim); font-weight: 600; }
-.shift-group { display: flex; align-items: center; gap: 6px; background: var(--surface2); border-radius: 6px; padding: 3px 8px; }
-.shift-group-label { font-size: 10px; color: var(--text-dim); }
+/* STAFF PAGE */
+.staff-wrap{overflow-x:auto;border-radius:12px;border:1px solid var(--border);background:var(--surface);}
+.staff-tbl{border-collapse:collapse;min-width:100%;font-size:12px;}
+.staff-tbl th{background:#f1f5ff;padding:7px 8px;text-align:center;font-size:10px;font-weight:700;color:var(--text-dim);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;}
+.staff-tbl th.nc{text-align:left;min-width:100px;}
+.staff-tbl td{border-bottom:1px solid var(--border);padding:6px 8px;text-align:center;vertical-align:middle;}
+.staff-tbl td.nc{text-align:left;font-size:12px;white-space:nowrap;}
+.staff-tbl tr:last-child td{border-bottom:none;}
+.staff-tbl tr:hover td{background:#f8faff;}
+.cond-chip{display:inline-flex;align-items:center;gap:3px;border-radius:10px;padding:2px 6px;font-size:10px;font-weight:600;}
+.cond-chip.preg{background:#fce7f3;color:#9d174d;}
+.cond-chip.float{background:#d1fae5;color:#065f46;}
+.cond-chip.nonight{background:#e0e7ff;color:#3730a3;}
 
-.holiday-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
-.holiday-item { display: flex; align-items: center; gap: 10px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-size: 12px; }
-.holiday-item .hdate { color: #e65100; font-weight: 700; min-width: 80px; }
-.holiday-item .hname { flex: 1; }
-.holiday-item button { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 16px; }
-.holiday-item button:hover { color: #e53935; }
-.holiday-add-form { display: flex; gap: 8px; flex-wrap: wrap; }
-.holiday-add-form input { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 7px 10px; font-family: 'Sarabun', sans-serif; font-size: 13px; outline: none; }
-.holiday-add-form input[type="date"] { width: 150px; }
-.holiday-add-form input[type="text"] { flex: 1; min-width: 160px; }
-.holiday-add-form input:focus { border-color: var(--accent); }
-.holiday-add-form button { background: #f57c00; border: none; border-radius: 8px; color: white; padding: 7px 14px; cursor: pointer; font-size: 13px; font-family: 'Sarabun', sans-serif; font-weight: 700; }
-.holiday-month-title { font-size: 11px; color: var(--text-dim); margin: 10px 0 6px; font-weight: 600; }
+/* STAFF MODAL */
+.smodal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:500;align-items:center;justify-content:center;}
+.smodal-overlay.open{display:flex;}
+.smodal{background:var(--surface);border-radius:16px;padding:18px;width:90%;max-width:420px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.15);}
+.smodal-title{font-family:'Prompt',sans-serif;font-size:15px;font-weight:700;margin-bottom:14px;color:var(--text);}
+.field-label{font-size:11px;font-weight:700;color:var(--text-dim);margin-bottom:5px;margin-top:12px;}
+.cap-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;}
+.cap-toggle{border:1.5px solid var(--border);border-radius:8px;padding:5px 4px;text-align:center;cursor:pointer;font-size:11px;font-weight:600;color:var(--text-dim);background:var(--surface2);}
+.cap-toggle.on{background:var(--accent);border-color:var(--accent);color:white;}
+.cond-grid{display:flex;flex-direction:column;gap:5px;}
+.cond-row{display:flex;align-items:center;gap:8px;padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;}
+.cond-row.on{border-color:var(--accent);background:#eff6ff;}
+.cond-row input[type=checkbox]{accent-color:var(--accent);width:14px;height:14px;}
+.cond-row-label{font-size:12px;font-weight:600;flex:1;}
+.cond-row-desc{font-size:10px;color:var(--text-dim);}
+.limit-grid{display:flex;flex-direction:column;gap:5px;}
+.limit-row{display:flex;align-items:center;gap:10px;font-size:12px;}
+.limit-row label{width:76px;font-weight:600;}
+.limit-input{width:46px;border:1px solid var(--border);border-radius:6px;padding:4px 6px;text-align:center;font-size:12px;outline:none;font-family:'Sarabun',sans-serif;}
+.limit-input:focus{border-color:var(--accent);}
+.note-input{width:100%;border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-family:'Sarabun',sans-serif;font-size:12px;outline:none;resize:vertical;min-height:56px;}
+.note-input:focus{border-color:var(--accent);}
 
-.toast { position: fixed; bottom: 20px; right: 20px; background: #2e7d32; color: white; padding: 10px 16px; border-radius: 8px; font-size: 13px; z-index: 999; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
-.toast.show { opacity: 1; }
-.no-data { color: var(--text-dim); font-size: 13px; padding: 20px 0; text-align: center; }
+/* ASSIGN MODAL */
+.amodal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:450;align-items:center;justify-content:center;}
+.amodal-overlay.open{display:flex;}
+.amodal{background:var(--surface);border-radius:16px;padding:18px;width:90%;max-width:330px;box-shadow:0 20px 60px rgba(0,0,0,.15);}
+.amodal-title{font-family:'Prompt',sans-serif;font-size:14px;font-weight:700;margin-bottom:3px;}
+.amodal-sub{font-size:12px;color:var(--text-dim);margin-bottom:10px;}
+.search-inp{width:100%;border:1.5px solid var(--border);border-radius:8px;padding:7px 10px;font-family:'Sarabun',sans-serif;font-size:13px;outline:none;margin-bottom:7px;}
+.search-inp:focus{border-color:var(--accent);}
+.cand-list{max-height:210px;overflow-y:auto;display:flex;flex-direction:column;gap:3px;}
+.cand-item{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border-radius:8px;cursor:pointer;border:1px solid transparent;}
+.cand-item:hover:not(.disabled){background:#eff6ff;border-color:var(--accent);}
+.cand-item.sel{background:var(--accent);color:white;}
+.cand-item.disabled{opacity:.35;cursor:not-allowed;}
+.cand-name{font-size:12px;font-weight:600;}
+.cand-meta{font-size:10px;color:var(--text-dim);font-family:'IBM Plex Mono',monospace;}
+.cand-item.sel .cand-meta{color:rgba(255,255,255,.7);}
+.cand-warn{font-size:10px;color:var(--danger);}
+
+/* EXPORT MODAL */
+.exmodal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:450;align-items:center;justify-content:center;}
+.exmodal-overlay.open{display:flex;}
+.exmodal{background:var(--surface);border-radius:16px;padding:18px;width:90%;max-width:300px;box-shadow:0 20px 60px rgba(0,0,0,.15);}
+.exmodal-title{font-family:'Prompt',sans-serif;font-size:15px;font-weight:700;margin-bottom:14px;color:var(--text);}
+.ex-btn{display:flex;align-items:center;gap:10px;width:100%;padding:12px 14px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface2);cursor:pointer;font-size:13px;font-family:'Sarabun',sans-serif;font-weight:600;color:var(--text);margin-bottom:8px;}
+.ex-btn:hover{border-color:var(--accent);background:#eff6ff;color:var(--accent);}
+.ex-icon{font-size:20px;}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;right:20px;background:#1e293b;color:white;padding:10px 14px;border-radius:10px;font-size:13px;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;}
+.toast.show{opacity:1;}
+.no-data{color:var(--text-dim);font-size:13px;padding:20px 0;text-align:center;}
+
+/* PRINT STYLES */
+@media print {
+  .app-header,.stamp-bar,.nav-tabs,.back-btn,.day-actions,.no-print{display:none!important;}
+  body{background:white;}
+  .shift-card{break-inside:avoid;border:1px solid #ccc;}
+  .print-header{display:block!important;}
+}
+.print-header{display:none;font-family:'Prompt',sans-serif;font-size:16px;font-weight:700;text-align:center;margin-bottom:12px;}
 </style>
 </head>
 <body>
 
-<div id="lockScreen" style="display:flex;position:fixed;inset:0;background:#f5f6fa;z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:16px;">
-  <div style="font-family:Prompt,sans-serif;font-size:1.2rem;font-weight:600;color:#3949ab;">📋 ตารางเวร RN AYH</div>
-  <input id="pwInput" type="password" placeholder="รหัสผ่าน" style="padding:10px 16px;border-radius:10px;border:1px solid #d0d4e8;font-size:14px;outline:none;width:220px;text-align:center;">
-  <button onclick="checkPw()" style="background:#3949ab;color:white;border:none;border-radius:10px;padding:10px 30px;font-size:14px;cursor:pointer;font-family:Sarabun,sans-serif;">เข้าสู่ระบบ</button>
+<!-- LOCK SCREEN -->
+<div id="lockScreen" style="display:flex;position:fixed;inset:0;background:#f0f2f8;z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:14px;">
+  <div style="font-family:Prompt,sans-serif;font-size:1.2rem;font-weight:700;color:var(--accent);">🏥 ER RN AYH</div>
+  <input id="pwInput" type="password" placeholder="รหัสผ่าน" style="padding:10px 16px;border-radius:10px;border:1px solid var(--border);font-size:14px;outline:none;width:210px;text-align:center;">
+  <button onclick="checkPw()" style="background:var(--accent);color:white;border:none;border-radius:10px;padding:10px 28px;font-size:14px;cursor:pointer;font-family:Sarabun,sans-serif;">เข้าสู่ระบบ</button>
   <div id="pwError" style="color:#e53935;font-size:12px;display:none;">รหัสผ่านไม่ถูกต้อง</div>
 </div>
 
+<!-- HEADER -->
 <div class="app-header">
-  <div class="app-title">📋 ตารางเวร</div>
-  <div id="syncIndicator" style="font-size:11px;color:#2e7d32;opacity:0;transition:opacity 0.5s;"></div>
-  <div class="month-nav">
-    <button id="btnPrev">‹</button>
-    <div class="month-display" id="monthDisplay"></div>
-    <button id="btnNext">›</button>
-  </div>
+  <div class="app-title">🏥 ER RN AYH</div>
+  <span class="sync-ind" id="syncInd"></span>
+  <nav class="nav-tabs">
+    <button class="nav-tab active" data-tab="schedule">ตารางเวร</button>
+    <button class="nav-tab" data-tab="summary">สรุปเวร</button>
+    <button class="nav-tab" data-tab="assign">Assignment</button>
+    <button class="nav-tab" data-tab="staff">เจ้าหน้าที่</button>
+    <button class="nav-tab" data-tab="holidays">วันหยุด</button>
+    <button class="nav-tab" data-tab="settings">ตั้งค่า</button>
+  </nav>
 </div>
 
-<div class="tabs">
-  <button class="tab active" data-tab="schedule">ตารางเวร</button>
-  <button class="tab" data-tab="summary">สรุปเวร</button>
-  <button class="tab" data-tab="holidays">วันหยุด</button>
-  <button class="tab" data-tab="settings">ตั้งค่า</button>
-</div>
-
+<!-- STAMP BAR -->
 <div class="stamp-bar" id="stampBar">
-  <span class="stamp-bar-label">📍Stamp:</span>
+  <span class="stamp-bar-label">📍</span>
   <div class="stamp-btns" id="stampButtons"></div>
-  <button class="stamp-cancel" id="stampCancel">✕ ยกเลิก</button>
+  <button class="stamp-cancel" id="stampCancel">✕</button>
 </div>
 
+<!-- ===== SCHEDULE PAGE ===== -->
 <div class="page active" id="page-schedule">
   <div class="table-wrapper">
     <table id="scheduleTable"></table>
@@ -187,6 +320,7 @@ td.col-total  { background: #e8eaf6; font-size: 13px; font-weight: 700; padding:
   </div>
 </div>
 
+<!-- ===== SUMMARY PAGE ===== -->
 <div class="page" id="page-summary">
   <div class="summary-controls">
     <select id="summaryFilter">
@@ -197,31 +331,73 @@ td.col-total  { background: #e8eaf6; font-size: 13px; font-weight: 700; padding:
   <div id="summaryContent"></div>
 </div>
 
+<!-- ===== ASSIGNMENT PAGE ===== -->
+<div class="page" id="page-assign">
+  <div id="assign-calendar-view">
+    <div class="cal-header">
+      <button class="cal-nav" id="btnCalPrev">‹</button>
+      <div class="cal-title-a" id="calTitle"></div>
+      <button class="cal-nav" id="btnCalNext">›</button>
+      <button onclick="importRosterFromSchedule()" style="margin-left:auto;background:var(--ok);border:none;border-radius:8px;color:white;padding:7px 14px;cursor:pointer;font-size:12px;font-family:Sarabun,sans-serif;font-weight:600;">📥 Import เวรจากตาราง</button>
+      <button onclick="autoAssign()" style="background:var(--accent);border:none;border-radius:8px;color:white;padding:7px 14px;cursor:pointer;font-size:12px;font-family:Sarabun,sans-serif;font-weight:600;">✨ AI จัดทั้งเดือน</button>
+    </div>
+    <div class="cal-grid-a" id="calGrid"></div>
+  </div>
+  <div id="assign-daily-view" style="display:none;">
+    <button class="back-btn" id="btnBack">← กลับปฏิทิน</button>
+    <div class="print-header" id="printHeader"></div>
+    <div class="day-title-a" id="dayTitle"></div>
+    <div id="rosterPreview" style="margin-bottom:12px;"></div>
+    <div class="day-actions">
+      <button class="auto-btn" id="btnAuto">✨ AI จัดให้</button>
+      <button class="export-btn" id="btnExport">📤 Export</button>
+    </div>
+    <div class="shift-cols" id="shiftCols"></div>
+  </div>
+</div>
+
+<!-- ===== STAFF PAGE ===== -->
+<div class="page" id="page-staff">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+    <div style="font-family:'Prompt',sans-serif;font-size:1rem;font-weight:700;">รายชื่อเจ้าหน้าที่</div>
+  </div>
+  <div class="staff-wrap">
+    <table class="staff-tbl" id="staffTbl"></table>
+    <div class="add-row" style="padding:10px;border-top:1px solid var(--border);">
+      <input type="text" id="newStaffName" placeholder="ชื่อ-นามสกุล">
+      <button id="btnAddStaff">+ เพิ่ม</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== HOLIDAYS PAGE ===== -->
 <div class="page" id="page-holidays">
   <div class="section-card">
-    <h3>🎉 วันหยุดราชการ</h3>
+    <h3>🎌 วันหยุดราชการ</h3>
     <div id="holidayList"></div>
     <div class="holiday-add-form">
       <input type="date" id="newHolidayDate">
-      <input type="text" id="newHolidayName" placeholder="ชื่อวันหยุด เช่น วันสงกรานต์">
+      <input type="text" id="newHolidayName" placeholder="ชื่อวันหยุด">
       <button id="btnAddHoliday">+ เพิ่ม</button>
     </div>
   </div>
 </div>
 
+<!-- ===== SETTINGS PAGE ===== -->
 <div class="page" id="page-settings">
   <div class="section-card">
     <h3>🎯 เป้าหมายจำนวนคนต่อเวร</h3>
-    <div style="font-size:11px;color:var(--text-dim);margin-bottom:12px;">ถ้าครบ = 🟢 | ขาด/เกิน = 🔴 | ถ้ามี EMS ในเวรนั้น +1 อัตโนมัติ | EMD ไม่ถูกนับ</div>
-    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;">
-      <div style="display:flex;align-items:center;gap:10px;font-size:13px;"><label style="width:80px;font-weight:600;">ดึก (ด)</label><input type="number" id="thr-dk" min="0" max="99" style="width:60px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px 8px;font-size:13px;text-align:center;outline:none;"> คน</div>
-      <div style="display:flex;align-items:center;gap:10px;font-size:13px;"><label style="width:80px;font-weight:600;">เช้า (ช)</label><input type="number" id="thr-ch" min="0" max="99" style="width:60px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px 8px;font-size:13px;text-align:center;outline:none;"> คน</div>
-      <div style="display:flex;align-items:center;gap:10px;font-size:13px;"><label style="width:80px;font-weight:600;">บ่าย (บ)</label><input type="number" id="thr-ba" min="0" max="99" style="width:60px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px 8px;font-size:13px;text-align:center;outline:none;"> คน</div>
+    <div style="font-size:11px;color:var(--text-dim);margin-bottom:10px;">ถ้าครบ = 🟢 | ขาด/เกิน = 🔴 | EMS +1 อัตโนมัติ | EMD ไม่นับ</div>
+    <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:10px;">
+      <div style="display:flex;align-items:center;gap:10px;font-size:13px;"><label style="width:78px;font-weight:600;">ดึก (ด)</label><input type="number" id="thr-dk" min="0" max="99" style="width:54px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px 7px;font-size:13px;text-align:center;outline:none;"> คน</div>
+      <div style="display:flex;align-items:center;gap:10px;font-size:13px;"><label style="width:78px;font-weight:600;">เช้า (ช)</label><input type="number" id="thr-ch" min="0" max="99" style="width:54px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px 7px;font-size:13px;text-align:center;outline:none;"> คน</div>
+      <div style="display:flex;align-items:center;gap:10px;font-size:13px;"><label style="width:78px;font-weight:600;">บ่าย (บ)</label><input type="number" id="thr-ba" min="0" max="99" style="width:54px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px 7px;font-size:13px;text-align:center;outline:none;"> คน</div>
     </div>
-    <button id="btnSaveThr" style="background:var(--accent);border:none;border-radius:8px;color:white;padding:7px 18px;cursor:pointer;font-size:13px;font-family:Sarabun,sans-serif;font-weight:600;">💾 บันทึก</button>
+    <button id="btnSaveThr" style="background:var(--accent);border:none;border-radius:8px;color:white;padding:7px 16px;cursor:pointer;font-size:13px;font-family:Sarabun,sans-serif;font-weight:600;">💾 บันทึก</button>
   </div>
   <div class="section-card">
-    <h3>👤 รายชื่อพยาบาล / เจ้าหน้าที่</h3>
+    <h3>👤 รายชื่อพยาบาล + ความสามารถ</h3>
+    <div style="font-size:11px;color:var(--text-dim);margin-bottom:8px;">คลิกชื่อเพื่อแก้ไข capability | ↑↓ เรียงลำดับในตารางเวร</div>
     <div class="person-list" id="personList"></div>
     <div class="add-row">
       <input type="text" id="newPersonName" placeholder="ชื่อ-นามสกุล">
@@ -230,21 +406,22 @@ td.col-total  { background: #e8eaf6; font-size: 13px; font-weight: 700; padding:
   </div>
   <div class="section-card">
     <h3>🎨 ความหมายของสี</h3>
-    <div style="display:flex;flex-direction:column;gap:10px;font-size:13px;">
-      <div style="display:flex;align-items:center;gap:8px;"><span class="shift-char pc-1" style="font-size:18px;font-weight:700">●</span> ตึก (ดำ)</div>
-      <div style="display:flex;align-items:center;gap:8px;"><span class="shift-char pc-2" style="font-size:18px;font-weight:700">●</span> OT (แดง)</div>
-      <div style="display:flex;align-items:center;gap:8px;"><span class="shift-char pc-3" style="font-size:18px;font-weight:700">●</span> C2 (ม่วง) — เช้า/บ่ายเท่านั้น, max 1/เวร</div>
-      <div style="display:flex;align-items:center;gap:8px;"><span class="shift-char pc-4" style="font-size:18px;font-weight:700">●</span> EMD (เขียว) — max 1/เวร, ไม่นับในสรุป</div>
-      <div style="display:flex;align-items:center;gap:8px;"><span class="shift-char pc-5" style="font-size:18px;font-weight:700">●</span> EMS (ฟ้า) — max 1/เวร, ถ้ามีจะ +1 เป้า</div>
+    <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;">
+      <div style="display:flex;align-items:center;gap:8px;"><span class="shift-char pc-1" style="font-size:16px;font-weight:700">●</span> ตึก (ดำ) — นับในสรุป</div>
+      <div style="display:flex;align-items:center;gap:8px;"><span class="shift-char pc-2" style="font-size:16px;font-weight:700">●</span> OT (แดง)</div>
+      <div style="display:flex;align-items:center;gap:8px;"><span class="shift-char pc-3" style="font-size:16px;font-weight:700">●</span> C2 (ม่วง) — เช้า/บ่ายเท่านั้น, max 1/เวร</div>
+      <div style="display:flex;align-items:center;gap:8px;"><span class="shift-char pc-4" style="font-size:16px;font-weight:700">●</span> EMD (เขียว) — max 1/เวร, ไม่นับในสรุป</div>
+      <div style="display:flex;align-items:center;gap:8px;"><span class="shift-char pc-5" style="font-size:16px;font-weight:700">●</span> EMS (ฟ้า) — max 1/เวร, ถ้ามีจะ +1 เป้า</div>
     </div>
   </div>
 </div>
 
+<!-- SCHEDULE MODAL -->
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal">
     <div class="modal-title" id="modalTitle"></div>
     <div class="modal-info" id="modalInfo"></div>
-    <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;">เลือกเวร:</div>
+    <div style="font-size:11px;color:var(--text-dim);margin-bottom:5px;">เลือกเวร:</div>
     <div class="shift-toggles">
       <button class="shift-toggle" id="tog-ch">ช (เช้า)</button>
       <button class="shift-toggle" id="tog-ba">บ (บ่าย)</button>
@@ -259,711 +436,946 @@ td.col-total  { background: #e8eaf6; font-size: 13px; font-weight: 700; padding:
   </div>
 </div>
 
+<!-- STAFF MODAL -->
+<div class="smodal-overlay" id="sModal">
+  <div class="smodal">
+    <div class="smodal-title" id="sModalName"></div>
+    <div class="field-label">ความสามารถ (Capability)</div>
+    <div class="cap-grid" id="capGrid"></div>
+    <div class="field-label">เงื่อนไขพิเศษ</div>
+    <div class="cond-grid" id="condGrid"></div>
+    <div class="field-label">จำกัดจำนวนเวรต่อเดือน (0 = ไม่จำกัด)</div>
+    <div class="limit-grid" id="limitGrid"></div>
+    <div class="field-label">Note</div>
+    <textarea class="note-input" id="noteInput" placeholder="หมายเหตุ..."></textarea>
+    <div class="modal-actions" style="margin-top:12px;">
+      <button class="btn btn-ghost" id="btnSModalClose">ยกเลิก</button>
+      <button class="btn btn-primary" id="btnSModalSave">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- ASSIGN MODAL -->
+<div class="amodal-overlay" id="aModal">
+  <div class="amodal">
+    <div class="amodal-title" id="aModalTitle"></div>
+    <div class="amodal-sub" id="aModalSub"></div>
+    <input type="text" class="search-inp" id="aSearch" placeholder="ค้นหาชื่อ...">
+    <div class="cand-list" id="candList"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="btnAClose">ยกเลิก</button>
+      <button class="btn btn-danger" id="btnAClear">ล้าง</button>
+      <button class="btn btn-primary" id="btnASave">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- EXPORT MODAL -->
+<div class="exmodal-overlay" id="exModal">
+  <div class="exmodal">
+    <div class="exmodal-title">📤 Export</div>
+    <button class="ex-btn" id="btnExPrint"><span class="ex-icon">🖨️</span>พิมพ์ / บันทึก PDF</button>
+    <button class="ex-btn" id="btnExCSV"><span class="ex-icon">📊</span>Export Excel (CSV)</button>
+    <div class="modal-actions" style="margin-top:4px;">
+      <button class="btn btn-ghost" id="btnExClose">ปิด</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script>
-  var firebaseConfig = {
-    apiKey: "AIzaSyCh_bHkty6Sn_iqjQazC2TYvsX9DQXt1FQ",
-    authDomain: "shift-scheduler-rn-ayh.firebaseapp.com",
-    projectId: "shift-scheduler-rn-ayh",
-    storageBucket: "shift-scheduler-rn-ayh.firebasestorage.app",
-    messagingSenderId: "50253427407",
-    appId: "1:50253427407:web:0394b00ad55025700a7dba"
-  };
-  try {
-    firebase.initializeApp(firebaseConfig);
-    window.db = firebase.firestore();
-  } catch(e) { console.error('Firebase init error:', e); }
+var firebaseConfig={apiKey:"AIzaSyCh_bHkty6Sn_iqjQazC2TYvsX9DQXt1FQ",authDomain:"shift-scheduler-rn-ayh.firebaseapp.com",projectId:"shift-scheduler-rn-ayh",storageBucket:"shift-scheduler-rn-ayh.firebasestorage.app",messagingSenderId:"50253427407",appId:"1:50253427407:web:0394b00ad55025700a7dba"};
+try{firebase.initializeApp(firebaseConfig);window.db=firebase.firestore();}catch(e){console.error('Firebase:',e);}
 </script>
 
 <script>
-function checkPw() {
-  var pw = document.getElementById('pwInput').value;
-  if(pw === 'ayh1669') {
-    document.getElementById('lockScreen').style.display = 'none';
-    sessionStorage.setItem('auth','1');
-  } else {
-    document.getElementById('pwError').style.display = 'block';
-  }
-}
-document.addEventListener('DOMContentLoaded', function(){
-  if(sessionStorage.getItem('auth')==='1') {
-    document.getElementById('lockScreen').style.display = 'none';
-  }
-  document.getElementById('pwInput').addEventListener('keydown', function(e){
-    if(e.key==='Enter') checkPw();
-  });
-});
-var MONTHS_TH = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
-var DAYS_TH = ['อา','จ','อ','พ','พฤ','ศ','ส'];
-var SHIFTS = ['ช','บ','ด'];
-var POS_CLASS = [null,'pc-1','pc-2','pc-3','pc-4','pc-5'];
-var POS_COLOR = ['#e0e0e0','#111111','#e53935','#8e24aa','#388e3c','#1565c0'];
-var POS_LABELS = ['ไม่ระบุ','ตึก','OT','C2','EMD','EMS'];
-// special stamp types: 'meeting','leave','preceptor'
-var SPECIAL_STAMPS = [
-  {key:'meeting',   label:'ประชุม', char:'ป', bgClass:'cell-meeting',    bg:'#C4FFB2', fg:'#000000'},
-  {key:'leave',     label:'ลาพักผ่อน', char:'ล', bgClass:'cell-leave',  bg:'#FFFAB2', fg:'#000000'},
-  {key:'preceptor', label:'Preceptor', char:'P', bgClass:'cell-preceptor', bg:'#8ADEFF', fg:'#000000'},
+// ===== CONSTANTS =====
+var MONTHS_TH=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+var DAYS_TH=['อา','จ','อ','พ','พฤ','ศ','ส'];
+var SHIFTS=['ช','บ','ด'];
+var POS_CLASS=[null,'pc-1','pc-2','pc-3','pc-4','pc-5'];
+var POS_COLOR=['#e0e0e0','#111','#e53935','#8e24aa','#388e3c','#1565c0'];
+var POS_LABELS=['ไม่ระบุ','ตึก','OT','C2','EMD','EMS'];
+var SPECIAL_STAMPS=[
+  {key:'meeting',   label:'ประชุม',     char:'ป',bgClass:'cell-meeting',   bg:'#C4FFB2',fg:'#000'},
+  {key:'leave',     label:'ลาพักผ่อน', char:'ล',bgClass:'cell-leave',     bg:'#FFFAB2',fg:'#000'},
+  {key:'preceptor', label:'Preceptor',  char:'P',bgClass:'cell-preceptor', bg:'#8ADEFF',fg:'#000'},
 ];
-
-var state = {
-  year: new Date().getFullYear(),
-  month: new Date().getMonth(),
-  persons: ['พยาบาล ก','พยาบาล ข','พยาบาล ค','พยาบาล ง'],
-  data: {},
-  holidays: [],
-  special: {},   // special[mk][pi][d] = 'meeting'|'leave'|'preceptor'|null
-  threshold: {'ช':11,'บ':11,'ด':7}
+var ALL_CAPS=['incharge','teamlead','triage','resus','member','observe','refer'];
+var CAP_LABELS={incharge:'Incharge',teamlead:'Team Lead',triage:'Triage',resus:'Resus',member:'Member',observe:'Observe',refer:'Refer'};
+var CONDS=[
+  {key:'float_morning',label:'ลอยเช้า',  desc:'อยู่เฉพาะเวรเช้าเท่านั้น'},
+  {key:'no_night',     label:'ไม่ดึก',   desc:'ไม่จัดเวรดึก'},
+  {key:'pregnant',     label:'ตั้งครรภ์',desc:'ห้าม Refer, prefer Observe'},
+];
+var SHIFT_ROLES={
+  morning:[
+    {id:'IC', label:'Incharge',  cap:'incharge',break:'12.30-13.30'},
+    {id:'TL', label:'Team Lead', cap:'teamlead', break:'11.30-12.30'},
+    {id:'TR', label:'Triage',    cap:'triage',   break:'11.00-12.00'},
+    {id:'R1', label:'Resus 1',   cap:'resus',    break:'11.30-12.30'},
+    {id:'R2', label:'Resus 2',   cap:'resus',    break:'12.30-13.30'},
+    {id:'M1', label:'Member 1',  cap:'member',   break:'11.30-12.30'},
+    {id:'M2', label:'Member 2',  cap:'member',   break:'13.30-14.30'},
+    {id:'RF1',label:'Refer 1',   cap:'refer',    break:'11.30-12.30'},
+    {id:'RF2',label:'Refer 2',   cap:'refer',    break:'12.30-13.30'},
+    {id:'OB', label:'Observe',   cap:'observe',  break:'13.30-14.30'},
+    {id:'C2', label:'C2',        cap:'refer',    break:'-'},
+  ],
+  afternoon:[
+    {id:'IC', label:'Incharge',  cap:'incharge',break:'20.30-21.30'},
+    {id:'TL', label:'Team Lead', cap:'teamlead', break:'19.30-20.30'},
+    {id:'TR', label:'Triage',    cap:'triage',   break:'18.00-19.00'},
+    {id:'R1', label:'Resus 1',   cap:'resus',    break:'19.30-20.30'},
+    {id:'R2', label:'Resus 2',   cap:'resus',    break:'20.30-21.30'},
+    {id:'M1', label:'Member 1',  cap:'member',   break:'19.30-20.30'},
+    {id:'M2', label:'Member 2',  cap:'member',   break:'20.30-21.30'},
+    {id:'RF1',label:'Refer 1',   cap:'refer',    break:'18.30-19.30'},
+    {id:'RF2',label:'Refer 2',   cap:'refer',    break:'19.30-20.30'},
+    {id:'OB', label:'Observe',   cap:'observe',  break:'21.30-22.30'},
+    {id:'C2', label:'C2',        cap:'refer',    break:'-'},
+  ],
+  night:[
+    {id:'IC', label:'Incharge',  cap:'incharge',break:'-'},
+    {id:'TL', label:'Team Lead', cap:'teamlead', break:'-'},
+    {id:'R1', label:'Resus 1',   cap:'resus',    break:'-'},
+    {id:'R2', label:'Resus 2',   cap:'resus',    break:'-'},
+    {id:'M1', label:'Member 1',  cap:'member',   break:'-'},
+    {id:'M2', label:'Member 2',  cap:'member',   break:'-'},
+    {id:'RF1',label:'Refer 1',   cap:'refer',    break:'-'},
+  ]
 };
 
-function save() {
-  try { localStorage.setItem('shiftApp2', JSON.stringify(state)); } catch(e) {}
-  // sync to Firestore
-  if(window.db) {
-    var docRef = window.db.collection('schedules').doc('main');
-    docRef.set({
-      persons: state.persons,
-      data: state.data,
-      holidays: state.holidays,
-      special: state.special,
-      threshold: state.threshold
-    }).catch(function(e){ console.error('Firebase save error:', e); });
+// ===== STATE =====
+// shiftState = ตารางเวร
+// assignState = assignment + staff
+var shiftState={
+  year:new Date().getFullYear(),
+  month:new Date().getMonth(),
+  persons:[],
+  data:{},
+  holidays:[],
+  special:{},
+  threshold:{'ช':11,'บ':11,'ด':7}
+};
+var assignState={
+  staff:[],
+  assignments:{},  // [dateStr][shift][roleId]=name
+  rosters:{}       // [dateStr][shift]=[name,...]  — imported, not auto-synced
+};
+
+// ===== UTILS =====
+function mk(y,m){return y+'-'+String(m+1).padStart(2,'0');}
+function daysIn(y,m){return new Date(y,m+1,0).getDate();}
+function ds(y,m,d){return y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');}
+function showToast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2400);}
+
+// ===== SAVE / LOAD =====
+function saveShift(){
+  try{localStorage.setItem('erShift',JSON.stringify(shiftState));}catch(e){}
+  if(window.db){
+    window.db.collection('schedules').doc('main').set({
+      persons:shiftState.persons,data:shiftState.data,
+      holidays:shiftState.holidays,special:shiftState.special,
+      threshold:shiftState.threshold
+    }).catch(function(e){console.error(e);});
   }
 }
-function load() {
-  try {
-    var s = localStorage.getItem('shiftApp2');
-    if (s) {
-      var p = JSON.parse(s);
-      if (p.year) state.year = p.year;
-      if (p.month !== undefined) state.month = p.month;
-      if (p.persons) state.persons = p.persons;
-      if (p.data) state.data = p.data;
-      if (p.holidays) state.holidays = p.holidays;
-      if (p.special) state.special = p.special;
-      if (p.threshold) state.threshold = p.threshold;
-    }
-  } catch(e) {}
+function saveAssign(){
+  try{localStorage.setItem('erAssign3',JSON.stringify(assignState));}catch(e){}
 }
-function loadFromFirebase(callback) {
-  if(!window.db) { callback(); return; }
-  window.db.collection('schedules').doc('main').get().then(function(doc) {
-    if(doc.exists) {
-      var p = doc.data();
-      if(p.persons) state.persons = p.persons;
-      if(p.data) state.data = p.data;
-      if(p.holidays) state.holidays = p.holidays;
-      if(p.special) state.special = p.special;
-      if(p.threshold) state.threshold = p.threshold;
-      // sync back to localStorage
-      try { localStorage.setItem('shiftApp2', JSON.stringify(state)); } catch(e) {}
+function loadLocal(){
+  try{
+    var s=localStorage.getItem('erShift');
+    if(s){var p=JSON.parse(s);
+      if(p.year)shiftState.year=p.year;
+      if(p.month!==undefined)shiftState.month=p.month;
+      if(p.persons)shiftState.persons=p.persons;
+      if(p.data)shiftState.data=p.data;
+      if(p.holidays)shiftState.holidays=p.holidays;
+      if(p.special)shiftState.special=p.special;
+      if(p.threshold)shiftState.threshold=p.threshold;
     }
-    callback();
-  }).catch(function(e) {
-    console.error('Firebase load error:', e);
-    callback();
+  }catch(e){}
+  try{
+    var a=localStorage.getItem('erAssign3');
+    if(a){var q=JSON.parse(a);
+      if(q.staff)assignState.staff=q.staff;
+      if(q.assignments)assignState.assignments=q.assignments;
+      if(q.rosters)assignState.rosters=q.rosters;
+    }
+  }catch(e){}
+}
+function loadFromFirebase(cb){
+  if(!window.db){cb();return;}
+  window.db.collection('schedules').doc('main').get().then(function(doc){
+    if(doc.exists){var p=doc.data();
+      if(p.persons)shiftState.persons=p.persons;
+      if(p.data)shiftState.data=p.data;
+      if(p.holidays)shiftState.holidays=p.holidays;
+      if(p.special)shiftState.special=p.special;
+      if(p.threshold)shiftState.threshold=p.threshold;
+      try{localStorage.setItem('erShift',JSON.stringify(shiftState));}catch(e){}
+    }
+    cb();
+  }).catch(function(){cb();});
+}
+function listenFirebase(){
+  if(!window.db)return;
+  window.db.collection('schedules').doc('main').onSnapshot(function(doc){
+    if(doc.exists){var p=doc.data();
+      if(p.persons)shiftState.persons=p.persons;
+      if(p.data)shiftState.data=p.data;
+      if(p.holidays)shiftState.holidays=p.holidays;
+      if(p.special)shiftState.special=p.special;
+      if(p.threshold)shiftState.threshold=p.threshold;
+      try{localStorage.setItem('erShift',JSON.stringify(shiftState));}catch(e){}
+      renderSchedule();renderPersonList();
+      var si=document.getElementById('syncInd');
+      si.textContent='🔄 ซิงค์แล้ว';si.style.opacity='1';
+      setTimeout(function(){si.style.opacity='0';},2000);
+    }
   });
 }
-function listenFirebase() {
-  if(!window.db) return;
-  window.db.collection('schedules').doc('main').onSnapshot(function(doc) {
-    if(doc.exists && !window._isSaving) {
-      var p = doc.data();
-      if(p.persons) state.persons = p.persons;
-      if(p.data) state.data = p.data;
-      if(p.holidays) state.holidays = p.holidays;
-      if(p.special) state.special = p.special;
-      if(p.threshold) state.threshold = p.threshold;
-      try { localStorage.setItem('shiftApp2', JSON.stringify(state)); } catch(e) {}
-      renderSchedule();
-      renderPersonList();
-      showSyncindicator();
-    }
-  });
-}
-function showSyncIndicator() {
-  var el = document.getElementById('syncIndicator');
-  if(!el) return;
-  el.textContent = '🔄 ซิงค์แล้ว';
-  el.style.opacity = '1';
-  setTimeout(function(){ el.style.opacity = '0'; }, 2000);
-}
 
-function mk(y,m) { return y+'-'+String(m+1).padStart(2,'0'); }
-function daysIn(y,m) { return new Date(y,m+1,0).getDate(); }
-function ds(y,m,d) { return y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0'); }
+// ===== SCHEDULE STATE HELPERS =====
+function getCell(pi,d){var k=mk(shiftState.year,shiftState.month);return(shiftState.data[k]&&shiftState.data[k][pi]&&shiftState.data[k][pi][d])||{shifts:[],colors:{}};}
+function setCell(pi,d,val){var k=mk(shiftState.year,shiftState.month);if(!shiftState.data[k])shiftState.data[k]={};if(!shiftState.data[k][pi])shiftState.data[k][pi]={};shiftState.data[k][pi][d]=val;saveShift();}
+function getHoliday(y,m,d){var s=ds(y,m,d);for(var i=0;i<shiftState.holidays.length;i++)if(shiftState.holidays[i].date===s)return shiftState.holidays[i];return null;}
+function getSpecial(pi,d){var k=mk(shiftState.year,shiftState.month);return(shiftState.special[k]&&shiftState.special[k][pi]&&shiftState.special[k][pi][d])||null;}
+function setSpecial(pi,d,val){var k=mk(shiftState.year,shiftState.month);if(!shiftState.special[k])shiftState.special[k]={};if(!shiftState.special[k][pi])shiftState.special[k][pi]={};shiftState.special[k][pi][d]=val;saveShift();}
+function countColor(d,shift,colorIdx,excludePi){var cnt=0;for(var i=0;i<shiftState.persons.length;i++){if(i===excludePi)continue;var c=getCell(i,d);if(c.shifts.indexOf(shift)>=0&&(c.colors[shift]||0)===colorIdx)cnt++;}return cnt;}
+function updateMonthDisplay(){document.getElementById('monthDisplay')&&(document.getElementById('monthDisplay').textContent=MONTHS_TH[shiftState.month]+' '+(shiftState.year+543));}
 
-function getCell(pi,d) {
-  var k=mk(state.year,state.month);
-  return (state.data[k]&&state.data[k][pi]&&state.data[k][pi][d])||{shifts:[],colors:{}};
-}
-function setCell(pi,d,val) {
-  var k=mk(state.year,state.month);
-  if(!state.data[k]) state.data[k]={};
-  if(!state.data[k][pi]) state.data[k][pi]={};
-  state.data[k][pi][d]=val;
-  save();
-}
-function getHoliday(y,m,d) {
-  var s2=ds(y,m,d);
-  for(var i=0;i<state.holidays.length;i++) if(state.holidays[i].date===s2) return state.holidays[i];
-  return null;
-}
-function getSpecial(pi,d) {
-  var k=mk(state.year,state.month);
-  return (state.special[k]&&state.special[k][pi]&&state.special[k][pi][d])||null;
-}
-function setSpecial(pi,d,val) {
-  var k=mk(state.year,state.month);
-  if(!state.special[k]) state.special[k]={};
-  if(!state.special[k][pi]) state.special[k][pi]={};
-  state.special[k][pi][d]=val;
-  save();
-}
-// count how many persons have color c in shift s on day d (exclude self pi=-1)
-function countColor(d,shift,colorIdx,excludePi) {
-  var cnt=0;
-  for(var i=0;i<state.persons.length;i++) {
-    if(i===excludePi) continue;
-    var c=getCell(i,d);
-    if(c.shifts.indexOf(shift)>=0 && (c.colors[shift]||0)===colorIdx) cnt++;
-  }
-  return cnt;
-}
-function showToast(msg) {
-  var t=document.getElementById('toast');
-  t.textContent=msg; t.classList.add('show');
-  setTimeout(function(){t.classList.remove('show');},2000);
-}
-function updateMonthDisplay() {
-  document.getElementById('monthDisplay').textContent=MONTHS_TH[state.month]+' '+(state.year+543);
-}
-
-// STAMP
-var stampMode=null; // {type:'shift', shift:'ช', color:1} or {type:'special', key:'meeting'}
-function renderStampButtons() {
+// ===== STAMP =====
+var stampMode=null;
+function renderStampButtons(){
   var el=document.getElementById('stampButtons');
   var html='';
-  // Shift stamps — C2(3) not available for ด
-  for(var si=0;si<SHIFTS.length;si++) {
-    var s=SHIFTS[si];
-    for(var ci=1;ci<=5;ci++) {
-      if(ci===3 && s==='ด') continue; // no C2 for ดึก
+  for(var si=0;si<SHIFTS.length;si++){var s=SHIFTS[si];
+    for(var ci=1;ci<=5;ci++){
+      if(ci===3&&s==='ด')continue;
       var isActive=stampMode&&stampMode.type==='shift'&&stampMode.shift===s&&stampMode.color===ci;
       html+='<button class="sbtn'+(isActive?' active':'')+'" data-type="shift" data-shift="'+s+'" data-color="'+ci+'">';
-      html+='<span class="sdot" style="background:'+POS_COLOR[ci]+';border:1px solid rgba(0,0,0,0.2)"></span>';
-      html+=s+'<span style="font-size:9px">'+POS_LABELS[ci]+'</span>';
-      html+='</button>';
+      html+='<span class="sdot" style="background:'+POS_COLOR[ci]+';border:1px solid rgba(0,0,0,.2)"></span>';
+      html+=s+'<span style="font-size:9px">'+POS_LABELS[ci]+'</span></button>';
     }
   }
-  // Special stamps
-  for(var xi=0;xi<SPECIAL_STAMPS.length;xi++) {
-    var sp=SPECIAL_STAMPS[xi];
+  for(var xi=0;xi<SPECIAL_STAMPS.length;xi++){var sp=SPECIAL_STAMPS[xi];
     var isActiveX=stampMode&&stampMode.type==='special'&&stampMode.key===sp.key;
-    html+='<button class="sbtn'+(isActiveX?' active':'')+'" data-type="special" data-key="'+sp.key+'" style="'+(isActiveX?'':'border-color:'+sp.bg)+'">';
-    html+='<span class="sdot" style="background:'+sp.bg+';border:1px solid rgba(0,0,0,0.2)"></span>';
-    html+=sp.label;
-    html+='</button>';
+    html+='<button class="sbtn'+(isActiveX?' active':'')+'" data-type="special" data-key="'+sp.key+'">';
+    html+='<span class="sdot" style="background:'+sp.bg+';border:1px solid rgba(0,0,0,.2)"></span>';
+    html+=sp.label+'</button>';
   }
   el.innerHTML=html;
-  var btns=el.querySelectorAll('.sbtn');
-  for(var i=0;i<btns.length;i++) {
-    btns[i].addEventListener('click',function(){
+  el.querySelectorAll('.sbtn').forEach(function(b){
+    b.addEventListener('click',function(){
       var type=this.getAttribute('data-type');
-      if(type==='shift') {
-        var shift=this.getAttribute('data-shift');
-        var color=parseInt(this.getAttribute('data-color'));
-        if(stampMode&&stampMode.type==='shift'&&stampMode.shift===shift&&stampMode.color===color) stampMode=null;
+      if(type==='shift'){var shift=this.getAttribute('data-shift'),color=parseInt(this.getAttribute('data-color'));
+        if(stampMode&&stampMode.type==='shift'&&stampMode.shift===shift&&stampMode.color===color)stampMode=null;
         else stampMode={type:'shift',shift:shift,color:color};
-      } else {
-        var key=this.getAttribute('data-key');
-        if(stampMode&&stampMode.type==='special'&&stampMode.key===key) stampMode=null;
+      }else{var key=this.getAttribute('data-key');
+        if(stampMode&&stampMode.type==='special'&&stampMode.key===key)stampMode=null;
         else stampMode={type:'special',key:key};
       }
       document.getElementById('stampCancel').style.display=stampMode?'inline-block':'none';
       renderStampButtons();
     });
-  }
+  });
 }
 
-// SCHEDULE
-function renderSchedule() {
+// ===== RENDER SCHEDULE =====
+function renderSchedule(){
   var table=document.getElementById('scheduleTable');
-  var y=state.year,m=state.month,days=daysIn(y,m);
-
-  // Pre-compute per-day shift counts (exclude EMD=4, exclude special cells)
+  var y=shiftState.year,m=shiftState.month,days=daysIn(y,m);
   var dayCounts={};
-  for(var d0=1;d0<=days;d0++) {
+  for(var d0=1;d0<=days;d0++){
     dayCounts[d0]={};
-    for(var si0=0;si0<SHIFTS.length;si0++) dayCounts[d0][SHIFTS[si0]]={total:0,hasEMS:false};
-    for(var pi0=0;pi0<state.persons.length;pi0++) {
-      if(getSpecial(pi0,d0)) continue; // special day — not counted
+    for(var si0=0;si0<SHIFTS.length;si0++)dayCounts[d0][SHIFTS[si0]]={total:0,hasEMS:false};
+    for(var pi0=0;pi0<shiftState.persons.length;pi0++){
+      if(getSpecial(pi0,d0))continue;
       var c0=getCell(pi0,d0);
-      for(var si1=0;si1<c0.shifts.length;si1++) {
-        var sh0=c0.shifts[si1];
-        var co0=c0.colors[sh0]||0;
-        if(co0===4) continue; // EMD not counted
+      for(var si1=0;si1<c0.shifts.length;si1++){var sh0=c0.shifts[si1],co0=c0.colors[sh0]||0;
+        if(co0===4)continue;
         dayCounts[d0][sh0].total++;
-        if(co0===5) dayCounts[d0][sh0].hasEMS=true;
+        if(co0===5)dayCounts[d0][sh0].hasEMS=true;
       }
     }
   }
-
-  // Per-person color totals
   var personColors=[];
-  for(var pi1=0;pi1<state.persons.length;pi1++) {
-    var pc={total:0};
-    for(var ci0=1;ci0<=5;ci0++) pc[ci0]=0;
-    for(var d1=1;d1<=days;d1++) {
-      var c1=getCell(pi1,d1);
-      for(var si2=0;si2<c1.shifts.length;si2++) {
-        var co1=c1.colors[c1.shifts[si2]]||0;
-        if(co1>0) pc[co1]++;
-        pc.total++;
-      }
+  for(var pi1=0;pi1<shiftState.persons.length;pi1++){
+    var pc={total:0};for(var ci0=1;ci0<=5;ci0++)pc[ci0]=0;
+    for(var d1=1;d1<=days;d1++){var c1=getCell(pi1,d1);
+      for(var si2=0;si2<c1.shifts.length;si2++){var co1=c1.colors[c1.shifts[si2]]||0;if(co1>0)pc[co1]++;pc.total++;}
     }
     personColors.push(pc);
   }
-
-  // HEADER
   var html='<thead><tr><th class="name-col">ชื่อ</th>';
-  for(var d=1;d<=days;d++) {
-    var dow=new Date(y,m,d).getDay();
-    var isWE=dow===0||dow===6;
-    var hol=getHoliday(y,m,d);
+  for(var d=1;d<=days;d++){var dow=new Date(y,m,d).getDay(),isWE=dow===0||dow===6,hol=getHoliday(y,m,d);
     var cls=hol?'day-holiday':(isWE?'day-weekend':'');
     html+='<th class="'+cls+'">'+d+'<br><span style="font-size:9px">'+DAYS_TH[dow]+'</span>';
-    if(hol) html+='<span style="font-size:8px;display:block"></span>';
+    if(hol)html+='<span style="font-size:8px;display:block"></span>';
     html+='</th>';
   }
-  for(var ci1=1;ci1<=5;ci1++) {
-    html+='<th class="col-header"><span class="shift-char '+POS_CLASS[ci1]+'" style="font-size:12px">●</span><br><span style="font-size:9px;color:var(--text-dim)">'+POS_LABELS[ci1]+'</span></th>';
-  }
-  html+='<th class="col-header">รวม<br>เวร</th></tr></thead><tbody>';
-
-  // PERSON ROWS
-  for(var pi=0;pi<state.persons.length;pi++) {
-    html+='<tr><td class="name-cell">'+state.persons[pi]+'</td>';
-    for(var d2=1;d2<=days;d2++) {
-      var dow2=new Date(y,m,d2).getDay();
-      var isWE2=dow2===0||dow2===6;
-      var hol2=getHoliday(y,m,d2);
-      var sp=getSpecial(pi,d2);
-      if(sp) {
-        // special cell
-        var spInfo=null;
-        for(var xi=0;xi<SPECIAL_STAMPS.length;xi++) if(SPECIAL_STAMPS[xi].key===sp) spInfo=SPECIAL_STAMPS[xi];
-        var baseCls=hol2?' holiday-col':(isWE2?' weekend-col':'');
-        html+='<td class="special-cell '+spInfo.bgClass+baseCls+'" data-pi="'+pi+'" data-d="'+d2+'">'+spInfo.char+'</td>';
-      } else {
-        var cell=getCell(pi,d2);
-        var cellCls='shift-cell'+(hol2?' holiday-col':(isWE2?' weekend-col':''));
+  for(var ci1=1;ci1<=5;ci1++)html+='<th class="col-header"><span class="shift-char '+POS_CLASS[ci1]+'" style="font-size:12px">●</span><br><span style="font-size:9px">'+POS_LABELS[ci1]+'</span></th>';
+  html+='<th class="col-header">รวม</th></tr></thead><tbody>';
+  for(var pi=0;pi<shiftState.persons.length;pi++){
+    html+='<tr><td class="name-cell">'+shiftState.persons[pi]+'</td>';
+    for(var d2=1;d2<=days;d2++){
+      var dow2=new Date(y,m,d2).getDay(),isWE2=dow2===0||dow2===6,hol2=getHoliday(y,m,d2),sp=getSpecial(pi,d2);
+      if(sp){var spInfo=null;for(var xi=0;xi<SPECIAL_STAMPS.length;xi++)if(SPECIAL_STAMPS[xi].key===sp)spInfo=SPECIAL_STAMPS[xi];
+        html+='<td class="special-cell '+spInfo.bgClass+(hol2?' holiday-col':(isWE2?' weekend-col':''))+'" data-pi="'+pi+'" data-d="'+d2+'">'+spInfo.char+'</td>';
+      }else{
+        var cell=getCell(pi,d2),cellCls='shift-cell'+(hol2?' holiday-col':(isWE2?' weekend-col':''));
         var content='';
-        if(cell.shifts&&cell.shifts.length>0) {
-          content='<div class="shift-display">';
-          for(var si3=0;si3<cell.shifts.length;si3++) {
-            var sh=cell.shifts[si3];
-            var co=cell.colors[sh]||0;
-            content+='<span class="'+(co?'shift-char '+POS_CLASS[co]:'shift-char')+'">'+sh+'</span>';
-          }
-          content+='</div>';
-        }
+        if(cell.shifts&&cell.shifts.length>0){content='<div class="shift-display">';
+          for(var si3=0;si3<cell.shifts.length;si3++){var sh=cell.shifts[si3],co=cell.colors[sh]||0;
+            content+='<span class="'+(co?'shift-char '+POS_CLASS[co]:'shift-char')+'">'+sh+'</span>';}
+          content+='</div>';}
         html+='<td class="'+cellCls+'" data-pi="'+pi+'" data-d="'+d2+'">'+content+'</td>';
       }
     }
-    // color count columns
     var pc2=personColors[pi];
-    for(var ci2=1;ci2<=5;ci2++) {
-      html+='<td class="col-count">'+(pc2[ci2]>0?'<span class="shift-char '+POS_CLASS[ci2]+'">'+pc2[ci2]+'</span>':'-')+'</td>';
-    }
-    html+='<td class="col-total">'+pc2.total+'</td>';
-    html+='</tr>';
+    for(var ci2=1;ci2<=5;ci2++)html+='<td class="col-count">'+(pc2[ci2]>0?'<span class="shift-char '+POS_CLASS[ci2]+'">'+pc2[ci2]+'</span>':'-')+'</td>';
+    html+='<td class="col-total">'+pc2.total+'</td></tr>';
   }
-
-  // SUMMARY ROWS — order: ด, ช, บ
-  var sumOrder=['ด','ช','บ'];
-  var sNameMap={'ช':'เช้า','บ':'บ่าย','ด':'ดึก'};
-  var thrMap={'ช':state.threshold['ช']||11,'บ':state.threshold['บ']||11,'ด':state.threshold['ด']||7};
-  for(var si4=0;si4<sumOrder.length;si4++) {
-    var sv=sumOrder[si4];
+  var sumOrder=['ด','ช','บ'],sNameMap={'ช':'เช้า','บ':'บ่าย','ด':'ดึก'},thrMap={'ช':shiftState.threshold['ช']||11,'บ':shiftState.threshold['บ']||11,'ด':shiftState.threshold['ด']||7};
+  for(var si4=0;si4<sumOrder.length;si4++){var sv=sumOrder[si4];
     html+='<tr><td class="sum-label">'+sv+' '+sNameMap[sv]+'</td>';
-    for(var d3=1;d3<=days;d3++) {
-      var dc=dayCounts[d3][sv];
-      var need=thrMap[sv]+(dc.hasEMS?1:0);
+    for(var d3=1;d3<=days;d3++){var dc=dayCounts[d3][sv],need=thrMap[sv]+(dc.hasEMS?1:0);
       var scls=dc.total===need?'sum-cell sum-ok':'sum-cell sum-ng';
-      if(dc.total===0&&need===0) scls='sum-cell';
-      html+='<td class="'+scls+'">'+dc.total+'</td>';
-    }
+      if(dc.total===0&&need===0)scls='sum-cell';
+      html+='<td class="'+scls+'">'+dc.total+'</td>';}
     html+='<td class="sum-cell" colspan="6"></td></tr>';
   }
-
   html+='</tbody>';
   table.innerHTML=html;
-
-  // click events
-  var cells=table.querySelectorAll('td.shift-cell, td.special-cell');
-  for(var i=0;i<cells.length;i++) {
-    cells[i].addEventListener('click',function(){
-      handleCell(parseInt(this.getAttribute('data-pi')),parseInt(this.getAttribute('data-d')));
-    });
-  }
+  table.querySelectorAll('td.shift-cell,td.special-cell').forEach(function(c){
+    c.addEventListener('click',function(){handleCell(parseInt(this.getAttribute('data-pi')),parseInt(this.getAttribute('data-d')));});
+  });
 }
 
-function handleCell(pi,d) {
-  if(!stampMode) { openModal(pi,d); return; }
-
-  // Special stamp
-  if(stampMode.type==='special') {
+function handleCell(pi,d){
+  if(!stampMode){openModal(pi,d);return;}
+  if(stampMode.type==='special'){
     var cur=getSpecial(pi,d);
-    if(cur===stampMode.key) {
-      setSpecial(pi,d,null);
-    } else {
-      setSpecial(pi,d,stampMode.key);
-      setCell(pi,d,{shifts:[],colors:{}});
-    }
-    renderSchedule(); return;
+    if(cur===stampMode.key)setSpecial(pi,d,null);
+    else{setSpecial(pi,d,stampMode.key);setCell(pi,d,{shifts:[],colors:{}});}
+    renderSchedule();return;
   }
-
-  // Shift stamp
-  var cell=getCell(pi,d);
-  var shifts=cell.shifts.slice();
-  var colors=Object.assign({},cell.colors);
-  var s=stampMode.shift, c=stampMode.color;
-
-  // C2(3) not allowed for ดึก
-  if(c===3 && s==='ด') { showToast('⚠️ C2 ไม่มีเวรดึก'); return; }
-
-  if(shifts.indexOf(s)>=0 && colors[s]===c) {
-    // toggle off
-    shifts.splice(shifts.indexOf(s),1); delete colors[s];
-  } else {
-    // validate max-1 for EMS(5), C2(3), EMD(4)
-    if((c===5||c===3||c===4) && countColor(d,s,c,pi)>=1) {
-      showToast('⚠️ '+POS_LABELS[c]+' เวร '+s+' มีครบ 1 คนแล้ว'); return;
-    }
-    if(shifts.indexOf(s)<0) {
-      shifts.push(s);
-      shifts.sort(function(a,b){return SHIFTS.indexOf(a)-SHIFTS.indexOf(b);});
-    }
-    colors[s]=c;
-    // clear special if any
-    setSpecial(pi,d,null);
+  var cell=getCell(pi,d),shifts=cell.shifts.slice(),colors=Object.assign({},cell.colors);
+  var s=stampMode.shift,c=stampMode.color;
+  if(c===3&&s==='ด'){showToast('⚠️ C2 ไม่มีเวรดึก');return;}
+  if(shifts.indexOf(s)>=0&&colors[s]===c){shifts.splice(shifts.indexOf(s),1);delete colors[s];}
+  else{
+    if((c===5||c===3||c===4)&&countColor(d,s,c,pi)>=1){showToast('⚠️ '+POS_LABELS[c]+' เวร '+s+' มีครบ 1 คนแล้ว');return;}
+    if(shifts.indexOf(s)<0){shifts.push(s);shifts.sort(function(a,b){return SHIFTS.indexOf(a)-SHIFTS.indexOf(b);});}
+    colors[s]=c;setSpecial(pi,d,null);
   }
-  setCell(pi,d,{shifts:shifts,colors:colors});
-  renderSchedule();
+  setCell(pi,d,{shifts:shifts,colors:colors});renderSchedule();
 }
 
-// MODAL
+// ===== SCHEDULE MODAL =====
 var mState={pi:null,d:null,shifts:[],colors:{},activeShift:null};
-function openModal(pi,d) {
-  var cell=getCell(pi,d);
-  mState.pi=pi; mState.d=d;
-  mState.shifts=cell.shifts.slice();
-  mState.colors=Object.assign({},cell.colors);
+function openModal(pi,d){
+  var cell=getCell(pi,d);mState.pi=pi;mState.d=d;
+  mState.shifts=cell.shifts.slice();mState.colors=Object.assign({},cell.colors);
   mState.activeShift=mState.shifts.length>0?mState.shifts[0]:null;
-  var dow=new Date(state.year,state.month,d).getDay();
-  document.getElementById('modalTitle').textContent=state.persons[pi];
-  document.getElementById('modalInfo').textContent='วันที่ '+d+' '+MONTHS_TH[state.month]+' '+(state.year+543)+' ('+DAYS_TH[dow]+')';
-  updateToggles(); renderPosSection();
-  document.getElementById('modalOverlay').classList.add('open');
+  var dow=new Date(shiftState.year,shiftState.month,d).getDay();
+  document.getElementById('modalTitle').textContent=shiftState.persons[pi];
+  document.getElementById('modalInfo').textContent='วันที่ '+d+' '+MONTHS_TH[shiftState.month]+' '+(shiftState.year+543)+' ('+DAYS_TH[dow]+')';
+  updateToggles();renderPosSection();document.getElementById('modalOverlay').classList.add('open');
 }
 function closeModal(){document.getElementById('modalOverlay').classList.remove('open');}
-function updateToggles() {
-  var map={'ช':'tog-ch','บ':'tog-ba','ด':'tog-dk'};
-  for(var s in map) {
-    var btn=document.getElementById(map[s]);
-    if(mState.shifts.indexOf(s)>=0) btn.classList.add('on');
-    else btn.classList.remove('on');
-  }
-}
-function toggleShift(s) {
+function updateToggles(){var map={'ช':'tog-ch','บ':'tog-ba','ด':'tog-dk'};for(var s in map){var btn=document.getElementById(map[s]);if(mState.shifts.indexOf(s)>=0)btn.classList.add('on');else btn.classList.remove('on');}}
+function toggleShift(s){
   var idx=mState.shifts.indexOf(s);
-  if(idx>=0){
-    mState.shifts.splice(idx,1);
-    delete mState.colors[s];
-    // switch active to another shift if any
-    if(mState.activeShift===s) mState.activeShift=mState.shifts.length>0?mState.shifts[0]:null;
-  } else {
-    mState.shifts.push(s);
-    mState.shifts.sort(function(a,b){return SHIFTS.indexOf(a)-SHIFTS.indexOf(b);});
-    mState.activeShift=s; // auto-focus newly added shift
-  }
-  updateToggles(); renderPosSection();
+  if(idx>=0){mState.shifts.splice(idx,1);delete mState.colors[s];if(mState.activeShift===s)mState.activeShift=mState.shifts.length>0?mState.shifts[0]:null;}
+  else{mState.shifts.push(s);mState.shifts.sort(function(a,b){return SHIFTS.indexOf(a)-SHIFTS.indexOf(b);});mState.activeShift=s;}
+  updateToggles();renderPosSection();
 }
-function renderPosSection() {
+function renderPosSection(){
   var sec=document.getElementById('posSection');
   if(mState.shifts.length===0){sec.innerHTML='';return;}
-
-  // shift selector tabs
-  var html='<div style="display:flex;gap:6px;margin-bottom:10px;">';
-  for(var i=0;i<mState.shifts.length;i++) {
-    var s=mState.shifts[i];
-    var isActive=mState.activeShift===s;
-    var curColor=mState.colors[s]||0;
-    var dotStyle=curColor>0?'background:'+POS_COLOR[curColor]+';width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:3px;':'';
-    html+='<button data-shift="'+s+'" style="padding:5px 14px;border-radius:20px;border:2px solid '+(isActive?'var(--accent2)':'var(--border)')+';background:'+(isActive?'var(--accent2)':'transparent')+';color:'+(isActive?'white':'var(--text-dim)')+';cursor:pointer;font-family:Sarabun,sans-serif;font-weight:700;font-size:13px;display:inline-flex;align-items:center;">';
-    if(dotStyle) html+='<span style="'+dotStyle+'"></span>';
-    html+=s+'</button>';
-  }
-  html+='</div>';
-
-  // color dots for active shift only
-  if(mState.activeShift) {
-    var sa=mState.activeShift;
-    var cur=mState.colors[sa]||0;
-    html+='<div class="pos-section-title">สี — '+(sa==='ช'?'เช้า':sa==='บ'?'บ่าย':'ดึก')+':</div>';
-    html+='<div class="pos-dots" style="margin-top:6px;">';
-    for(var c=1;c<=5;c++) {
-      if(c===3 && sa==='ด') continue;
-      html+='<div class="pos-dot p'+c+(cur===c?' selected':'')+'" data-s="'+sa+'" data-c="'+c+'" title="'+(POS_LABELS[c]||'')+'"></div>';
-    }
-    html+='</div>';
-  }
-
+  var html='';
+  if(mState.shifts.length>1){html+='<div style="display:flex;gap:5px;margin-bottom:8px;">';
+    for(var i=0;i<mState.shifts.length;i++){var s=mState.shifts[i],isActive=mState.activeShift===s;
+      html+='<button data-shift="'+s+'" style="padding:4px 12px;border-radius:20px;border:2px solid '+(isActive?'var(--accent)':'var(--border)')+';background:'+(isActive?'var(--accent)':'transparent')+';color:'+(isActive?'white':'var(--text-dim)')+';cursor:pointer;font-family:Sarabun,sans-serif;font-weight:700;font-size:13px;">'+s+'</button>';}
+    html+='</div>';}
+  if(mState.activeShift){var sa=mState.activeShift,cur=mState.colors[sa]||0;
+    html+='<div class="pos-dots" style="margin-top:4px;">';
+    for(var c=1;c<=5;c++){if(c===3&&sa==='ด')continue;
+      html+='<div class="pos-dot p'+c+(cur===c?' selected':'')+'" data-s="'+sa+'" data-c="'+c+'" title="'+POS_LABELS[c]+'"></div>';}
+    html+='</div>';}
   sec.innerHTML=html;
-
-  // shift tab clicks
-  var tabBtns=sec.querySelectorAll('button[data-shift]');
-  for(var j=0;j<tabBtns.length;j++) {
-    tabBtns[j].addEventListener('click',function(){
-      mState.activeShift=this.getAttribute('data-shift');
-      renderPosSection();
-    });
-  }
-  // color dot clicks
-  var dots=sec.querySelectorAll('.pos-dot');
-  for(var k=0;k<dots.length;k++) {
-    dots[k].addEventListener('click',function(){
-      mState.colors[this.getAttribute('data-s')]=parseInt(this.getAttribute('data-c'));
-      renderPosSection();
-    });
-  }
+  sec.querySelectorAll('button[data-shift]').forEach(function(b){b.addEventListener('click',function(){mState.activeShift=this.getAttribute('data-shift');renderPosSection();});});
+  sec.querySelectorAll('.pos-dot').forEach(function(dot){dot.addEventListener('click',function(){mState.colors[this.getAttribute('data-s')]=parseInt(this.getAttribute('data-c'));renderPosSection();});});
 }
 
-// SUMMARY
-function renderSummary() {
+// ===== SUMMARY =====
+function renderSummary(){
   var mode=document.getElementById('summaryFilter').value;
   var el=document.getElementById('summaryContent');
-  if(mode==='person') renderPersonSummary(el); else renderDailySummary(el);
+  if(mode==='person')renderPersonSummary(el);else renderDailySummary(el);
 }
-function renderPersonSummary(el) {
-  if(state.persons.length===0){el.innerHTML='<div class="no-data">ยังไม่มีรายชื่อ</div>';return;}
-  var y=state.year,m=state.month,days=daysIn(y,m);
+function renderPersonSummary(el){
+  if(shiftState.persons.length===0){el.innerHTML='<div class="no-data">ยังไม่มีรายชื่อ</div>';return;}
+  var y=shiftState.year,m=shiftState.month,days=daysIn(y,m);
   var html='<div class="summary-grid">';
-  for(var pi=0;pi<state.persons.length;pi++) {
-    var counts={};
-    for(var si=0;si<SHIFTS.length;si++) for(var ci=0;ci<=5;ci++) counts[SHIFTS[si]+'_'+ci]=0;
-    for(var d=1;d<=days;d++) {
-      var cell=getCell(pi,d);
-      for(var si2=0;si2<cell.shifts.length;si2++) {
-        var sh=cell.shifts[si2]; counts[sh+'_'+(cell.colors[sh]||0)]++;
-      }
-    }
-    html+='<div class="summary-card"><div class="summary-name">'+state.persons[pi]+'</div>';
-    for(var si3=0;si3<SHIFTS.length;si3++) {
-      var s=SHIFTS[si3];
-      var sName=s==='ช'?'เช้า':s==='บ'?'บ่าย':'ดึก';
-      var total=0,detail='';
-      for(var ci2=0;ci2<=5;ci2++) {
-        var n=counts[s+'_'+ci2];
-        if(n>0){total+=n;detail+='<span style="margin-right:6px;font-size:11px"><span class="'+(ci2?'shift-char '+POS_CLASS[ci2]:'shift-char')+'">'+s+'</span> '+POS_LABELS[ci2]+': '+n+'</span>';}
-      }
-      if(total>0) {
-        html+='<div class="summary-row"><span>'+s+' '+sName+'</span><span class="count-badge">'+total+' เวร</span></div>';
-        if(detail) html+='<div style="padding:2px 0 6px 12px;font-size:11px;color:var(--text-dim)">'+detail+'</div>';
-      }
+  for(var pi=0;pi<shiftState.persons.length;pi++){
+    var counts={};for(var si=0;si<SHIFTS.length;si++)for(var ci=0;ci<=5;ci++)counts[SHIFTS[si]+'_'+ci]=0;
+    for(var d=1;d<=days;d++){var cell=getCell(pi,d);for(var si2=0;si2<cell.shifts.length;si2++){var sh=cell.shifts[si2];counts[sh+'_'+(cell.colors[sh]||0)]++;}}
+    html+='<div class="summary-card"><div class="summary-name">'+shiftState.persons[pi]+'</div>';
+    for(var si3=0;si3<SHIFTS.length;si3++){var s=SHIFTS[si3],sName=s==='ช'?'เช้า':s==='บ'?'บ่าย':'ดึก',total=0,detail='';
+      for(var ci2=0;ci2<=5;ci2++){var n=counts[s+'_'+ci2];if(n>0){total+=n;detail+='<span style="margin-right:5px;font-size:11px"><span class="'+(ci2?'shift-char '+POS_CLASS[ci2]:'shift-char')+'">'+s+'</span> '+POS_LABELS[ci2]+': '+n+'</span>';}}
+      if(total>0){html+='<div class="summary-row"><span>'+s+' '+sName+'</span><span class="count-badge">'+total+' เวร</span></div>';if(detail)html+='<div style="padding:2px 0 5px 10px;font-size:11px;color:var(--text-dim)">'+detail+'</div>';}
     }
     html+='</div>';
   }
-  html+='</div>'; el.innerHTML=html;
+  html+='</div>';el.innerHTML=html;
 }
-function renderDailySummary(el) {
-  var y=state.year,m=state.month,days=daysIn(y,m);
-  var html='<div class="section-card"><div style="font-family:Prompt,sans-serif;font-size:13px;font-weight:600;color:var(--accent2);margin-bottom:10px;">สรุปรายวัน — '+MONTHS_TH[m]+' '+(y+543)+'</div>';
-  for(var d=1;d<=days;d++) {
-    var dow=new Date(y,m,d).getDay();
-    var isWE=dow===0||dow===6;
-    var sc={'ช':[],'บ':[],'ด':[]};
-    for(var pi=0;pi<state.persons.length;pi++) {
-      var cell=getCell(pi,d);
-      for(var si=0;si<cell.shifts.length;si++) {
-        var sh=cell.shifts[si];
-        if(sc[sh]) sc[sh].push({name:state.persons[pi],color:cell.colors[sh]||0});
-      }
-    }
-    html+='<div class="day-row"><span class="day-num" style="'+(isWE?'color:#e53935':'')+'">'+ d+'</span><span style="font-size:11px;color:var(--text-dim);width:22px">'+DAYS_TH[dow]+'</span>';
-    for(var si2=0;si2<SHIFTS.length;si2++) {
-      var s=SHIFTS[si2],arr=sc[s];
-      var sName=s==='ช'?'เช้า':s==='บ'?'บ่าย':'ดึก';
+function renderDailySummary(el){
+  var y=shiftState.year,m=shiftState.month,days=daysIn(y,m);
+  var html='<div class="section-card"><div style="font-family:Prompt,sans-serif;font-size:13px;font-weight:600;color:var(--accent);margin-bottom:8px;">สรุปรายวัน — '+MONTHS_TH[m]+' '+(y+543)+'</div>';
+  for(var d=1;d<=days;d++){
+    var dow=new Date(y,m,d).getDay(),isWE=dow===0||dow===6,sc={'ช':[],'บ':[],'ด':[]};
+    for(var pi=0;pi<shiftState.persons.length;pi++){var cell=getCell(pi,d);for(var si=0;si<cell.shifts.length;si++){var sh=cell.shifts[si];if(sc[sh])sc[sh].push({name:shiftState.persons[pi],color:cell.colors[sh]||0});}}
+    html+='<div class="day-row"><span class="day-num" style="'+(isWE?'color:#e53935':'')+'">'+ d+'</span><span style="font-size:10px;color:var(--text-dim);width:20px">'+DAYS_TH[dow]+'</span>';
+    for(var si2=0;si2<SHIFTS.length;si2++){var s=SHIFTS[si2],arr=sc[s],sName=s==='ช'?'เช้า':s==='บ'?'บ่าย':'ดึก';
       html+='<span class="shift-group"><span class="shift-group-label">'+sName+'</span><span style="font-weight:700;font-size:12px;color:'+(arr.length>0?'var(--text)':'var(--text-dim)')+'">'+arr.length+'</span>';
-      for(var ai=0;ai<arr.length;ai++) {
-        html+='<span class="'+(arr[ai].color?'shift-char '+POS_CLASS[arr[ai].color]:'shift-char')+'" style="font-size:10px;margin-left:2px" title="'+arr[ai].name+'">'+arr[ai].name.slice(0,2)+'</span>';
-      }
-      html+='</span>';
-    }
+      for(var ai=0;ai<arr.length;ai++)html+='<span class="'+(arr[ai].color?'shift-char '+POS_CLASS[arr[ai].color]:'shift-char')+'" style="font-size:10px;margin-left:2px" title="'+arr[ai].name+'">'+arr[ai].name.slice(0,2)+'</span>';
+      html+='</span>';}
     html+='</div>';
   }
-  html+='</div>'; el.innerHTML=html;
+  html+='</div>';el.innerHTML=html;
 }
 
-// PERSONS
-function renderPersonList() {
+// ===== PERSONS / HOLIDAYS =====
+function renderPersonList(){
   var el=document.getElementById('personList');
-  if(state.persons.length===0){el.innerHTML='<span style="color:var(--text-dim);font-size:12px">ยังไม่มีรายชื่อ</span>';return;}
+  if(shiftState.persons.length===0){el.innerHTML='<span style="color:var(--text-dim);font-size:12px">ยังไม่มีรายชื่อ</span>';return;}
   var html='';
-  for(var i=0;i<state.persons.length;i++) {
-    html+='<div style="display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:6px 12px;font-size:13px;width:100%;">';
-    html+='<span style="flex:1">'+state.persons[i]+'</span>';
-    html+='<button data-action="up" data-i="'+i+'" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--text-dim);padding:0 2px;" '+(i===0?'disabled':'')+'">↑</button>';
-    html+='<button data-action="down" data-i="'+i+'" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--text-dim);padding:0 2px;" '+(i===state.persons.length-1?'disabled':'')+'">↓</button>';
-    html+='<button data-action="del" data-i="'+i+'" style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:14px;padding:0;">×</button>';
+  for(var i=0;i<shiftState.persons.length;i++){
+    var name=shiftState.persons[i];
+    // sync caps from assignState.staff
+    var st=getStaffByName(name);
+    var capsHtml='';
+    if(st&&st.caps&&st.caps.length>0){
+      var shortCaps={'incharge':'IC','teamlead':'TL','triage':'TR','resus':'RS','member':'MB','observe':'OB','refer':'RF'};
+      capsHtml='<span style="font-size:10px;color:var(--text-dim);margin-left:4px;">'+st.caps.map(function(c){return shortCaps[c]||c;}).join(' ')+'</span>';
+    }
+    var condHtml='';
+    if(st&&hasCond(st,'float_morning'))condHtml+='<span style="font-size:9px;background:#d1fae5;color:#065f46;border-radius:6px;padding:1px 5px;">ลอยเช้า</span>';
+    if(st&&hasCond(st,'pregnant'))condHtml+='<span style="font-size:9px;background:#fce7f3;color:#9d174d;border-radius:6px;padding:1px 5px;">ท้อง</span>';
+    html+='<div style="display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:6px 10px;font-size:12px;">';
+    html+='<span style="font-size:11px;color:var(--text-dim);font-weight:700;min-width:20px;">'+(i+1)+'.</span>';
+    html+='<button data-action="name" data-i="'+i+'" style="background:none;border:none;cursor:pointer;font-weight:600;font-size:12px;color:var(--accent);font-family:Sarabun,sans-serif;text-align:left;padding:0;">'+name+'</button>';
+    html+=capsHtml;
+    if(condHtml)html+='<span style="display:flex;gap:3px;">'+condHtml+'</span>';
+    html+='<span style="flex:1"></span>';
+    html+='<button data-action="up" data-i="'+i+'" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--text-dim);padding:0 2px;" '+(i===0?'disabled':'')+'>↑</button>';
+    html+='<button data-action="down" data-i="'+i+'" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--text-dim);padding:0 2px;" '+(i===shiftState.persons.length-1?'disabled':'')+'>↓</button>';
+    html+='<button data-action="del" data-i="'+i+'" style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:14px;padding:0 2px;">×</button>';
     html+='</div>';
   }
   el.innerHTML=html;
-  var btns=el.querySelectorAll('button');
-  for(var j=0;j<btns.length;j++) {
-    btns[j].addEventListener('click',function(){
-      var idx=parseInt(this.getAttribute('data-i'));
-      var action=this.getAttribute('data-action');
-      if(action==='del') {
-        if(confirm('ลบ "'+state.persons[idx]+'" ออกจากรายชื่อ?')){
-          state.persons.splice(idx,1); save(); renderPersonList(); renderSchedule();
+  el.querySelectorAll('button').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var idx=parseInt(this.getAttribute('data-i')),action=this.getAttribute('data-action');
+      if(action==='name'){
+        // open staff modal for this person
+        var st2=getStaffByName(shiftState.persons[idx]);
+        if(st2){var si2=assignState.staff.indexOf(st2);if(si2>=0)openStaffModal(si2);}
+        else{
+          // create staff entry if not exists
+          assignState.staff.push({name:shiftState.persons[idx],caps:['incharge','teamlead','triage','resus','member','observe','refer'],conds:[],limits:{},note:''});
+          saveAssign();openStaffModal(assignState.staff.length-1);
         }
-      } else if(action==='up' && idx>0) {
-        var tmp=state.persons[idx-1]; state.persons[idx-1]=state.persons[idx]; state.persons[idx]=tmp;
-        save(); renderPersonList(); renderSchedule();
-      } else if(action==='down' && idx<state.persons.length-1) {
-        var tmp2=state.persons[idx+1]; state.persons[idx+1]=state.persons[idx]; state.persons[idx]=tmp2;
-        save(); renderPersonList(); renderSchedule();
       }
+      else if(action==='del'){if(confirm('ลบ "'+shiftState.persons[idx]+'" ออกจากรายชื่อ?')){shiftState.persons.splice(idx,1);saveShift();renderPersonList();renderSchedule();}}
+      else if(action==='up'&&idx>0){var t=shiftState.persons[idx-1];shiftState.persons[idx-1]=shiftState.persons[idx];shiftState.persons[idx]=t;saveShift();renderPersonList();renderSchedule();}
+      else if(action==='down'&&idx<shiftState.persons.length-1){var t2=shiftState.persons[idx+1];shiftState.persons[idx+1]=shiftState.persons[idx];shiftState.persons[idx]=t2;saveShift();renderPersonList();renderSchedule();}
     });
-  }
+  });
 }
-
-// HOLIDAYS
-function renderHolidayList() {
+function getStaffByName(name){for(var i=0;i<assignState.staff.length;i++)if(assignState.staff[i].name===name)return assignState.staff[i];return null;}
+function renderHolidayList(){
   var el=document.getElementById('holidayList');
-  if(!state.holidays||state.holidays.length===0){el.innerHTML='<div style="color:var(--text-dim);font-size:12px;margin-bottom:12px">ยังไม่มีวันหยุดราชการ</div>';return;}
-  var sorted=state.holidays.slice().sort(function(a,b){return a.date.localeCompare(b.date);});
+  if(!shiftState.holidays||shiftState.holidays.length===0){el.innerHTML='<div style="color:var(--text-dim);font-size:12px;margin-bottom:10px">ยังไม่มีวันหยุดราชการ</div>';return;}
+  var sorted=shiftState.holidays.slice().sort(function(a,b){return a.date.localeCompare(b.date);});
   var html='<div class="holiday-list">';
-  for(var i=0;i<sorted.length;i++) {
-    var h=sorted[i];
-    var parts=h.date.split('-');
-    var dow=new Date(parseInt(parts[0]),parseInt(parts[1])-1,parseInt(parts[2])).getDay();
-    html+='<div class="holiday-item"><span class="hdate">'+parseInt(parts[2])+' '+MONTHS_TH[parseInt(parts[1])-1]+' '+(parseInt(parts[0])+543)+'</span><span class="hname">'+h.name+'</span><button data-date="'+h.date+'">×</button></div>';
+  sorted.forEach(function(h){var parts=h.date.split('-');
+    html+='<div class="holiday-item"><span class="hdate">'+parseInt(parts[2])+' '+MONTHS_TH[parseInt(parts[1])-1]+' '+(parseInt(parts[0])+543)+'</span><span class="hname">'+h.name+'</span><button data-date="'+h.date+'">×</button></div>';});
+  html+='</div>';el.innerHTML=html;
+  el.querySelectorAll('button').forEach(function(b){b.addEventListener('click',function(){
+    var date=this.getAttribute('data-date');shiftState.holidays=shiftState.holidays.filter(function(h){return h.date!==date;});saveShift();renderHolidayList();renderSchedule();});});
+}
+
+// ===== ASSIGNMENT CALENDAR =====
+var calYear=new Date().getFullYear(),calMonth=new Date().getMonth();
+function renderAssignCalendar(){
+  calYear=shiftState.year;calMonth=shiftState.month;
+  document.getElementById('calTitle').textContent=MONTHS_TH[calMonth]+' '+(calYear+543);
+  var firstDow=new Date(calYear,calMonth,1).getDay(),days=daysIn(calYear,calMonth),today=new Date();
+  var html='';
+  ['อา','จ','อ','พ','พฤ','ศ','ส'].forEach(function(d,i){html+='<div class="cal-dh'+(i===0||i===6?' we':'')+'">'+d+'</div>';});
+  for(var e=0;e<firstDow;e++)html+='<div class="cal-cell-a empty"></div>';
+  for(var day=1;day<=days;day++){
+    var dow=new Date(calYear,calMonth,day).getDay(),isWE=dow===0||dow===6;
+    var isToday=today.getFullYear()===calYear&&today.getMonth()===calMonth&&today.getDate()===day;
+    var dt=ds(calYear,calMonth,day);
+    var hasN=assignState.assignments[dt]&&assignState.assignments[dt]['night']&&Object.keys(assignState.assignments[dt]['night']).length>0;
+    var hasM=assignState.assignments[dt]&&assignState.assignments[dt]['morning']&&Object.keys(assignState.assignments[dt]['morning']).length>0;
+    var hasA=assignState.assignments[dt]&&assignState.assignments[dt]['afternoon']&&Object.keys(assignState.assignments[dt]['afternoon']).length>0;
+    html+='<div class="cal-cell-a'+(isWE?' we':'')+(isToday?' today':'')+(hasM||hasA||hasN?' done':'')+'" data-date="'+dt+'">';
+    html+='<div class="cal-date-a">'+day+'</div>';
+    if(hasN||hasM||hasA){html+='<div class="cal-dots-a">';
+      if(hasN)html+='<div class="cal-dot-a n"></div>';
+      if(hasM)html+='<div class="cal-dot-a m"></div>';
+      if(hasA)html+='<div class="cal-dot-a a"></div>';
+      html+='</div>';}
+    html+='</div>';
   }
-  html+='</div>'; el.innerHTML=html;
-  var btns=el.querySelectorAll('button');
-  for(var j=0;j<btns.length;j++) {
-    btns[j].addEventListener('click',function(){
-      var date=this.getAttribute('data-date');
-      state.holidays=state.holidays.filter(function(h){return h.date!==date;});
-      save(); renderHolidayList(); renderSchedule();
+  document.getElementById('calGrid').innerHTML=html;
+  document.getElementById('calGrid').querySelectorAll('.cal-cell-a:not(.empty)').forEach(function(c){
+    c.addEventListener('click',function(){openDayView(this.getAttribute('data-date'));});
+  });
+}
+
+// ===== IMPORT ROSTER FROM SCHEDULE =====
+function importRosterFromSchedule(){
+  var y=shiftState.year,m=shiftState.month,days=daysIn(y,m);
+  for(var d=1;d<=days;d++){
+    var dt=ds(y,m,d);
+    var rn={},ra={},rd={};
+    var c2morning=null,c2afternoon=null; // auto-assign C2
+    for(var pi=0;pi<shiftState.persons.length;pi++){
+      var sp=getSpecial(pi,d);
+      if(sp)continue;
+      var cell=getCell(pi,d);
+      for(var si=0;si<cell.shifts.length;si++){
+        var sh=cell.shifts[si],name=shiftState.persons[pi];
+        var co=cell.colors[sh]||0;
+        if(co===4||co===5)continue; // ตัด EMD และ EMS ออก
+        if(sh==='ช'){rn[name]=1;if(co===3)c2morning=name;} // C2 เช้า
+        else if(sh==='บ'){ra[name]=1;if(co===3)c2afternoon=name;} // C2 บ่าย
+        else if(sh==='ด')rd[name]=1;
+      }
+    }
+    if(!assignState.rosters[dt])assignState.rosters[dt]={};
+    assignState.rosters[dt]['morning']=Object.keys(rn);
+    assignState.rosters[dt]['afternoon']=Object.keys(ra);
+    assignState.rosters[dt]['night']=Object.keys(rd);
+    // auto-assign C2
+    if(c2morning||c2afternoon){
+      if(!assignState.assignments[dt])assignState.assignments[dt]={};
+      if(c2morning){if(!assignState.assignments[dt]['morning'])assignState.assignments[dt]['morning']={};assignState.assignments[dt]['morning']['C2']=c2morning;}
+      if(c2afternoon){if(!assignState.assignments[dt]['afternoon'])assignState.assignments[dt]['afternoon']={};assignState.assignments[dt]['afternoon']['C2']=c2afternoon;}
+    }
+  }
+  saveAssign();renderAssignCalendar();
+  showToast('📥 Import roster '+MONTHS_TH[m]+' '+(y+543)+' เรียบร้อย');
+}
+
+// ===== DAY VIEW =====
+var curDate=null;
+function openDayView(dateStr){
+  curDate=dateStr;
+  var parts=dateStr.split('-'),d=parseInt(parts[2]),m=parseInt(parts[1])-1,y=parseInt(parts[0]);
+  var dow=new Date(y,m,d).getDay();
+  document.getElementById('dayTitle').textContent=d+' '+MONTHS_TH[m]+' '+(y+543)+' ('+DAYS_TH[dow]+')';
+  document.getElementById('printHeader').textContent='ตาราง Assignment — '+d+' '+MONTHS_TH[m]+' '+(y+543);
+  document.getElementById('assign-calendar-view').style.display='none';
+  document.getElementById('assign-daily-view').style.display='block';
+  renderDayView();
+}
+function closeDayView(){
+  document.getElementById('assign-calendar-view').style.display='block';
+  document.getElementById('assign-daily-view').style.display='none';
+  curDate=null;
+}
+
+function renderDayView(){
+  if(!curDate)return;
+  // roster preview
+  var roster=assignState.rosters[curDate]||{};
+  var rpHtml='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px;">';
+  var shiftInfo=[{key:'night',lbl:'ดึก',bg:'#e0f2fe',col:'#0c4a6e'},{key:'morning',lbl:'เช้า',bg:'#fef3c7',col:'#92400e'},{key:'afternoon',lbl:'บ่าย',bg:'#ede9fe',col:'#4c1d95'}];
+  shiftInfo.forEach(function(sh){var r=roster[sh.key]||[];
+    rpHtml+='<div style="background:'+sh.bg+';border-radius:8px;padding:5px 10px;font-size:11px;"><b style="color:'+sh.col+'">'+sh.lbl+' ('+r.length+'คน)</b><br><span style="color:var(--text-dim);">'+(r.length>0?r.join(', '):'—')+'</span></div>';
+  });
+  rpHtml+='</div>';
+  document.getElementById('rosterPreview').innerHTML=rpHtml;
+
+  var order=[{key:'night',lbl:'ดึก',cls:'night'},{key:'morning',lbl:'เช้า',cls:'morning'},{key:'afternoon',lbl:'บ่าย',cls:'afternoon'}];
+  var html='';
+  order.forEach(function(sh){
+    var roles=SHIFT_ROLES[sh.key],r=roster[sh.key]||[],assigns=(assignState.assignments[curDate]&&assignState.assignments[curDate][sh.key])||{};
+    html+='<div class="shift-card"><div class="shift-hdr '+sh.cls+'"><div class="shift-hdr-title '+sh.cls+'">'+sh.lbl+'</div><div class="shift-badge '+sh.cls+'">'+r.length+' คน</div></div><div>';
+    roles.forEach(function(role){var name=assigns[role.id]||'';
+      html+='<div class="assign-row" data-shift="'+sh.key+'" data-role="'+role.id+'"><div class="assign-role">'+role.label+'</div>';
+      html+='<div class="assign-name'+(name?'':' empty')+'">'+(name||'— ว่าง —')+'</div>';
+      if(role.break&&role.break!=='-')html+='<div class="assign-break">'+role.break+'</div>';
+      html+='</div>';
     });
+    html+='</div></div>';
+  });
+  document.getElementById('shiftCols').innerHTML=html;
+  document.getElementById('shiftCols').querySelectorAll('.assign-row').forEach(function(row){
+    row.addEventListener('click',function(){openAssignModal(this.getAttribute('data-shift'),this.getAttribute('data-role'));});
+  });
+}
+
+// ===== AI AUTO ASSIGN =====
+function getStaff(name){return getStaffByName(name)||null;}
+function hasCond(st,key){return st.conds&&st.conds.indexOf(key)>=0;}
+function hasCap(st,cap){return st.caps&&st.caps.indexOf(cap)>=0;}
+function getLimit(st,cap){return(st.limits&&st.limits[cap]!==undefined)?st.limits[cap]:0;}
+function capCountMonth(name,cap){
+  var y=shiftState.year,m=shiftState.month,days=daysIn(y,m),cnt=0;
+  for(var d=1;d<=days;d++){var dt=ds(y,m,d);
+    if(!assignState.assignments[dt])continue;
+    ['morning','afternoon','night'].forEach(function(sh){
+      if(!assignState.assignments[dt][sh])return;
+      SHIFT_ROLES[sh].forEach(function(role){if(assignState.assignments[dt][sh][role.id]===name&&role.cap===cap)cnt++;});
+    });
+  }
+  return cnt;
+}
+
+function doAssignDay(dateStr){
+  var shifts=['night','morning','afternoon'],changed=false;
+  shifts.forEach(function(shiftKey){
+    var roles=SHIFT_ROLES[shiftKey],roster=(assignState.rosters[dateStr]&&assignState.rosters[dateStr][shiftKey])||[];
+    if(roster.length===0)return;
+    if(!assignState.assignments[dateStr])assignState.assignments[dateStr]={};
+    if(!assignState.assignments[dateStr][shiftKey])assignState.assignments[dateStr][shiftKey]={};
+    var assigns=assignState.assignments[dateStr][shiftKey];
+    roles.forEach(function(role){
+      if(assigns[role.id])return; // already assigned (e.g. C2 from import)
+      var eligible=roster.filter(function(name){
+        var st=getStaff(name);if(!st)return false;
+        if(!hasCap(st,role.cap))return false;
+        if(shiftKey==='night'&&(hasCond(st,'float_morning')||hasCond(st,'no_night')))return false;
+        if(shiftKey==='afternoon'&&hasCond(st,'float_morning'))return false;
+        if(hasCond(st,'pregnant')&&role.cap==='refer')return false;
+        var lim=getLimit(st,role.cap);if(lim>0&&capCountMonth(name,role.cap)>=lim)return false;
+        return true;
+      });
+      var usedNames=[];for(var k in assigns)if(assigns.hasOwnProperty(k))usedNames.push(assigns[k]);
+      eligible=eligible.filter(function(n){return usedNames.indexOf(n)<0;});
+      if(eligible.length===0)return;
+      if(role.cap==='observe'){var pregFirst=eligible.filter(function(n){var st=getStaff(n);return st&&hasCond(st,'pregnant');});if(pregFirst.length>0)eligible=pregFirst.concat(eligible.filter(function(n){var st=getStaff(n);return !st||!hasCond(st,'pregnant');}));}
+      eligible.sort(function(a,b){return capCountMonth(a,role.cap)-capCountMonth(b,role.cap);});
+      assigns[role.id]=eligible[0];changed=true;
+    });
+  });
+  return changed;
+}
+
+function autoAssign(){
+  // check if we're in day view or calendar view
+  var inDayView=document.getElementById('assign-daily-view').style.display!=='none';
+  if(inDayView&&curDate){
+    // single day
+    var changed=doAssignDay(curDate);
+    if(changed){saveAssign();renderDayView();showToast('✅ AI จัดเวรวันนี้เรียบร้อย');}
+    else showToast('ℹ️ ไม่มีตำแหน่งว่าง หรือยังไม่มี roster');
+  } else {
+    // whole month
+    var y=shiftState.year,m=shiftState.month,days=daysIn(y,m),total=0;
+    for(var d=1;d<=days;d++){
+      var dt=ds(y,m,d);
+      if(doAssignDay(dt))total++;
+    }
+    saveAssign();renderAssignCalendar();
+    showToast('✅ AI จัดเวรทั้งเดือน '+MONTHS_TH[m]+' เรียบร้อย ('+total+' วัน)');
   }
 }
 
-// TABS
-function switchTab(name) {
-  document.querySelectorAll('.tab').forEach(function(t){t.classList.toggle('active',t.getAttribute('data-tab')===name);});
+// ===== ASSIGN MODAL =====
+var aCtx={shift:null,role:null,sel:null};
+function openAssignModal(shiftKey,roleId){
+  aCtx={shift:shiftKey,role:roleId,sel:null};
+  var roles=SHIFT_ROLES[shiftKey],role=null;
+  roles.forEach(function(r){if(r.id===roleId)role=r;});
+  if(!role)return;
+  var assigns=(assignState.assignments[curDate]&&assignState.assignments[curDate][shiftKey])||{};
+  aCtx.sel=assigns[roleId]||null;
+  var sn=shiftKey==='morning'?'เช้า':shiftKey==='afternoon'?'บ่าย':'ดึก';
+  document.getElementById('aModalTitle').textContent=role.label+' — '+sn;
+  var pts=curDate.split('-');
+  document.getElementById('aModalSub').textContent=parseInt(pts[2])+' '+MONTHS_TH[parseInt(pts[1])-1]+' '+(parseInt(pts[0])+543);
+  document.getElementById('aSearch').value='';
+  renderCandidates(role,shiftKey,'');
+  document.getElementById('aModal').classList.add('open');
+}
+function renderCandidates(role,shiftKey,query){
+  var roster=(assignState.rosters[curDate]&&assignState.rosters[curDate][shiftKey])||[];
+  var assigns=(assignState.assignments[curDate]&&assignState.assignments[curDate][shiftKey])||{};
+  var list=assignState.staff.filter(function(st){return !query||st.name.indexOf(query)>=0;});
+  var inR=list.filter(function(st){return roster.indexOf(st.name)>=0;});
+  var notR=list.filter(function(st){return roster.indexOf(st.name)<0;});
+  var combined=inR.concat(notR);
+  var html='';
+  combined.forEach(function(st){
+    var capable=hasCap(st,role.cap);
+    var usedInShift=false;for(var k in assigns)if(assigns[k]===st.name&&k!==role.id){usedInShift=true;break;}
+    var condBlock=(shiftKey==='night'&&(hasCond(st,'float_morning')||hasCond(st,'no_night')))||(shiftKey==='afternoon'&&hasCond(st,'float_morning'))||(hasCond(st,'pregnant')&&role.cap==='refer');
+    var lim=getLimit(st,role.cap),cnt=capCountMonth(st.name,role.cap),limitBlock=lim>0&&cnt>=lim;
+    var disabled=!capable||usedInShift||condBlock||limitBlock,isSel=aCtx.sel===st.name,inRoster=roster.indexOf(st.name)>=0;
+    html+='<div class="cand-item'+(isSel?' sel':'')+(disabled?' disabled':'')+'" data-name="'+st.name+'">';
+    html+='<span class="cand-name">'+(inRoster?'✓ ':'')+st.name+'</span>';
+    if(!capable)html+='<span class="cand-warn">ไม่ capable</span>';
+    else if(condBlock)html+='<span class="cand-warn">เงื่อนไข</span>';
+    else if(limitBlock)html+='<span class="cand-warn">ครบ limit</span>';
+    else html+='<span class="cand-meta">'+cnt+'ครั้ง</span>';
+    html+='</div>';
+  });
+  if(!html)html='<div style="color:var(--text-dim);font-size:12px;padding:10px;">ไม่พบ</div>';
+  var el=document.getElementById('candList');
+  el.innerHTML=html;
+  el.querySelectorAll('.cand-item:not(.disabled)').forEach(function(item){
+    item.addEventListener('click',function(){aCtx.sel=this.getAttribute('data-name');el.querySelectorAll('.cand-item').forEach(function(x){x.classList.remove('sel');});this.classList.add('sel');});
+  });
+}
+
+// ===== EXPORT =====
+function exportCSV(){
+  if(!curDate)return;
+  var pts=curDate.split('-'),d=parseInt(pts[2]),m=parseInt(pts[1])-1,y=parseInt(pts[0]);
+  var rows=[['ตำแหน่ง','ดึก','เช้า','บ่าย','เวลาพักเช้า','เวลาพักบ่าย']];
+  var maxLen=Math.max(SHIFT_ROLES.night.length,SHIFT_ROLES.morning.length,SHIFT_ROLES.afternoon.length);
+  for(var i=0;i<maxLen;i++){
+    var rn=SHIFT_ROLES.night[i],rm=SHIFT_ROLES.morning[i],ra=SHIFT_ROLES.afternoon[i];
+    var an=(assignState.assignments[curDate]&&assignState.assignments[curDate]['night']&&rn)?assignState.assignments[curDate]['night'][rn.id]||'':'-';
+    var am=(assignState.assignments[curDate]&&assignState.assignments[curDate]['morning']&&rm)?assignState.assignments[curDate]['morning'][rm.id]||'':'-';
+    var aa=(assignState.assignments[curDate]&&assignState.assignments[curDate]['afternoon']&&ra)?assignState.assignments[curDate]['afternoon'][ra.id]||'':'-';
+    var role=rm?rm.label:(rn?rn.label:(ra?ra.label:''));
+    var bm=rm?rm.break:'-',ba=ra?ra.break:'-';
+    rows.push([role,an,am,aa,bm,ba]);
+  }
+  var csv=rows.map(function(r){return r.map(function(c){return'"'+c+'"';}).join(',');}).join('\n');
+  var bom='\uFEFF';
+  var blob=new Blob([bom+csv],{type:'text/csv;charset=utf-8;'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');a.href=url;a.download='assignment_'+curDate+'.csv';a.click();
+  URL.revokeObjectURL(url);showToast('📊 Export CSV เรียบร้อย');
+}
+
+// ===== STAFF PAGE =====
+function renderStaffTable(){
+  var tbl=document.getElementById('staffTbl');
+  var html='<thead><tr><th class="nc">ชื่อ</th>';
+  ALL_CAPS.forEach(function(cap){html+='<th>'+CAP_LABELS[cap]+'</th>';});
+  html+='<th>เงื่อนไข</th><th>Note</th><th></th></tr></thead><tbody>';
+  assignState.staff.forEach(function(st,si){
+    html+='<tr><td class="nc" style="display:flex;align-items:center;gap:5px;">';
+    html+='<button onclick="openStaffModal('+si+')" style="background:none;border:none;cursor:pointer;font-weight:600;font-size:12px;color:var(--accent);text-decoration:underline;font-family:Sarabun,sans-serif;">'+st.name+'</button>';
+    html+='<button onclick="renameStaff('+si+')" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--text-dim);">✏️</button></td>';
+    ALL_CAPS.forEach(function(cap){var on=hasCap(st,cap);html+='<td><span style="font-size:13px;color:'+(on?'var(--ok)':'var(--border)')+';">'+(on?'✓':'—')+'</span></td>';});
+    var condHtml='';
+    if(hasCond(st,'float_morning'))condHtml+='<span class="cond-chip float">ลอยเช้า</span> ';
+    if(hasCond(st,'no_night'))condHtml+='<span class="cond-chip nonight">ไม่ดึก</span> ';
+    if(hasCond(st,'pregnant'))condHtml+='<span class="cond-chip preg">ท้อง</span> ';
+    html+='<td style="white-space:nowrap;">'+(condHtml||'—')+'</td>';
+    html+='<td style="font-size:11px;color:var(--text-dim);max-width:90px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(st.note||'—')+'</td>';
+    html+='<td><button onclick="removeStaff('+si+')" style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:14px;">×</button></td>';
+    html+='</tr>';
+  });
+  html+='</tbody>';tbl.innerHTML=html;
+}
+function renameStaff(idx){var old=assignState.staff[idx].name,n=prompt('แก้ชื่อ:',old);if(!n||!n.trim()||n.trim()===old)return;assignState.staff[idx].name=n.trim();saveAssign();renderStaffTable();showToast('แก้ชื่อเป็น "'+n.trim()+'" แล้ว ✓');}
+function removeStaff(idx){if(!confirm('ลบ "'+assignState.staff[idx].name+'" ออก?'))return;assignState.staff.splice(idx,1);saveAssign();renderStaffTable();}
+
+// ===== STAFF MODAL =====
+var sModalIdx=null,sModalDraft={caps:[],conds:[],limits:{},note:''};
+function openStaffModal(idx){
+  sModalIdx=idx;var st=assignState.staff[idx];
+  sModalDraft={caps:(st.caps||[]).slice(),conds:(st.conds||[]).slice(),limits:Object.assign({},st.limits||{}),note:st.note||''};
+  document.getElementById('sModalName').textContent=st.name;
+  renderCapGrid();renderCondGrid();renderLimitGrid();
+  document.getElementById('noteInput').value=sModalDraft.note;
+  document.getElementById('sModal').classList.add('open');
+}
+function renderCapGrid(){
+  var el=document.getElementById('capGrid');
+  el.innerHTML=ALL_CAPS.map(function(cap){var on=sModalDraft.caps.indexOf(cap)>=0;return'<div class="cap-toggle'+(on?' on':'')+'" data-cap="'+cap+'">'+CAP_LABELS[cap]+'</div>';}).join('');
+  el.querySelectorAll('.cap-toggle').forEach(function(t){t.addEventListener('click',function(){var cap=this.getAttribute('data-cap'),idx=sModalDraft.caps.indexOf(cap);if(idx>=0)sModalDraft.caps.splice(idx,1);else sModalDraft.caps.push(cap);renderCapGrid();});});
+}
+function renderCondGrid(){
+  var el=document.getElementById('condGrid');
+  el.innerHTML=CONDS.map(function(c){var on=sModalDraft.conds.indexOf(c.key)>=0;return'<div class="cond-row'+(on?' on':'')+'" data-cond="'+c.key+'"><input type="checkbox" '+(on?'checked':'')+' readonly><div style="flex:1"><div class="cond-row-label">'+c.label+'</div><div class="cond-row-desc">'+c.desc+'</div></div></div>';}).join('');
+  el.querySelectorAll('.cond-row').forEach(function(row){row.addEventListener('click',function(){var key=this.getAttribute('data-cond'),idx=sModalDraft.conds.indexOf(key);if(idx>=0)sModalDraft.conds.splice(idx,1);else sModalDraft.conds.push(key);renderCondGrid();});});
+}
+function renderLimitGrid(){
+  var el=document.getElementById('limitGrid');
+  el.innerHTML=ALL_CAPS.map(function(cap){var val=sModalDraft.limits[cap]||0;return'<div class="limit-row"><label>'+CAP_LABELS[cap]+'</label><input type="number" class="limit-input" data-cap="'+cap+'" min="0" max="99" value="'+val+'"> เวร/เดือน</div>';}).join('');
+  el.querySelectorAll('.limit-input').forEach(function(inp){inp.addEventListener('change',function(){sModalDraft.limits[this.getAttribute('data-cap')]=parseInt(this.value)||0;});});
+}
+
+// ===== TABS =====
+function switchTab(name){
+  document.querySelectorAll('.nav-tab').forEach(function(t){t.classList.toggle('active',t.getAttribute('data-tab')===name);});
   document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
   document.getElementById('page-'+name).classList.add('active');
-  document.getElementById('stampBar').style.display = name==='schedule' ? 'flex' : 'none';
-  if(name==='summary') renderSummary();
-  if(name==='settings') { renderPersonList(); loadThrInputs(); }
-  if(name==='holidays') renderHolidayList();
+  document.getElementById('stampBar').style.display=name==='schedule'?'flex':'none';
+  if(name==='summary')renderSummary();
+  if(name==='settings'){renderPersonList();loadThrInputs();}
+  if(name==='holidays')renderHolidayList();
+  if(name==='assign'){renderAssignCalendar();closeDayViewIfOpen();}
+  if(name==='staff')renderStaffTable();
 }
-function loadThrInputs() {
-  document.getElementById('thr-dk').value=state.threshold['ด']||7;
-  document.getElementById('thr-ch').value=state.threshold['ช']||11;
-  document.getElementById('thr-ba').value=state.threshold['บ']||11;
+function closeDayViewIfOpen(){
+  if(document.getElementById('assign-daily-view').style.display!=='none'){
+    document.getElementById('assign-calendar-view').style.display='block';
+    document.getElementById('assign-daily-view').style.display='none';
+    curDate=null;
+  }
+}
+function loadThrInputs(){
+  document.getElementById('thr-dk').value=shiftState.threshold['ด']||7;
+  document.getElementById('thr-ch').value=shiftState.threshold['ช']||11;
+  document.getElementById('thr-ba').value=shiftState.threshold['บ']||11;
 }
 
-// EVENTS
-document.getElementById('btnPrev').addEventListener('click',function(){
-  state.month--; if(state.month<0){state.month=11;state.year--;}
-  updateMonthDisplay(); renderSchedule(); save();
+// ===== LOCK SCREEN =====
+function checkPw(){var pw=document.getElementById('pwInput').value;if(pw==='ayh1669'){document.getElementById('lockScreen').style.display='none';sessionStorage.setItem('auth','1');}else{document.getElementById('pwError').style.display='block';}}
+
+// ===== EVENTS =====
+document.addEventListener('DOMContentLoaded',function(){
+  if(sessionStorage.getItem('auth')==='1')document.getElementById('lockScreen').style.display='none';
+  document.getElementById('pwInput').addEventListener('keydown',function(e){if(e.key==='Enter')checkPw();});
 });
-document.getElementById('btnNext').addEventListener('click',function(){
-  state.month++; if(state.month>11){state.month=0;state.year++;}
-  updateMonthDisplay(); renderSchedule(); save();
-});
-document.querySelectorAll('.tab').forEach(function(t){
-  t.addEventListener('click',function(){switchTab(this.getAttribute('data-tab'));});
-});
-document.getElementById('stampCancel').addEventListener('click',function(){
-  stampMode=null; this.style.display='none'; renderStampButtons();
-});
+document.querySelectorAll('.nav-tab').forEach(function(t){t.addEventListener('click',function(){switchTab(this.getAttribute('data-tab'));});});
+document.getElementById('stampCancel').addEventListener('click',function(){stampMode=null;this.style.display='none';renderStampButtons();});
+
+// Schedule month nav
+document.getElementById('btnPrev')&&document.getElementById('btnPrev').addEventListener('click',function(){shiftState.month--;if(shiftState.month<0){shiftState.month=11;shiftState.year--;}updateMonthDisplay();renderSchedule();saveShift();});
+document.getElementById('btnNext')&&document.getElementById('btnNext').addEventListener('click',function(){shiftState.month++;if(shiftState.month>11){shiftState.month=0;shiftState.year++;}updateMonthDisplay();renderSchedule();saveShift();});
+
+// But schedule uses different nav — let's create them
+// Actually header doesn't have month nav anymore — we'll add it to schedule page
+// Schedule modal
 document.getElementById('modalOverlay').addEventListener('click',function(e){if(e.target===this)closeModal();});
 document.getElementById('tog-ch').addEventListener('click',function(){toggleShift('ช');});
 document.getElementById('tog-ba').addEventListener('click',function(){toggleShift('บ');});
 document.getElementById('tog-dk').addEventListener('click',function(){toggleShift('ด');});
 document.getElementById('btnModalCancel').addEventListener('click',closeModal);
-document.getElementById('btnModalClear').addEventListener('click',function(){
-  setCell(mState.pi,mState.d,{shifts:[],colors:{}}); renderSchedule(); closeModal();
-});
+document.getElementById('btnModalClear').addEventListener('click',function(){setCell(mState.pi,mState.d,{shifts:[],colors:{}});setSpecial(mState.pi,mState.d,null);renderSchedule();closeModal();});
 document.getElementById('btnModalSave').addEventListener('click',function(){
-  // validate
-  for(var i=0;i<mState.shifts.length;i++) {
-    var sh=mState.shifts[i];
-    var co=mState.colors[sh]||0;
-    if(co===3 && sh==='ด') { showToast('⚠️ C2 ไม่มีเวรดึก'); return; }
-    if((co===5||co===3||co===4) && countColor(mState.d,sh,co,mState.pi)>=1) {
-      showToast('⚠️ '+POS_LABELS[co]+' เวร '+sh+' มีครบ 1 คนแล้ว'); return;
-    }
+  for(var i=0;i<mState.shifts.length;i++){var sh=mState.shifts[i],co=mState.colors[sh]||0;
+    if(co===3&&sh==='ด'){showToast('⚠️ C2 ไม่มีเวรดึก');return;}
+    if((co===5||co===3||co===4)&&countColor(mState.d,sh,co,mState.pi)>=1){showToast('⚠️ '+POS_LABELS[co]+' เวร '+sh+' มีครบ 1 คนแล้ว');return;}
   }
   setCell(mState.pi,mState.d,{shifts:mState.shifts.slice(),colors:Object.assign({},mState.colors)});
-  setSpecial(mState.pi,mState.d,null);
-  renderSchedule(); closeModal(); showToast('บันทึกแล้ว ✓');
+  setSpecial(mState.pi,mState.d,null);renderSchedule();closeModal();showToast('บันทึกแล้ว ✓');
 });
+
+// Summary
 document.getElementById('summaryFilter').addEventListener('change',renderSummary);
-document.getElementById('btnAddPerson').addEventListener('click',function(){
-  var inp=document.getElementById('newPersonName');
-  var name=inp.value.trim(); if(!name) return;
-  state.persons.push(name); inp.value='';
-  save(); renderPersonList(); renderSchedule(); showToast('เพิ่ม "'+name+'" แล้ว');
-});
+
+// Persons
+document.getElementById('btnAddPerson').addEventListener('click',function(){var inp=document.getElementById('newPersonName'),name=inp.value.trim();if(!name)return;shiftState.persons.push(name);inp.value='';saveShift();renderPersonList();renderSchedule();showToast('เพิ่ม "'+name+'" แล้ว');});
 document.getElementById('newPersonName').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('btnAddPerson').click();});
+
+// Holiday
 document.getElementById('btnAddHoliday').addEventListener('click',function(){
-  var dateVal=document.getElementById('newHolidayDate').value;
-  var nameVal=document.getElementById('newHolidayName').value.trim();
-  if(!dateVal){showToast('กรุณาเลือกวันที่');return;}
-  if(!nameVal){showToast('กรุณาระบุชื่อวันหยุด');return;}
-  for(var i=0;i<state.holidays.length;i++) if(state.holidays[i].date===dateVal){showToast('วันนี้มีวันหยุดอยู่แล้ว');return;}
-  state.holidays.push({date:dateVal,name:nameVal});
-  document.getElementById('newHolidayDate').value='';
-  document.getElementById('newHolidayName').value='';
-  save(); renderHolidayList(); renderSchedule(); showToast('เพิ่มวันหยุด "'+nameVal+'" แล้ว 🎉');
+  var dateVal=document.getElementById('newHolidayDate').value,nameVal=document.getElementById('newHolidayName').value.trim();
+  if(!dateVal){showToast('กรุณาเลือกวันที่');return;}if(!nameVal){showToast('กรุณาระบุชื่อวันหยุด');return;}
+  for(var i=0;i<shiftState.holidays.length;i++)if(shiftState.holidays[i].date===dateVal){showToast('วันนี้มีวันหยุดอยู่แล้ว');return;}
+  shiftState.holidays.push({date:dateVal,name:nameVal});document.getElementById('newHolidayDate').value='';document.getElementById('newHolidayName').value='';
+  saveShift();renderHolidayList();renderSchedule();showToast('เพิ่มวันหยุด "'+nameVal+'" แล้ว 🎉');
 });
 document.getElementById('newHolidayName').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('btnAddHoliday').click();});
 
+// Threshold
 document.getElementById('btnSaveThr').addEventListener('click',function(){
-  state.threshold['ด']=parseInt(document.getElementById('thr-dk').value)||0;
-  state.threshold['ช']=parseInt(document.getElementById('thr-ch').value)||0;
-  state.threshold['บ']=parseInt(document.getElementById('thr-ba').value)||0;
-  save(); renderSchedule(); showToast('บันทึกเป้าหมายแล้ว ✓');
+  shiftState.threshold['ด']=parseInt(document.getElementById('thr-dk').value)||0;
+  shiftState.threshold['ช']=parseInt(document.getElementById('thr-ch').value)||0;
+  shiftState.threshold['บ']=parseInt(document.getElementById('thr-ba').value)||0;
+  saveShift();renderSchedule();showToast('บันทึกเป้าหมายแล้ว ✓');
 });
 
-// START
-load(); // load from localStorage first (instant)
+// Assignment
+document.getElementById('btnCalPrev').addEventListener('click',function(){shiftState.month--;if(shiftState.month<0){shiftState.month=11;shiftState.year--;}updateMonthDisplay();renderSchedule();saveShift();renderAssignCalendar();});
+document.getElementById('btnCalNext').addEventListener('click',function(){shiftState.month++;if(shiftState.month>11){shiftState.month=0;shiftState.year++;}updateMonthDisplay();renderSchedule();saveShift();renderAssignCalendar();});
+document.getElementById('btnBack').addEventListener('click',closeDayView);
+document.getElementById('btnAuto').addEventListener('click',autoAssign);
+document.getElementById('btnExport').addEventListener('click',function(){document.getElementById('exModal').classList.add('open');});
+
+// Assign modal
+document.getElementById('aSearch').addEventListener('input',function(){var roles=SHIFT_ROLES[aCtx.shift],role=null;roles.forEach(function(r){if(r.id===aCtx.role)role=r;});if(role)renderCandidates(role,aCtx.shift,this.value);});
+document.getElementById('btnAClose').addEventListener('click',function(){document.getElementById('aModal').classList.remove('open');});
+document.getElementById('btnAClear').addEventListener('click',function(){if(!curDate)return;if(!assignState.assignments[curDate])assignState.assignments[curDate]={};if(!assignState.assignments[curDate][aCtx.shift])assignState.assignments[curDate][aCtx.shift]={};delete assignState.assignments[curDate][aCtx.shift][aCtx.role];saveAssign();renderDayView();document.getElementById('aModal').classList.remove('open');});
+document.getElementById('btnASave').addEventListener('click',function(){if(!aCtx.sel){showToast('กรุณาเลือกชื่อก่อน');return;}if(!curDate)return;if(!assignState.assignments[curDate])assignState.assignments[curDate]={};if(!assignState.assignments[curDate][aCtx.shift])assignState.assignments[curDate][aCtx.shift]={};assignState.assignments[curDate][aCtx.shift][aCtx.role]=aCtx.sel;saveAssign();renderDayView();document.getElementById('aModal').classList.remove('open');showToast('บันทึกแล้ว ✓');});
+document.getElementById('aModal').addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});
+
+// Export modal
+document.getElementById('btnExPrint').addEventListener('click',function(){document.getElementById('exModal').classList.remove('open');window.print();});
+document.getElementById('btnExCSV').addEventListener('click',function(){document.getElementById('exModal').classList.remove('open');exportCSV();});
+document.getElementById('btnExClose').addEventListener('click',function(){document.getElementById('exModal').classList.remove('open');});
+document.getElementById('exModal').addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});
+
+// Staff modal
+document.getElementById('btnSModalClose').addEventListener('click',function(){document.getElementById('sModal').classList.remove('open');});
+document.getElementById('btnSModalSave').addEventListener('click',function(){
+  if(sModalIdx===null)return;var st=assignState.staff[sModalIdx];
+  document.getElementById('limitGrid').querySelectorAll('.limit-input').forEach(function(inp){sModalDraft.limits[inp.getAttribute('data-cap')]=parseInt(inp.value)||0;});
+  sModalDraft.note=document.getElementById('noteInput').value;
+  st.caps=sModalDraft.caps.slice();st.conds=sModalDraft.conds.slice();st.limits=Object.assign({},sModalDraft.limits);st.note=sModalDraft.note;
+  saveAssign();renderStaffTable();renderPersonList();document.getElementById('sModal').classList.remove('open');showToast('บันทึก "'+st.name+'" แล้ว ✓');
+});
+document.getElementById('sModal').addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});
+
+// Add staff
+document.getElementById('btnAddStaff').addEventListener('click',function(){var inp=document.getElementById('newStaffName'),name=inp.value.trim();if(!name)return;assignState.staff.push({name:name,caps:[],conds:[],limits:{},note:''});inp.value='';saveAssign();renderStaffTable();});
+document.getElementById('newStaffName').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('btnAddStaff').click();});
+
+// Add month nav to schedule page
+var schedPage=document.getElementById('page-schedule');
+var mnDiv=document.createElement('div');
+mnDiv.style.cssText='display:flex;align-items:center;gap:10px;margin-bottom:12px;';
+mnDiv.innerHTML='<button id="btnPrevSch" style="background:var(--surface);border:1px solid var(--border);color:var(--text);width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:14px;">‹</button><div id="monthDisplay" style="font-family:Prompt,sans-serif;font-weight:600;font-size:1rem;min-width:140px;text-align:center;color:var(--accent);"></div><button id="btnNextSch" style="background:var(--surface);border:1px solid var(--border);color:var(--text);width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:14px;">›</button>';
+schedPage.insertBefore(mnDiv,schedPage.firstChild);
+document.getElementById('btnPrevSch').addEventListener('click',function(){shiftState.month--;if(shiftState.month<0){shiftState.month=11;shiftState.year--;}updateMonthDisplay();renderSchedule();saveShift();});
+document.getElementById('btnNextSch').addEventListener('click',function(){shiftState.month++;if(shiftState.month>11){shiftState.month=0;shiftState.year++;}updateMonthDisplay();renderSchedule();saveShift();});
+
+// ===== INIT =====
+loadLocal();
 updateMonthDisplay();
 renderSchedule();
 renderPersonList();
 renderStampButtons();
-// then load from Firebase (may update UI)
-if(window.db) {
-  loadFromFirebase(function(){
-    updateMonthDisplay();
-    renderSchedule();
-    renderPersonList();
-    loadThrInputs();
-  });
+renderAssignCalendar();
+if(window.db){
+  loadFromFirebase(function(){updateMonthDisplay();renderSchedule();renderPersonList();loadThrInputs();});
   listenFirebase();
 }
+
+// seed staff — sync from shiftState.persons
+if(assignState.staff.length===0&&shiftState.persons.length>0){
+  shiftState.persons.forEach(function(name){
+    assignState.staff.push({name:name,caps:['incharge','teamlead','triage','resus','member','observe','refer'],conds:[],limits:{},note:''});
+  });
+  saveAssign();
+} else if(assignState.staff.length===0){
+  // fallback sample
+  var sample=['ชาติชาย สุภีแดน','สุวรรณา ประดิษฐ์ขวัญ','พรทิพย์ วิชาชู','พิรเดช วัฒนจิตต์','มานิดา สุนทรสุข','ศิคริทร์ สังฆคุณ','สุมาลี พิชัยวรุตมะ','ปนัดดา ประกอบจินดา','ศราวุธ ปลอดฤทธิ์','วิรัลกาญจน์ รชตนรวัฒน์','สุภัทรา สุขสอน','ศิริพร ศุภไพบูลย์','สิบทิศ เทียงทัต','เยาวลักษณ์ หมายเจริญ','ดุจดาว ธัญญ์ธชนนท์','สุหรรษา เหล็งรักษา','พิชญาภา โภคผล','กรองพลอย อนุวรรณ','กรณิการ์ เสนานันท์','ดุจศิลา บุญสม','เกศรินทร์ หวังผล','ชัลวาตี ยูโซะ','ปารมี สง่าวงศ์','สิรภัทร สุขสม','มนตรี ลี่ยวด','สุภาวดี กลมกลอม','ปาริชาติ แย้มเกสร','นวภรณ์ ศรีสุภะ','จิราภรณ์ เมืองจันทึก','ณดา ใหญ่เมืองปัก'];
+  sample.forEach(function(n){assignState.staff.push({name:n,caps:['incharge','teamlead','triage','resus','member','observe','refer'],conds:[],limits:{},note:''});});
+  saveAssign();
+}
+// sync any persons in shiftState that aren't in assignState.staff yet
+shiftState.persons.forEach(function(name){
+  if(!getStaffByName(name)){
+    assignState.staff.push({name:name,caps:['incharge','teamlead','triage','resus','member','observe','refer'],conds:[],limits:{},note:''});
+  }
+});
+saveAssign();
 </script>
 </body>
 </html>
