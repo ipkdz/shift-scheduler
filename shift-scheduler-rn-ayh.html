@@ -324,8 +324,9 @@ td.col-total{background:#e8eaf6;font-size:12px;font-weight:700;padding:2px 3px;t
 <div class="page" id="page-summary">
   <div class="summary-controls">
     <select id="summaryFilter">
-      <option value="person">สรุปรายคน</option>
+      <option value="person">สรุปเวรรายคน</option>
       <option value="daily">สรุปรายวัน</option>
+      <option value="assignment">สรุป Assignment รายคน</option>
     </select>
   </div>
   <div id="summaryContent"></div>
@@ -395,7 +396,7 @@ td.col-total{background:#e8eaf6;font-size:12px;font-weight:700;padding:2px 3px;t
     </div>
     <button id="btnSaveThr" style="background:var(--accent);border:none;border-radius:8px;color:white;padding:7px 16px;cursor:pointer;font-size:13px;font-family:Sarabun,sans-serif;font-weight:600;">💾 บันทึก</button>
   </div>
-  <div class="section-card">
+  <div class="section-card" style="display:none;">
     <h3>👤 รายชื่อพยาบาล + ความสามารถ</h3>
     <div style="font-size:11px;color:var(--text-dim);margin-bottom:8px;">คลิกชื่อเพื่อแก้ไข capability | ↑↓ เรียงลำดับในตารางเวร</div>
     <div class="person-list" id="personList"></div>
@@ -439,7 +440,10 @@ td.col-total{background:#e8eaf6;font-size:12px;font-weight:700;padding:2px 3px;t
 <!-- STAFF MODAL -->
 <div class="smodal-overlay" id="sModal">
   <div class="smodal">
-    <div class="smodal-title" id="sModalName"></div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+      <div class="smodal-title" id="sModalName" style="margin-bottom:0;flex:1;"></div>
+      <button id="btnSModalRename" title="แก้ไขชื่อ" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:14px;padding:4px 8px;color:var(--text-dim);line-height:1;">✏️</button>
+    </div>
     <div class="field-label">ความสามารถ (Capability)</div>
     <div class="cap-grid" id="capGrid"></div>
     <div class="field-label">เงื่อนไขพิเศษ</div>
@@ -820,7 +824,66 @@ function renderPosSection(){
 function renderSummary(){
   var mode=document.getElementById('summaryFilter').value;
   var el=document.getElementById('summaryContent');
-  if(mode==='person')renderPersonSummary(el);else renderDailySummary(el);
+  if(mode==='person')renderPersonSummary(el);
+  else if(mode==='daily')renderDailySummary(el);
+  else renderAssignmentSummary(el);
+}
+function renderAssignmentSummary(el){
+  var y=shiftState.year,m=shiftState.month,days=daysIn(y,m);
+  var ROLE_ORDER=['IC','TL','TR','R1','R2','M1','M2','RF1','RF2','OB','C2'];
+  var ROLE_LABEL={'IC':'Incharge','TL':'Team Lead','TR':'Triage','R1':'Resus 1','R2':'Resus 2','M1':'Member 1','M2':'Member 2','RF1':'Refer 1','RF2':'Refer 2','OB':'Observe','C2':'C2'};
+  var SHIFT_LABEL={morning:'เช้า',afternoon:'บ่าย',night:'ดึก'};
+  var SHIFT_ORDER=['night','morning','afternoon'];
+  var counts={};
+  assignState.staff.forEach(function(st){counts[st.name]={};});
+  for(var d=1;d<=days;d++){
+    var dt=ds(y,m,d);
+    var dayAssign=assignState.assignments[dt];
+    if(!dayAssign)continue;
+    SHIFT_ORDER.forEach(function(shiftKey){
+      if(!dayAssign[shiftKey])return;
+      for(var roleId in dayAssign[shiftKey]){
+        var name=dayAssign[shiftKey][roleId];
+        if(!name)continue;
+        if(!counts[name])counts[name]={};
+        var key=shiftKey+'_'+roleId;
+        counts[name][key]=(counts[name][key]||0)+1;
+      }
+    });
+  }
+  var names=assignState.staff.map(function(s){return s.name;}).filter(function(n){
+    return counts[n]&&Object.keys(counts[n]).length>0;
+  });
+  if(names.length===0){el.innerHTML='<div class="no-data">ยังไม่มีข้อมูล Assignment เดือนนี้<br><span style="font-size:12px;color:var(--text-dim);">กด Import เวรและจัด Assignment ก่อน</span></div>';return;}
+  var html='<div style="font-family:Prompt,sans-serif;font-size:13px;font-weight:600;color:var(--accent);margin-bottom:10px;">สรุป Assignment — '+MONTHS_TH[m]+' '+(y+543)+'</div>';
+  html+='<div class="summary-grid">';
+  names.forEach(function(name){
+    var c=counts[name];
+    html+='<div class="summary-card"><div class="summary-name">'+name+'</div>';
+    SHIFT_ORDER.forEach(function(shiftKey){
+      var shiftRows=[];
+      ROLE_ORDER.forEach(function(roleId){
+        var key=shiftKey+'_'+roleId;
+        if(c[key])shiftRows.push({role:ROLE_LABEL[roleId]||roleId,cnt:c[key]});
+      });
+      if(shiftRows.length===0)return;
+      var shiftTotal=shiftRows.reduce(function(s,r){return s+r.cnt;},0);
+      var shiftBg=shiftKey==='morning'?'#fef9ec':shiftKey==='afternoon'?'#f5f3ff':'#eff8ff';
+      var shiftCol=shiftKey==='morning'?'#92400e':shiftKey==='afternoon'?'#4c1d95':'#0c4a6e';
+      html+='<div style="margin-top:6px;background:'+shiftBg+';border-radius:8px;padding:5px 8px;">';
+      html+='<div style="font-size:10px;font-weight:700;color:'+shiftCol+';margin-bottom:3px;">'+SHIFT_LABEL[shiftKey]+' ('+shiftTotal+' ครั้ง)</div>';
+      shiftRows.forEach(function(r){
+        html+='<div style="display:flex;justify-content:space-between;font-size:11px;padding:1px 0;">';
+        html+='<span style="color:var(--text-dim);">'+r.role+'</span>';
+        html+='<span style="font-weight:700;color:var(--text);">'+r.cnt+'</span>';
+        html+='</div>';
+      });
+      html+='</div>';
+    });
+    html+='</div>';
+  });
+  html+='</div>';
+  el.innerHTML=html;
 }
 function renderPersonSummary(el){
   if(shiftState.persons.length===0){el.innerHTML='<div class="no-data">ยังไม่มีรายชื่อ</div>';return;}
@@ -897,8 +960,8 @@ function renderPersonList(){
         }
       }
       else if(action==='del'){if(confirm('ลบ "'+shiftState.persons[idx]+'" ออกจากรายชื่อ?')){shiftState.persons.splice(idx,1);saveShift();renderPersonList();renderSchedule();}}
-      else if(action==='up'&&idx>0){var t=shiftState.persons[idx-1];shiftState.persons[idx-1]=shiftState.persons[idx];shiftState.persons[idx]=t;saveShift();renderPersonList();renderSchedule();}
-      else if(action==='down'&&idx<shiftState.persons.length-1){var t2=shiftState.persons[idx+1];shiftState.persons[idx+1]=shiftState.persons[idx];shiftState.persons[idx]=t2;saveShift();renderPersonList();renderSchedule();}
+      else if(action==='up'&&idx>0){swapShiftDataRows(idx-1,idx);var t=shiftState.persons[idx-1];shiftState.persons[idx-1]=shiftState.persons[idx];shiftState.persons[idx]=t;saveShift();renderPersonList();renderSchedule();}
+      else if(action==='down'&&idx<shiftState.persons.length-1){swapShiftDataRows(idx,idx+1);var t2=shiftState.persons[idx+1];shiftState.persons[idx+1]=shiftState.persons[idx];shiftState.persons[idx]=t2;saveShift();renderPersonList();renderSchedule();}
     });
   });
 }
@@ -1001,7 +1064,6 @@ function closeDayView(){
 
 function renderDayView(){
   if(!curDate)return;
-  // roster preview
   var roster=assignState.rosters[curDate]||{};
   var rpHtml='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px;">';
   var shiftInfo=[{key:'night',lbl:'ดึก',bg:'#e0f2fe',col:'#0c4a6e'},{key:'morning',lbl:'เช้า',bg:'#fef3c7',col:'#92400e'},{key:'afternoon',lbl:'บ่าย',bg:'#ede9fe',col:'#4c1d95'}];
@@ -1011,10 +1073,22 @@ function renderDayView(){
   rpHtml+='</div>';
   document.getElementById('rosterPreview').innerHTML=rpHtml;
 
+  var parts=curDate.split('-'),dd=parseInt(parts[2]);
+  var SHIFT_CHAR_MAP={night:'ด',morning:'ช',afternoon:'บ'};
+  function getEMSForShift(shiftKey){
+    var shiftChar=SHIFT_CHAR_MAP[shiftKey],names=[];
+    for(var pi=0;pi<shiftState.persons.length;pi++){
+      var cell=getCell(pi,dd);
+      if(cell.shifts.indexOf(shiftChar)>=0&&(cell.colors[shiftChar]||0)===5)names.push(shiftState.persons[pi]);
+    }
+    return names;
+  }
+
   var order=[{key:'night',lbl:'ดึก',cls:'night'},{key:'morning',lbl:'เช้า',cls:'morning'},{key:'afternoon',lbl:'บ่าย',cls:'afternoon'}];
   var html='';
   order.forEach(function(sh){
     var roles=SHIFT_ROLES[sh.key],r=roster[sh.key]||[],assigns=(assignState.assignments[curDate]&&assignState.assignments[curDate][sh.key])||{};
+    var emsNames=getEMSForShift(sh.key);
     html+='<div class="shift-card"><div class="shift-hdr '+sh.cls+'"><div class="shift-hdr-title '+sh.cls+'">'+sh.lbl+'</div><div class="shift-badge '+sh.cls+'">'+r.length+' คน</div></div><div>';
     roles.forEach(function(role){var name=assigns[role.id]||'';
       html+='<div class="assign-row" data-shift="'+sh.key+'" data-role="'+role.id+'"><div class="assign-role">'+role.label+'</div>';
@@ -1022,10 +1096,14 @@ function renderDayView(){
       if(role.break&&role.break!=='-')html+='<div class="assign-break">'+role.break+'</div>';
       html+='</div>';
     });
+    html+='<div class="assign-row" style="border-top:2px dashed var(--border);cursor:default;" data-no-click="1">';
+    html+='<div class="assign-role" style="color:var(--pos5);font-weight:700;">EMS</div>';
+    html+='<div class="assign-name'+(emsNames.length>0?'':' empty')+'" style="'+(emsNames.length>0?'color:var(--pos5);font-weight:600;':'')+'">'+(emsNames.length>0?emsNames.join(', '):'—')+'</div>';
+    html+='</div>';
     html+='</div></div>';
   });
   document.getElementById('shiftCols').innerHTML=html;
-  document.getElementById('shiftCols').querySelectorAll('.assign-row').forEach(function(row){
+  document.getElementById('shiftCols').querySelectorAll('.assign-row:not([data-no-click])').forEach(function(row){
     row.addEventListener('click',function(){openAssignModal(this.getAttribute('data-shift'),this.getAttribute('data-role'));});
   });
 }
@@ -1172,11 +1250,13 @@ function renderStaffTable(){
   var tbl=document.getElementById('staffTbl');
   var html='<thead><tr><th class="nc">ชื่อ</th>';
   ALL_CAPS.forEach(function(cap){html+='<th>'+CAP_LABELS[cap]+'</th>';});
-  html+='<th>เงื่อนไข</th><th>Note</th><th></th></tr></thead><tbody>';
+  html+='<th>เงื่อนไข</th><th>Note</th><th style="min-width:68px;"></th></tr></thead><tbody>';
   assignState.staff.forEach(function(st,si){
+    var isFirst=si===0,isLast=si===assignState.staff.length-1;
     html+='<tr><td class="nc" style="display:flex;align-items:center;gap:5px;">';
-    html+='<button onclick="openStaffModal('+si+')" style="background:none;border:none;cursor:pointer;font-weight:600;font-size:12px;color:var(--accent);text-decoration:underline;font-family:Sarabun,sans-serif;">'+st.name+'</button>';
-    html+='<button onclick="renameStaff('+si+')" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--text-dim);">✏️</button></td>';
+    html+='<span style="font-size:11px;color:var(--text-dim);font-weight:700;min-width:18px;">'+(si+1)+'.</span>';
+    html+='<button onclick="openStaffModal('+si+')" style="background:none;border:none;cursor:pointer;font-weight:600;font-size:12px;color:var(--accent);font-family:Sarabun,sans-serif;">'+st.name+'</button>';
+    html+='</td>';
     ALL_CAPS.forEach(function(cap){var on=hasCap(st,cap);html+='<td><span style="font-size:13px;color:'+(on?'var(--ok)':'var(--border)')+';">'+(on?'✓':'—')+'</span></td>';});
     var condHtml='';
     if(hasCond(st,'float_morning'))condHtml+='<span class="cond-chip float">ลอยเช้า</span> ';
@@ -1184,13 +1264,75 @@ function renderStaffTable(){
     if(hasCond(st,'pregnant'))condHtml+='<span class="cond-chip preg">ท้อง</span> ';
     html+='<td style="white-space:nowrap;">'+(condHtml||'—')+'</td>';
     html+='<td style="font-size:11px;color:var(--text-dim);max-width:90px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(st.note||'—')+'</td>';
-    html+='<td><button onclick="removeStaff('+si+')" style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:14px;">×</button></td>';
+    html+='<td style="white-space:nowrap;">';
+    html+='<button onclick="staffMoveUp('+si+')" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--text-dim);padding:0 2px;" '+(isFirst?'disabled':'')+'>↑</button>';
+    html+='<button onclick="staffMoveDown('+si+')" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--text-dim);padding:0 2px;" '+(isLast?'disabled':'')+'>↓</button>';
+    html+='<button onclick="removeStaff('+si+')" style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:14px;padding:0 2px;">×</button>';
+    html+='</td>';
     html+='</tr>';
   });
   html+='</tbody>';tbl.innerHTML=html;
 }
-function renameStaff(idx){var old=assignState.staff[idx].name,n=prompt('แก้ชื่อ:',old);if(!n||!n.trim()||n.trim()===old)return;assignState.staff[idx].name=n.trim();saveAssign();renderStaffTable();showToast('แก้ชื่อเป็น "'+n.trim()+'" แล้ว ✓');}
-function removeStaff(idx){if(!confirm('ลบ "'+assignState.staff[idx].name+'" ออก?'))return;assignState.staff.splice(idx,1);saveAssign();renderStaffTable();}
+function staffMoveUp(idx){
+  if(idx===0)return;
+  // find person indices before swap
+  var nameA=assignState.staff[idx].name,nameB=assignState.staff[idx-1].name;
+  var piA=shiftState.persons.indexOf(nameA),piB=shiftState.persons.indexOf(nameB);
+  // swap staff array
+  var st=assignState.staff,tmp=st[idx-1];st[idx-1]=st[idx];st[idx]=tmp;
+  syncPersonsOrderFromStaff();
+  // swap shift data rows
+  if(piA>=0&&piB>=0)swapShiftDataRows(piA,piB);
+  saveAssign();saveShift();renderStaffTable();renderSchedule();renderPersonList();
+}
+function staffMoveDown(idx){
+  if(idx===assignState.staff.length-1)return;
+  var nameA=assignState.staff[idx].name,nameB=assignState.staff[idx+1].name;
+  var piA=shiftState.persons.indexOf(nameA),piB=shiftState.persons.indexOf(nameB);
+  var st=assignState.staff,tmp=st[idx+1];st[idx+1]=st[idx];st[idx]=tmp;
+  syncPersonsOrderFromStaff();
+  if(piA>=0&&piB>=0)swapShiftDataRows(piA,piB);
+  saveAssign();saveShift();renderStaffTable();renderSchedule();renderPersonList();
+}
+function swapShiftDataRows(piA,piB){
+  // swap in shiftState.data (all months)
+  for(var mk in shiftState.data){
+    var monthData=shiftState.data[mk];
+    var rowA=monthData[piA],rowB=monthData[piB];
+    if(rowA!==undefined||rowB!==undefined){
+      monthData[piA]=rowB;
+      monthData[piB]=rowA;
+      if(monthData[piA]===undefined)delete monthData[piA];
+      if(monthData[piB]===undefined)delete monthData[piB];
+    }
+  }
+  // swap in shiftState.special (all months)
+  for(var sk in shiftState.special){
+    var monthSpec=shiftState.special[sk];
+    var specA=monthSpec[piA],specB=monthSpec[piB];
+    if(specA!==undefined||specB!==undefined){
+      monthSpec[piA]=specB;
+      monthSpec[piB]=specA;
+      if(monthSpec[piA]===undefined)delete monthSpec[piA];
+      if(monthSpec[piB]===undefined)delete monthSpec[piB];
+    }
+  }
+}
+function syncPersonsOrderFromStaff(){
+  var ordered=[];
+  assignState.staff.forEach(function(st){if(shiftState.persons.indexOf(st.name)>=0)ordered.push(st.name);});
+  shiftState.persons.forEach(function(n){if(ordered.indexOf(n)<0)ordered.push(n);});
+  shiftState.persons=ordered;
+}
+function removeStaff(idx){
+  var name=assignState.staff[idx].name;
+  if(!confirm('ลบ "'+name+'" ออก?'))return;
+  assignState.staff.splice(idx,1);
+  var pi=shiftState.persons.indexOf(name);
+  if(pi>=0){shiftState.persons.splice(pi,1);saveShift();renderSchedule();}
+  saveAssign();renderStaffTable();renderPersonList();
+  showToast('ลบ "'+name+'" แล้ว');
+}
 
 // ===== STAFF MODAL =====
 var sModalIdx=null,sModalDraft={caps:[],conds:[],limits:{},note:''};
@@ -1323,6 +1465,19 @@ document.getElementById('exModal').addEventListener('click',function(e){if(e.tar
 
 // Staff modal
 document.getElementById('btnSModalClose').addEventListener('click',function(){document.getElementById('sModal').classList.remove('open');});
+document.getElementById('btnSModalRename').addEventListener('click',function(){
+  if(sModalIdx===null)return;
+  var old=assignState.staff[sModalIdx].name;
+  var n=prompt('แก้ไขชื่อ:',old);
+  if(!n||!n.trim()||n.trim()===old)return;
+  var newName=n.trim();
+  assignState.staff[sModalIdx].name=newName;
+  var pi=shiftState.persons.indexOf(old);
+  if(pi>=0){shiftState.persons[pi]=newName;saveShift();renderSchedule();}
+  saveAssign();renderStaffTable();renderPersonList();
+  document.getElementById('sModalName').textContent=newName;
+  showToast('แก้ชื่อเป็น "'+newName+'" แล้ว ✓');
+});
 document.getElementById('btnSModalSave').addEventListener('click',function(){
   if(sModalIdx===null)return;var st=assignState.staff[sModalIdx];
   document.getElementById('limitGrid').querySelectorAll('.limit-input').forEach(function(inp){sModalDraft.limits[inp.getAttribute('data-cap')]=parseInt(inp.value)||0;});
@@ -1333,7 +1488,15 @@ document.getElementById('btnSModalSave').addEventListener('click',function(){
 document.getElementById('sModal').addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});
 
 // Add staff
-document.getElementById('btnAddStaff').addEventListener('click',function(){var inp=document.getElementById('newStaffName'),name=inp.value.trim();if(!name)return;assignState.staff.push({name:name,caps:[],conds:[],limits:{},note:''});inp.value='';saveAssign();renderStaffTable();});
+document.getElementById('btnAddStaff').addEventListener('click',function(){
+  var inp=document.getElementById('newStaffName'),name=inp.value.trim();
+  if(!name)return;
+  if(getStaffByName(name)){showToast('มีชื่อนี้อยู่แล้ว');return;}
+  assignState.staff.push({name:name,caps:['incharge','teamlead','triage','resus','member','observe','refer'],conds:[],limits:{},note:''});
+  if(shiftState.persons.indexOf(name)<0)shiftState.persons.push(name);
+  inp.value='';saveAssign();saveShift();renderStaffTable();renderSchedule();renderPersonList();
+  showToast('เพิ่ม "'+name+'" แล้ว ✓');
+});
 document.getElementById('newStaffName').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('btnAddStaff').click();});
 
 // Add month nav to schedule page
