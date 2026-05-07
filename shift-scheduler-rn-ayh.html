@@ -281,7 +281,7 @@ td.col-total{background:#e8eaf6;font-size:12px;font-weight:700;padding:2px 3px;t
 <div id="lockScreen" style="display:flex;position:fixed;inset:0;background:#f0f2f8;z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:14px;">
   <div style="font-family:Prompt,sans-serif;font-size:1.2rem;font-weight:700;color:var(--accent);">🏥 ER RN AYH</div>
   <input id="pwInput" type="password" placeholder="รหัสผ่าน" style="padding:10px 16px;border-radius:10px;border:1px solid var(--border);font-size:14px;outline:none;width:210px;text-align:center;">
-  <button onclick="checkPw()" style="background:var(--accent);color:white;border:none;border-radius:10px;padding:10px 28px;font-size:14px;cursor:pointer;font-family:Sarabun,sans-serif;">เข้าสู่ระบบ</button>
+  <button id="btnLogin" style="background:var(--accent);color:white;border:none;border-radius:10px;padding:10px 28px;font-size:14px;cursor:pointer;font-family:Sarabun,sans-serif;">เข้าสู่ระบบ</button>
   <div id="pwError" style="color:#e53935;font-size:12px;display:none;">รหัสผ่านไม่ถูกต้อง</div>
 </div>
 
@@ -317,6 +317,9 @@ td.col-total{background:#e8eaf6;font-size:12px;font-weight:700;padding:2px 3px;t
       <span class="pos-legend-item"><span class="legend-dot" style="background:var(--pos4)"></span>EMD</span>
       <span class="pos-legend-item"><span class="legend-dot" style="background:var(--pos5)"></span>EMS</span>
     </div>
+    <div style="padding:8px 4px;">
+      <button onclick="clearScheduleMonth()" style="background:#ef4444;border:none;border-radius:8px;color:white;padding:7px 14px;cursor:pointer;font-size:12px;font-family:Sarabun,sans-serif;font-weight:600;">🗑 ล้างตารางเวรเดือนนี้</button>
+    </div>
   </div>
 </div>
 
@@ -341,6 +344,7 @@ td.col-total{background:#e8eaf6;font-size:12px;font-weight:700;padding:2px 3px;t
       <button class="cal-nav" id="btnCalNext">›</button>
       <button onclick="importRosterFromSchedule()" style="margin-left:auto;background:var(--ok);border:none;border-radius:8px;color:white;padding:7px 14px;cursor:pointer;font-size:12px;font-family:Sarabun,sans-serif;font-weight:600;">📥 Import เวรจากตาราง</button>
       <button onclick="autoAssign()" style="background:var(--accent);border:none;border-radius:8px;color:white;padding:7px 14px;cursor:pointer;font-size:12px;font-family:Sarabun,sans-serif;font-weight:600;">✨ AI จัดทั้งเดือน</button>
+      <button onclick="clearAssignMonth()" style="background:#ef4444;border:none;border-radius:8px;color:white;padding:7px 14px;cursor:pointer;font-size:12px;font-family:Sarabun,sans-serif;font-weight:600;">🗑 ล้าง Assignment</button>
     </div>
     <div class="cal-grid-a" id="calGrid"></div>
   </div>
@@ -351,6 +355,7 @@ td.col-total{background:#e8eaf6;font-size:12px;font-weight:700;padding:2px 3px;t
     <div id="rosterPreview" style="margin-bottom:12px;"></div>
     <div class="day-actions">
       <button class="auto-btn" id="btnAuto">✨ AI จัดให้</button>
+      <button onclick="clearAssignDay()" style="background:#ef4444;border:none;border-radius:8px;color:white;padding:7px 14px;cursor:pointer;font-size:12px;font-family:Sarabun,sans-serif;font-weight:600;">🗑 ล้างวันนี้</button>
       <button class="export-btn" id="btnExport">📤 Export</button>
     </div>
     <div class="shift-cols" id="shiftCols"></div>
@@ -1141,6 +1146,13 @@ function doAssignDay(dateStr){
         if(shiftKey==='night'&&(hasCond(st,'float_morning')||hasCond(st,'no_night')))return false;
         if(shiftKey==='afternoon'&&hasCond(st,'float_morning'))return false;
         if(hasCond(st,'pregnant')&&role.cap==='refer')return false;
+        // ถ้า role นี้คือ refer บ่าย ห้ามใช้คนที่ทำ refer ดึก (วันเดียวกัน)
+        if(shiftKey==='afternoon'&&role.cap==='refer'){
+          var nightAssigns=(assignState.assignments[dateStr]&&assignState.assignments[dateStr]['night'])||{};
+          var didReferNight=false;
+          SHIFT_ROLES['night'].forEach(function(nr){if(nr.cap==='refer'&&nightAssigns[nr.id]===name)didReferNight=true;});
+          if(didReferNight)return false;
+        }
         var lim=getLimit(st,role.cap);if(lim>0&&capCountMonth(name,role.cap)>=lim)return false;
         return true;
       });
@@ -1155,6 +1167,35 @@ function doAssignDay(dateStr){
   return changed;
 }
 
+function clearAssignMonth(){
+  if(!confirm('ล้าง Assignment ทั้งเดือน '+MONTHS_TH[shiftState.month]+' ?\nข้อมูลที่จัดไว้จะหายทั้งหมด'))return;
+  var y=shiftState.year,m=shiftState.month,days=daysIn(y,m);
+  for(var d=1;d<=days;d++){
+    var dt=ds(y,m,d);
+    if(assignState.assignments[dt])assignState.assignments[dt]={};
+  }
+  saveAssign();renderAssignCalendar();showToast('🗑 ล้าง Assignment เดือนนี้แล้ว');
+}
+function clearAssignDay(){
+  if(!curDate)return;
+  if(!confirm('ล้าง Assignment วันที่ '+curDate+' ?'))return;
+  assignState.assignments[curDate]={};
+  saveAssign();renderDayView();showToast('🗑 ล้าง Assignment วันนี้แล้ว');
+}
+function clearScheduleMonth(){
+  if(!confirm('ล้างตารางเวรเดือน '+MONTHS_TH[shiftState.month]+' ?\nข้อมูลเวรและ Assignment ทั้งเดือนจะหายทั้งหมด'))return;
+  var y=shiftState.year,m=shiftState.month,days=daysIn(y,m),mk=y+'-'+m;
+  // clear shift data
+  if(shiftState.data[mk])shiftState.data[mk]={};
+  if(shiftState.special[mk])shiftState.special[mk]={};
+  // clear assignments and rosters
+  for(var d=1;d<=days;d++){
+    var dt=ds(y,m,d);
+    if(assignState.assignments[dt])assignState.assignments[dt]={};
+    if(assignState.rosters[dt])assignState.rosters[dt]={};
+  }
+  saveShift();saveAssign();renderSchedule();showToast('🗑 ล้างตารางเวรเดือนนี้แล้ว');
+}
 function autoAssign(){
   // check if we're in day view or calendar view
   var inDayView=document.getElementById('assign-daily-view').style.display!=='none';
@@ -1204,6 +1245,11 @@ function renderCandidates(role,shiftKey,query){
     var capable=hasCap(st,role.cap);
     var usedInShift=false;for(var k in assigns)if(assigns[k]===st.name&&k!==role.id){usedInShift=true;break;}
     var condBlock=(shiftKey==='night'&&(hasCond(st,'float_morning')||hasCond(st,'no_night')))||(shiftKey==='afternoon'&&hasCond(st,'float_morning'))||(hasCond(st,'pregnant')&&role.cap==='refer');
+    // ถ้า refer บ่าย → ห้ามคนที่ทำ refer ดึกวันเดียวกัน
+    if(!condBlock&&shiftKey==='afternoon'&&role.cap==='refer'){
+      var nightAssigns=(assignState.assignments[curDate]&&assignState.assignments[curDate]['night'])||{};
+      SHIFT_ROLES['night'].forEach(function(nr){if(nr.cap==='refer'&&nightAssigns[nr.id]===st.name)condBlock=true;});
+    }
     var lim=getLimit(st,role.cap),cnt=capCountMonth(st.name,role.cap),limitBlock=lim>0&&cnt>=lim;
     var disabled=!capable||usedInShift||condBlock||limitBlock,isSel=aCtx.sel===st.name,inRoster=roster.indexOf(st.name)>=0;
     html+='<div class="cand-item'+(isSel?' sel':'')+(disabled?' disabled':'')+'" data-name="'+st.name+'">';
@@ -1387,6 +1433,8 @@ function loadThrInputs(){
 
 // ===== LOCK SCREEN =====
 function checkPw(){var pw=document.getElementById('pwInput').value;if(pw==='ayh1669'){document.getElementById('lockScreen').style.display='none';sessionStorage.setItem('auth','1');}else{document.getElementById('pwError').style.display='block';}}
+document.getElementById('btnLogin').addEventListener('click',checkPw);
+document.getElementById('pwInput').addEventListener('keydown',function(e){if(e.key==='Enter')checkPw();});
 
 // ===== EVENTS =====
 document.addEventListener('DOMContentLoaded',function(){
