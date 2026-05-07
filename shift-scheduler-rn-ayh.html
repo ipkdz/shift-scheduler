@@ -644,8 +644,8 @@ function listenFirebase(){
       if(p.special)shiftState.special=p.special;
       if(p.threshold)shiftState.threshold=p.threshold;
       try{localStorage.setItem('erShift',JSON.stringify(shiftState));}catch(e){}
-      dedupeStaff();
-      renderSchedule();renderPersonList();
+      dedupeStaff();syncStaffAndPersons();
+      renderSchedule();renderPersonList();renderStaffTable();
       var si=document.getElementById('syncInd');
       si.textContent='🔄 ซิงค์แล้ว';si.style.opacity='1';
       setTimeout(function(){si.style.opacity='0';},2000);
@@ -1575,34 +1575,36 @@ document.getElementById('btnNextSch').addEventListener('click',function(){shiftS
 // ===== INIT =====
 loadLocal();
 updateMonthDisplay();
+
+// sync สองทิศทาง: persons ↔ staff
+function syncStaffAndPersons(){
+  // persons → staff (เพิ่มคนที่มีใน persons แต่ไม่มีใน staff)
+  shiftState.persons.forEach(function(name){
+    if(!getStaffByName(name))
+      assignState.staff.push({name:name,caps:['incharge','teamlead','triage','resus','member','observe','refer'],conds:[],limits:{},note:''});
+  });
+  // staff → persons (เพิ่มคนที่มีใน staff แต่ไม่มีใน persons)
+  assignState.staff.forEach(function(st){
+    if(shiftState.persons.indexOf(st.name)<0)
+      shiftState.persons.push(st.name);
+  });
+  dedupeStaff();
+  saveAssign();saveShift();
+}
+
+syncStaffAndPersons();
 renderSchedule();
 renderPersonList();
+renderStaffTable();
 renderStampButtons();
 renderAssignCalendar();
 if(window.db){
-  loadFromFirebase(function(){updateMonthDisplay();renderSchedule();renderPersonList();loadThrInputs();});
+  loadFromFirebase(function(){
+    syncStaffAndPersons();
+    updateMonthDisplay();renderSchedule();renderPersonList();renderStaffTable();loadThrInputs();
+  });
   listenFirebase();
 }
-
-// seed staff — sync from shiftState.persons
-if(assignState.staff.length===0&&shiftState.persons.length>0){
-  shiftState.persons.forEach(function(name){
-    assignState.staff.push({name:name,caps:['incharge','teamlead','triage','resus','member','observe','refer'],conds:[],limits:{},note:''});
-  });
-  saveAssign();
-} else if(assignState.staff.length===0){
-  // fallback sample
-  var sample=['ชาติชาย สุภีแดน','สุวรรณา ประดิษฐ์ขวัญ','พรทิพย์ วิชาชู','พิรเดช วัฒนจิตต์','มานิดา สุนทรสุข','ศิคริทร์ สังฆคุณ','สุมาลี พิชัยวรุตมะ','ปนัดดา ประกอบจินดา','ศราวุธ ปลอดฤทธิ์','วิรัลกาญจน์ รชตนรวัฒน์','สุภัทรา สุขสอน','ศิริพร ศุภไพบูลย์','สิบทิศ เทียงทัต','เยาวลักษณ์ หมายเจริญ','ดุจดาว ธัญญ์ธชนนท์','สุหรรษา เหล็งรักษา','พิชญาภา โภคผล','กรองพลอย อนุวรรณ','กรณิการ์ เสนานันท์','ดุจศิลา บุญสม','เกศรินทร์ หวังผล','ชัลวาตี ยูโซะ','ปารมี สง่าวงศ์','สิรภัทร สุขสม','มนตรี ลี่ยวด','สุภาวดี กลมกลอม','ปาริชาติ แย้มเกสร','นวภรณ์ ศรีสุภะ','จิราภรณ์ เมืองจันทึก','ณดา ใหญ่เมืองปัก'];
-  sample.forEach(function(n){assignState.staff.push({name:n,caps:['incharge','teamlead','triage','resus','member','observe','refer'],conds:[],limits:{},note:''});});
-  saveAssign();
-}
-// sync any persons in shiftState that aren't in assignState.staff yet
-shiftState.persons.forEach(function(name){
-  if(!getStaffByName(name)){
-    assignState.staff.push({name:name,caps:['incharge','teamlead','triage','resus','member','observe','refer'],conds:[],limits:{},note:''});
-  }
-});
-saveAssign();
 </script>
 </body>
 </html>
