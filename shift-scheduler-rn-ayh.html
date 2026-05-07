@@ -618,6 +618,7 @@ function loadLocal(){
       if(q.rosters)assignState.rosters=q.rosters;
     }
   }catch(e){}
+  dedupeStaff();
 }
 function loadFromFirebase(cb){
   if(!window.db){cb();return;}
@@ -643,6 +644,7 @@ function listenFirebase(){
       if(p.special)shiftState.special=p.special;
       if(p.threshold)shiftState.threshold=p.threshold;
       try{localStorage.setItem('erShift',JSON.stringify(shiftState));}catch(e){}
+      dedupeStaff();
       renderSchedule();renderPersonList();
       var si=document.getElementById('syncInd');
       si.textContent='🔄 ซิงค์แล้ว';si.style.opacity='1';
@@ -651,7 +653,21 @@ function listenFirebase(){
   });
 }
 
-// ===== SCHEDULE STATE HELPERS =====
+// ===== DEDUP & SYNC STAFF =====
+function dedupeStaff(){
+  // remove duplicate names in assignState.staff (keep first occurrence)
+  var seen={};
+  assignState.staff=assignState.staff.filter(function(st){
+    if(seen[st.name])return false;
+    seen[st.name]=true;return true;
+  });
+  // remove duplicate names in shiftState.persons (keep first occurrence)
+  var seen2={};
+  shiftState.persons=shiftState.persons.filter(function(n){
+    if(seen2[n])return false;
+    seen2[n]=true;return true;
+  });
+}
 function getCell(pi,d){var k=mk(shiftState.year,shiftState.month);return(shiftState.data[k]&&shiftState.data[k][pi]&&shiftState.data[k][pi][d])||{shifts:[],colors:{}};}
 function setCell(pi,d,val){var k=mk(shiftState.year,shiftState.month);if(!shiftState.data[k])shiftState.data[k]={};if(!shiftState.data[k][pi])shiftState.data[k][pi]={};shiftState.data[k][pi][d]=val;saveShift();}
 function getHoliday(y,m,d){var s=ds(y,m,d);for(var i=0;i<shiftState.holidays.length;i++)if(shiftState.holidays[i].date===s)return shiftState.holidays[i];return null;}
@@ -1184,15 +1200,15 @@ function clearAssignDay(){
 }
 function clearScheduleMonth(){
   if(!confirm('ล้างตารางเวรเดือน '+MONTHS_TH[shiftState.month]+' ?\nข้อมูลเวรและ Assignment ทั้งเดือนจะหายทั้งหมด'))return;
-  var y=shiftState.year,m=shiftState.month,days=daysIn(y,m),mk=y+'-'+m;
+  var y=shiftState.year,m=shiftState.month,days=daysIn(y,m),monthKey=mk(y,m);
   // clear shift data
-  if(shiftState.data[mk])shiftState.data[mk]={};
-  if(shiftState.special[mk])shiftState.special[mk]={};
+  if(shiftState.data[monthKey])delete shiftState.data[monthKey];
+  if(shiftState.special[monthKey])delete shiftState.special[monthKey];
   // clear assignments and rosters
   for(var d=1;d<=days;d++){
     var dt=ds(y,m,d);
-    if(assignState.assignments[dt])assignState.assignments[dt]={};
-    if(assignState.rosters[dt])assignState.rosters[dt]={};
+    if(assignState.assignments[dt])delete assignState.assignments[dt];
+    if(assignState.rosters[dt])delete assignState.rosters[dt];
   }
   saveShift();saveAssign();renderSchedule();showToast('🗑 ล้างตารางเวรเดือนนี้แล้ว');
 }
