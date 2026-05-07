@@ -534,6 +534,8 @@ var SHIFT_ROLES={
     {id:'RF2',label:'Refer 2',   cap:'refer',    break:'12.30-13.30'},
     {id:'OB', label:'Observe',   cap:'observe',  break:'13.30-14.30'},
     {id:'C2', label:'C2',        cap:'refer',    break:'-'},
+    {id:'EMD',label:'EMD',       cap:'member',   break:'-'},
+    {id:'EMS',label:'EMS',       cap:'member',   break:'-'},
   ],
   afternoon:[
     {id:'IC', label:'Incharge',  cap:'incharge',break:'20.30-21.30'},
@@ -547,6 +549,8 @@ var SHIFT_ROLES={
     {id:'RF2',label:'Refer 2',   cap:'refer',    break:'19.30-20.30'},
     {id:'OB', label:'Observe',   cap:'observe',  break:'21.30-22.30'},
     {id:'C2', label:'C2',        cap:'refer',    break:'-'},
+    {id:'EMD',label:'EMD',       cap:'member',   break:'-'},
+    {id:'EMS',label:'EMS',       cap:'member',   break:'-'},
   ],
   night:[
     {id:'IC', label:'Incharge',  cap:'incharge',break:'-'},
@@ -556,6 +560,9 @@ var SHIFT_ROLES={
     {id:'M1', label:'Member 1',  cap:'member',   break:'-'},
     {id:'M2', label:'Member 2',  cap:'member',   break:'-'},
     {id:'RF1',label:'Refer 1',   cap:'refer',    break:'-'},
+    {id:'C2', label:'C2',        cap:'refer',    break:'-'},
+    {id:'EMD',label:'EMD',       cap:'member',   break:'-'},
+    {id:'EMS',label:'EMS',       cap:'member',   break:'-'},
   ]
 };
 
@@ -1099,33 +1106,92 @@ function renderDayView(){
 
   var parts=curDate.split('-'),dd=parseInt(parts[2]);
   var SHIFT_CHAR_MAP={night:'ด',morning:'ช',afternoon:'บ'};
-  function getEMSForShift(shiftKey){
+
+  // ดึงชื่อจากตารางเวรตาม color
+  function getNamesFromSchedule(shiftKey,colorNum){
     var shiftChar=SHIFT_CHAR_MAP[shiftKey],names=[];
     for(var pi=0;pi<shiftState.persons.length;pi++){
       var cell=getCell(pi,dd);
-      if(cell.shifts.indexOf(shiftChar)>=0&&(cell.colors[shiftChar]||0)===5)names.push(shiftState.persons[pi]);
+      if(cell.shifts.indexOf(shiftChar)>=0&&(cell.colors[shiftChar]||0)===colorNum)names.push(shiftState.persons[pi]);
     }
     return names;
   }
 
+  // section definitions — label, bg color, roles ที่อยู่ในกลุ่มนี้
+  var SECTIONS=[
+    {label:'Incharge',       bg:'#fef3c7', labelColor:'#92400e', roles:['IC']},
+    {label:'Triage Area',    bg:'#dbeafe', labelColor:'#1e40af', roles:['TR']},
+    {label:'Resuscitation',  bg:'#fce7f3', labelColor:'#9d174d', roles:['TL','R1','R2','RF1']},
+    {label:'Treatment Area', bg:'#dcfce7', labelColor:'#166534', roles:['M1','M2','RF2']},
+    {label:'Observation',    bg:'#ede9fe', labelColor:'#5b21b6', roles:['OB']},
+  ];
+
   var order=[{key:'night',lbl:'ดึก',cls:'night'},{key:'morning',lbl:'เช้า',cls:'morning'},{key:'afternoon',lbl:'บ่าย',cls:'afternoon'}];
   var html='';
   order.forEach(function(sh){
-    var roles=SHIFT_ROLES[sh.key],r=roster[sh.key]||[],assigns=(assignState.assignments[curDate]&&assignState.assignments[curDate][sh.key])||{};
-    var emsNames=getEMSForShift(sh.key);
-    html+='<div class="shift-card"><div class="shift-hdr '+sh.cls+'"><div class="shift-hdr-title '+sh.cls+'">'+sh.lbl+'</div><div class="shift-badge '+sh.cls+'">'+r.length+' คน</div></div><div>';
-    roles.forEach(function(role){var name=assigns[role.id]||'';
-      html+='<div class="assign-row" data-shift="'+sh.key+'" data-role="'+role.id+'"><div class="assign-role">'+role.label+'</div>';
-      html+='<div class="assign-name'+(name?'':' empty')+'">'+(name||'— ว่าง —')+'</div>';
-      if(role.break&&role.break!=='-')html+='<div class="assign-break">'+role.break+'</div>';
+    var roles=SHIFT_ROLES[sh.key],r=roster[sh.key]||[];
+    var assigns=(assignState.assignments[curDate]&&assignState.assignments[curDate][sh.key])||{};
+    var emsNames=getNamesFromSchedule(sh.key,5);
+    var emdNames=getNamesFromSchedule(sh.key,4);
+    var c2Names=getNamesFromSchedule(sh.key,3);
+
+    // build roleId→role map for this shift
+    var roleMap={};
+    roles.forEach(function(role){roleMap[role.id]=role;});
+
+    html+='<div class="shift-card">';
+    html+='<div class="shift-hdr '+sh.cls+'"><div class="shift-hdr-title '+sh.cls+'">'+sh.lbl+'</div><div class="shift-badge '+sh.cls+'">'+r.length+' คน</div></div>';
+    html+='<div style="padding:4px 0;">';
+
+    // render sections
+    SECTIONS.forEach(function(sec){
+      // filter roles that exist in this shift
+      var secRoles=sec.roles.filter(function(rid){return roleMap[rid];});
+      if(secRoles.length===0)return;
+      html+='<div style="margin:3px 6px;border-radius:8px;overflow:hidden;">';
+      html+='<div style="background:'+sec.bg+';padding:3px 10px;font-size:10px;font-weight:700;color:'+sec.labelColor+';letter-spacing:.3px;">'+sec.label+'</div>';
+      secRoles.forEach(function(rid){
+        var role=roleMap[rid],name=assigns[rid]||'';
+        html+='<div class="assign-row" data-shift="'+sh.key+'" data-role="'+rid+'" style="background:'+sec.bg+'18;border-bottom:1px solid '+sec.bg+';">';
+        html+='<div class="assign-role" style="color:'+sec.labelColor+';">'+role.label+'</div>';
+        html+='<div class="assign-name'+(name?'':' empty')+'">'+(name||'— ว่าง —')+'</div>';
+        if(role.break&&role.break!=='-')html+='<div class="assign-break">'+role.break+'</div>';
+        html+='</div>';
+      });
       html+='</div>';
     });
-    html+='<div class="assign-row" style="border-top:2px dashed var(--border);cursor:default;" data-no-click="1">';
-    html+='<div class="assign-role" style="color:var(--pos5);font-weight:700;">EMS</div>';
-    html+='<div class="assign-name'+(emsNames.length>0?'':' empty')+'" style="'+(emsNames.length>0?'color:var(--pos5);font-weight:600;':'')+'">'+(emsNames.length>0?emsNames.join(', '):'—')+'</div>';
+
+    // Dispatch section — EMD/C2 editable, default จาก schedule
+    var emdAssign=assigns['EMD']||'';
+    var c2Assign=assigns['C2']||'';
+    var emdDisplay=emdAssign||(emdNames.length>0?emdNames.join(', '):'');
+    var c2Display=c2Assign||(c2Names.length>0?c2Names.join(', '):'');
+    html+='<div style="margin:3px 6px;border-radius:8px;overflow:hidden;">';
+    html+='<div style="background:#f1f5f9;padding:3px 10px;font-size:10px;font-weight:700;color:#475569;letter-spacing:.3px;">Dispatch Area</div>';
+    html+='<div class="assign-row" data-shift="'+sh.key+'" data-role="EMD" style="background:#f8fafc;border-bottom:1px solid #e2e8f0;">';
+    html+='<div class="assign-role" style="color:var(--pos4);font-weight:700;">EMD</div>';
+    html+='<div class="assign-name'+(emdDisplay?'':' empty')+'" style="'+(emdDisplay?'color:var(--pos4);font-weight:600;':'')+'">'+(emdDisplay||'— ว่าง —')+'</div>';
     html+='</div>';
+    html+='<div class="assign-row" data-shift="'+sh.key+'" data-role="C2" style="background:#f8fafc;">';
+    html+='<div class="assign-role" style="color:var(--pos3);font-weight:700;">C2</div>';
+    html+='<div class="assign-name'+(c2Display?'':' empty')+'" style="'+(c2Display?'color:var(--pos3);font-weight:600;':'')+'">'+(c2Display||'— ว่าง —')+'</div>';
+    html+='</div>';
+    html+='</div>';
+
+    // EMS — editable, default จาก schedule pos5
+    var emsAssign=assigns['EMS']||'';
+    var emsDisplay=emsAssign||(emsNames.length>0?emsNames.join(', '):'');
+    html+='<div style="margin:3px 6px;border-radius:8px;overflow:hidden;">';
+    html+='<div style="background:#e0f2fe;padding:3px 10px;font-size:10px;font-weight:700;color:var(--pos5);letter-spacing:.3px;">EMS</div>';
+    html+='<div class="assign-row" data-shift="'+sh.key+'" data-role="EMS" style="background:#f0f9ff;">';
+    html+='<div class="assign-role" style="color:var(--pos5);font-weight:700;">RN/PMD</div>';
+    html+='<div class="assign-name'+(emsDisplay?'':' empty')+'" style="'+(emsDisplay?'color:var(--pos5);font-weight:600;':'')+'">'+(emsDisplay||'— ว่าง —')+'</div>';
+    html+='</div>';
+    html+='</div>';
+
     html+='</div></div>';
   });
+
   document.getElementById('shiftCols').innerHTML=html;
   document.getElementById('shiftCols').querySelectorAll('.assign-row:not([data-no-click])').forEach(function(row){
     row.addEventListener('click',function(){openAssignModal(this.getAttribute('data-shift'),this.getAttribute('data-role'));});
@@ -1149,6 +1215,78 @@ function capCountMonth(name,cap){
   return cnt;
 }
 
+// SHIFT timing (นาทีจาก 00:00)
+var SHIFT_START_MIN={night:0,morning:480,afternoon:960};
+var SHIFT_END_MIN={night:480,morning:960,afternoon:1440};
+function shiftGapMinutes(dateA,shiftA,dateB,shiftB){
+  var p=function(d){var x=d.split('-');return new Date(x[0],parseInt(x[1])-1,x[2]);};
+  var diffDays=(p(dateB)-p(dateA))/(86400000);
+  var endA=diffDays*1440+SHIFT_END_MIN[shiftA];
+  var startB=diffDays*1440+SHIFT_START_MIN[shiftB];
+  return startB-endA; // ลบ = ซ้อนกัน/ติดกัน
+}
+function getCapZone(cap){
+  if(cap==='teamlead'||cap==='resus'||cap==='refer')return 'resus';
+  if(cap==='member')return 'treatment';
+  if(cap==='triage')return 'triage';
+  return null;
+}
+function getPersonCapInShift(name,dateStr,shiftKey){
+  var a=assignState.assignments[dateStr];
+  if(!a||!a[shiftKey])return null;
+  var roles=SHIFT_ROLES[shiftKey];
+  for(var i=0;i<roles.length;i++){if(a[shiftKey][roles[i].id]===name)return roles[i].cap;}
+  return null;
+}
+function getNearbyShifts(dateStr,shiftKey){
+  var p=dateStr.split('-'),y=parseInt(p[0]),m=parseInt(p[1])-1,d=parseInt(p[2]);
+  function addDay(n){var dt=new Date(y,m,d+n);return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');}
+  var prev=addDay(-1),next=addDay(1);
+  var all=[
+    {date:prev,shift:'morning'},{date:prev,shift:'afternoon'},{date:prev,shift:'night'},
+    {date:next,shift:'night'},{date:next,shift:'morning'},{date:next,shift:'afternoon'}
+  ];
+  ['night','morning','afternoon'].forEach(function(s){if(s!==shiftKey)all.push({date:dateStr,shift:s});});
+  return all.filter(function(c){
+    var gap1=shiftGapMinutes(dateStr,shiftKey,c.date,c.shift);
+    var gap2=shiftGapMinutes(c.date,c.shift,dateStr,shiftKey);
+    // เวรนี้อยู่ใกล้กัน = gap ระหว่างจบเวรหนึ่งถึงเริ่มอีกเวร < 480 นาที
+    return (gap1>=0&&gap1<480)||(gap2>=0&&gap2<480);
+  });
+}
+function isSameZoneNearby(name,dateStr,shiftKey,cap){
+  var myZone=getCapZone(cap);
+  if(!myZone)return false;
+  var nearby=getNearbyShifts(dateStr,shiftKey);
+  for(var i=0;i<nearby.length;i++){
+    var nearCap=getPersonCapInShift(name,nearby[i].date,nearby[i].shift);
+    if(nearCap&&getCapZone(nearCap)===myZone)return true;
+  }
+  return false;
+}
+function isHeavyRoleTooClose(name,dateStr,shiftKey){
+  var nearby=getNearbyShifts(dateStr,shiftKey);
+  for(var i=0;i<nearby.length;i++){
+    var a=assignState.assignments[nearby[i].date];
+    if(!a||!a[nearby[i].shift])continue;
+    var roles=SHIFT_ROLES[nearby[i].shift];
+    for(var j=0;j<roles.length;j++){
+      if((roles[j].cap==='incharge'||roles[j].cap==='teamlead')&&a[nearby[i].shift][roles[j].id]===name)return true;
+    }
+  }
+  return false;
+}
+function isBlackShift(name,dateStr,shiftKey){
+  var dd=parseInt(dateStr.split('-')[2]);
+  var sc={night:'ด',morning:'ช',afternoon:'บ'}[shiftKey];
+  var pi=shiftState.persons.indexOf(name);
+  if(pi<0)return false;
+  var cell=getCell(pi,dd);
+  if(cell.shifts.indexOf(sc)<0)return false;
+  var color=cell.colors[sc]||0;
+  return color===0||color===1;
+}
+
 function doAssignDay(dateStr){
   var shifts=['night','morning','afternoon'],changed=false;
   shifts.forEach(function(shiftKey){
@@ -1158,27 +1296,39 @@ function doAssignDay(dateStr){
     if(!assignState.assignments[dateStr][shiftKey])assignState.assignments[dateStr][shiftKey]={};
     var assigns=assignState.assignments[dateStr][shiftKey];
     roles.forEach(function(role){
-      if(assigns[role.id])return; // already assigned (e.g. C2 from import)
-      var eligible=roster.filter(function(name){
+      if(assigns[role.id])return;
+      function baseFilter(name){
         var st=getStaff(name);if(!st)return false;
         if(!hasCap(st,role.cap))return false;
         if(shiftKey==='night'&&(hasCond(st,'float_morning')||hasCond(st,'no_night')))return false;
         if(shiftKey==='afternoon'&&hasCond(st,'float_morning'))return false;
         if(hasCond(st,'pregnant')&&role.cap==='refer')return false;
-        // ถ้า role นี้คือ refer บ่าย ห้ามใช้คนที่ทำ refer ดึก (วันเดียวกัน)
         if(shiftKey==='afternoon'&&role.cap==='refer'){
-          var nightAssigns=(assignState.assignments[dateStr]&&assignState.assignments[dateStr]['night'])||{};
-          var didReferNight=false;
-          SHIFT_ROLES['night'].forEach(function(nr){if(nr.cap==='refer'&&nightAssigns[nr.id]===name)didReferNight=true;});
-          if(didReferNight)return false;
+          var na=(assignState.assignments[dateStr]&&assignState.assignments[dateStr]['night'])||{};
+          var didRef=false;SHIFT_ROLES['night'].forEach(function(nr){if(nr.cap==='refer'&&na[nr.id]===name)didRef=true;});
+          if(didRef)return false;
         }
+        if(role.cap==='incharge'&&!isBlackShift(name,dateStr,shiftKey))return false;
         var lim=getLimit(st,role.cap);if(lim>0&&capCountMonth(name,role.cap)>=lim)return false;
         return true;
-      });
+      }
       var usedNames=[];for(var k in assigns)if(assigns.hasOwnProperty(k))usedNames.push(assigns[k]);
-      eligible=eligible.filter(function(n){return usedNames.indexOf(n)<0;});
+      // pass 1: all constraints
+      var eligible=roster.filter(baseFilter).filter(function(n){
+        if(usedNames.indexOf(n)>=0)return false;
+        if((role.cap==='incharge'||role.cap==='teamlead')&&isHeavyRoleTooClose(n,dateStr,shiftKey))return false;
+        if(isSameZoneNearby(n,dateStr,shiftKey,role.cap))return false;
+        return true;
+      });
+      // pass 2 fallback: ผ่อน zone/heavy แต่ยังคง incharge=black
+      if(eligible.length===0){
+        eligible=roster.filter(baseFilter).filter(function(n){return usedNames.indexOf(n)<0;});
+      }
       if(eligible.length===0)return;
-      if(role.cap==='observe'){var pregFirst=eligible.filter(function(n){var st=getStaff(n);return st&&hasCond(st,'pregnant');});if(pregFirst.length>0)eligible=pregFirst.concat(eligible.filter(function(n){var st=getStaff(n);return !st||!hasCond(st,'pregnant');}));}
+      if(role.cap==='observe'){
+        var pf=eligible.filter(function(n){var st=getStaff(n);return st&&hasCond(st,'pregnant');});
+        if(pf.length>0)eligible=pf.concat(eligible.filter(function(n){var st=getStaff(n);return !st||!hasCond(st,'pregnant');}));
+      }
       eligible.sort(function(a,b){return capCountMonth(a,role.cap)-capCountMonth(b,role.cap);});
       assigns[role.id]=eligible[0];changed=true;
     });
@@ -1264,18 +1414,26 @@ function renderCandidates(role,shiftKey,query){
     var capable=hasCap(st,role.cap);
     var usedInShift=false;for(var k in assigns)if(assigns[k]===st.name&&k!==role.id){usedInShift=true;break;}
     var condBlock=(shiftKey==='night'&&(hasCond(st,'float_morning')||hasCond(st,'no_night')))||(shiftKey==='afternoon'&&hasCond(st,'float_morning'))||(hasCond(st,'pregnant')&&role.cap==='refer');
-    // ถ้า refer บ่าย → ห้ามคนที่ทำ refer ดึกวันเดียวกัน
+    // refer บ่าย → ห้ามคนที่ refer ดึกวันเดียวกัน
     if(!condBlock&&shiftKey==='afternoon'&&role.cap==='refer'){
       var nightAssigns=(assignState.assignments[curDate]&&assignState.assignments[curDate]['night'])||{};
       SHIFT_ROLES['night'].forEach(function(nr){if(nr.cap==='refer'&&nightAssigns[nr.id]===st.name)condBlock=true;});
     }
+    // [NEW] incharge = สีดำเท่านั้น (hard block)
+    if(!condBlock&&role.cap==='incharge'&&!isBlackShift(st.name,curDate,shiftKey))condBlock=true;
+    // [NEW] IC/TL ใกล้กัน → warning เท่านั้น (ยังเลือกได้)
+    var heavyWarn=!condBlock&&(role.cap==='incharge'||role.cap==='teamlead')&&isHeavyRoleTooClose(st.name,curDate,shiftKey);
+    // [NEW] zone ซ้ำ → warning เท่านั้น (ยังเลือกได้)
+    var zoneWarn=!condBlock&&!heavyWarn&&isSameZoneNearby(st.name,curDate,shiftKey,role.cap);
     var lim=getLimit(st,role.cap),cnt=capCountMonth(st.name,role.cap),limitBlock=lim>0&&cnt>=lim;
     var disabled=!capable||usedInShift||condBlock||limitBlock,isSel=aCtx.sel===st.name,inRoster=roster.indexOf(st.name)>=0;
-    html+='<div class="cand-item'+(isSel?' sel':'')+(disabled?' disabled':'')+'" data-name="'+st.name+'">';
+    html+='<div class="cand-item'+(isSel?' sel':'')+(disabled?' disabled':'')+(heavyWarn||zoneWarn?' zone-warn':'')+'" data-name="'+st.name+'">';
     html+='<span class="cand-name">'+(inRoster?'✓ ':'')+st.name+'</span>';
     if(!capable)html+='<span class="cand-warn">ไม่ capable</span>';
     else if(condBlock)html+='<span class="cand-warn">เงื่อนไข</span>';
     else if(limitBlock)html+='<span class="cand-warn">ครบ limit</span>';
+    else if(heavyWarn)html+='<span class="cand-warn" style="background:#fee2e2;color:#991b1b;">⚠ IC/TL ซ้ำ</span>';
+    else if(zoneWarn)html+='<span class="cand-warn" style="background:#fef3c7;color:#92400e;">⚠ zone ซ้ำ</span>';
     else html+='<span class="cand-meta">'+cnt+'ครั้ง</span>';
     html+='</div>';
   });
