@@ -73,21 +73,21 @@ table.sched td{border-right:0.5px solid var(--border);border-bottom:0.5px solid 
 table.sched td.name-col{text-align:left;padding:4px 8px;font-weight:500;background:var(--surface);position:sticky;left:0;z-index:2;border-right:1px solid var(--border)}
 table.sched td.we{background:#f0f9ff}
 table.sched td.hol{background:#fff7ed}
-table.sched td.tow-day{background:#f5f0ff}
+table.sched td.tow-day{background:#ede9fe}
 table.sched tr:hover td{filter:brightness(.97)}
 table.sched tr:hover td.name-col{filter:brightness(.97)}
 
 /* Shift pills */
 .pill{border-radius:4px;padding:2px 3px;font-size:11px;font-weight:600;cursor:pointer;border:none;width:100%;display:block;text-align:center;transition:.1s;line-height:1.4}
 .pill:hover{filter:brightness(.88);transform:scale(1.05)}
-.pill-M1{background:#fef9c3;color:#713f12}
-.pill-M2{background:#fde68a;color:#78350f}
-.pill-A{background:#bbf7d0;color:#14532d}
-.pill-E{background:#c7d2fe;color:#312e81}
+.pill-M1{background:#d1fae5;color:#065f46}
+.pill-M2{background:#d1fae5;color:#065f46}
+.pill-A{background:#d1fae5;color:#065f46}
+.pill-E{background:#fed7aa;color:#7c2d12}
 .pill-N{background:#1e293b;color:#cbd5e1}
-.pill-M{background:#fed7aa;color:#7c2d12}
-.pill-OFF{background:#f1f5f9;color:#64748b}
-.pill-TOW{background:#ddd6fe;color:#4c1d95;font-style:italic;font-size:10px}
+.pill-M{background:#6ee7b7;color:#064e3b}
+.pill-OFF{background:transparent;color:transparent;pointer-events:none;min-height:0;padding:0}
+.pill-TOW{background:transparent;color:transparent;pointer-events:none;min-height:0;padding:0}
 .pill-empty{background:transparent;color:var(--faint);border:0.5px dashed var(--border)}
 .pill.conflict{box-shadow:0 0 0 2px #dc2626 !important;background:#fee2e2 !important;color:#991b1b !important}
 .pill.warn-pill{box-shadow:0 0 0 2px #f59e0b !important;background:#fef9c3 !important;color:#713f12 !important}
@@ -355,8 +355,8 @@ table.sum tr:nth-child(even) td{background:var(--bg)}
     <span class="pill pill-E" style="width:auto;padding:2px 7px;display:inline-block">E บ่าย OT</span>
     <span class="pill pill-N" style="width:auto;padding:2px 7px;display:inline-block">N ดึก OT</span>
     <span class="pill pill-M" style="width:auto;padding:2px 7px;display:inline-block">M เช้าวันหยุด OT</span>
-    <span class="pill pill-OFF" style="width:auto;padding:2px 7px;display:inline-block">OFF</span>
-    <span class="pill pill-TOW" style="width:auto;padding:2px 7px;display:inline-block">TOW</span>
+    <span style="display:inline-block;padding:2px 7px;background:#ede9fe;border-radius:4px;font-size:11px;font-weight:500;color:#6d28d9">TOW</span>
+    <span style="display:inline-block;padding:2px 7px;background:#fef9c3;border-radius:4px;font-size:11px;font-weight:500;color:#92400e">OFF</span>
     <span style="color:var(--muted);font-size:11px;margin-left:4px">🟧=วันหยุดราชการ 🟦=เสาร์-อาทิตย์ 🟣=TOW week</span>
   </div>
 
@@ -434,10 +434,10 @@ const PREFS_LABEL = {
   'no-n-after-e':'ไม่ชอบบ่าย→ดึก','no-m-after-e':'ไม่ชอบบ่าย→เช้า'
 };
 const PILL_STYLE = {
-  M1:{bg:'#fef9c3',col:'#713f12'},M2:{bg:'#fde68a',col:'#78350f'},
-  A:{bg:'#bbf7d0',col:'#14532d'},E:{bg:'#c7d2fe',col:'#312e81'},
-  N:{bg:'#1e293b',col:'#cbd5e1'},M:{bg:'#fed7aa',col:'#7c2d12'},
-  OFF:{bg:'#f1f5f9',col:'#64748b'},TOW:{bg:'#ddd6fe',col:'#4c1d95'},
+  M1:{bg:'#d1fae5',col:'#065f46'},M2:{bg:'#d1fae5',col:'#065f46'},
+  A:{bg:'#d1fae5',col:'#065f46'},E:{bg:'#fed7aa',col:'#7c2d12'},
+  N:{bg:'#1e293b',col:'#cbd5e1'},M:{bg:'#6ee7b7',col:'#064e3b'},
+  OFF:{bg:'transparent',col:'transparent'},TOW:{bg:'transparent',col:'transparent'},
   '-':{bg:'#f5f4f0',col:'#9b9b97'}
 };
 
@@ -548,10 +548,37 @@ function isOffWeekDay(did, d) {
   const dateStr = dk(d);
   return S.towWeeks.some(t=>t.offDocId===did && t.start && dateStr>=t.start && dateStr<=t.end);
 }
-function getCell(did, d) { return S.schedule[mk()]?.[did]?.[d] || '-'; }
-function setCell(did, d, v) {
-  if (!S.schedule[mk()]) S.schedule[mk()]={};
-  if (!S.schedule[mk()][did]) S.schedule[mk()][did]={};
+function getCells(did, d) {
+  const v = S.schedule[mk()]?.[did]?.[d];
+  if(!v || v==='-') return [];
+  return Array.isArray(v) ? v : [v]; // backward compat
+}
+function getCell(did, d) { // legacy: returns first or '-'
+  const arr = getCells(did, d);
+  return arr.length ? arr[0] : '-';
+}
+function hasShift(did, d, shift) { return getCells(did, d).includes(shift); }
+function setDayShifts(did, d, arr) {
+  if(!S.schedule[mk()]) S.schedule[mk()]={};
+  if(!S.schedule[mk()][did]) S.schedule[mk()][did]={};
+  if(!arr || arr.length===0) S.schedule[mk()][did][d] = '-';
+  else if(arr.length===1 && (arr[0]==='TOW'||arr[0]==='OFF'||arr[0]==='-')) S.schedule[mk()][did][d] = arr[0];
+  else S.schedule[mk()][did][d] = arr;
+  save();
+}
+function toggleShift(did, d, shift) {
+  let arr = getCells(did, d).filter(x=>x!=='TOW'&&x!=='OFF'&&x!=='-');
+  if(['TOW','OFF'].includes(shift)){
+    setDayShifts(did, d, [shift]); return;
+  }
+  if(shift==='-'){ setDayShifts(did, d, []); return; }
+  if(arr.includes(shift)) arr = arr.filter(x=>x!==shift);
+  else arr = [...arr, shift];
+  setDayShifts(did, d, arr);
+}
+function setCell(did, d, v) { // legacy compat
+  if(!S.schedule[mk()]) S.schedule[mk()]={};
+  if(!S.schedule[mk()][did]) S.schedule[mk()][did]={};
   S.schedule[mk()][did][d] = v;
   save();
 }
@@ -905,20 +932,39 @@ function renderSchedule() {
       ${dr.prefs.length?`<div style="font-size:9px;color:var(--muted)" title="${dr.prefs.map(p=>PREFS_LABEL[p]).join(', ')}">${dr.prefs.length} preference</div>`:''}
     </td>`;
     for(let d=1;d<=days;d++){
-      const val=getCell(dr.id,d);
-      const {errors,warnings}=checkConflicts(dr.id,d,val);
-      const isHol=isHoliday(d), isWe=isWeekend(d), isTow=isTowDay(dr.id,d);
-      const cellClass=isTow?'tow-day':isHol?'hol':isWe?'we':'';
-      const ps=PILL_STYLE[val]||PILL_STYLE['-'];
-      const pillCls=val&&val!=='-'?`pill pill-${val}`:'pill pill-empty';
-      const conflictCls=errors.length?'conflict':warnings.length?'warn-pill':'';
-      const tooltip=[...errors,...warnings].join(' / ')||val;
-      b+=`<td class="${cellClass}">
-        <button class="${pillCls} ${conflictCls}"
-          onclick="openModal('${dr.id}',${d})"
-          style="background:${val&&val!=='-'?ps.bg:'transparent'};color:${ps.col}"
-          title="${tooltip}">${val==='-'?'·':val}${errors.length?'🔴':warnings.length?'🟡':''}</button>
-      </td>`;
+      const shifts=getCells(dr.id,d);
+      const isHol=isHoliday(d),isWe=isWeekend(d);
+      const isTow=isTowDay(dr.id,d);
+      const isOffW=isOffWeekDay(dr.id,d);
+      const hasTOW=shifts.includes('TOW');
+      const hasOFF=shifts.includes('OFF');
+      // Cell background priority: TOW > OFF > weekend/holiday
+      let cellBg='';
+      if(hasTOW) cellBg='background:#ede9fe';
+      else if(hasOFF) cellBg='background:#fef9c3';
+      else if(isHol) cellBg='background:#fff7ed';
+      else if(isWe) cellBg='background:#f0f9ff';
+      const realShifts=shifts.filter(v=>v!=='TOW'&&v!=='OFF'&&v!=='-');
+      // collect conflicts
+      const allErrors=[],allWarns=[];
+      shifts.forEach(v=>{
+        const{errors,warnings}=checkConflicts(dr.id,d,v);
+        allErrors.push(...errors);allWarns.push(...warnings);
+      });
+      if(shifts.includes('N')&&shifts.some(v=>['M','M1','M2','A'].includes(v))) allErrors.push('ดึกต่อเช้า ❌');
+      const icon=allErrors.length?'🔴':allWarns.length?'🟡':'';
+      const pillsHtml = realShifts.length===0
+        ? `<button class="pill pill-empty" onclick="openModal('${dr.id}',${d})" style="background:transparent;color:var(--faint);width:100%">·</button>`
+        : realShifts.map(v=>{
+            const ps=PILL_STYLE[v]||PILL_STYLE['-'];
+            return `<button class="pill pill-${v}${allErrors.length?' conflict':allWarns.length?' warn-pill':''}" onclick="openModal('${dr.id}',${d})" style="background:${ps.bg};color:${ps.col}" title="${[...allErrors,...allWarns].join(' / ')||v}">${v}</button>`;
+          }).join('')+
+          (icon?`<span style="font-size:9px;line-height:1">${icon}</span>`:'');
+      // Invisible click target for TOW/OFF-only cells
+      const clickTarget = (hasTOW||hasOFF) && realShifts.length===0
+        ? `<button onclick="openModal('${dr.id}',${d})" style="position:absolute;inset:0;background:transparent;border:none;cursor:pointer;width:100%;height:100%"></button>` : '';
+      b+=`<td style="vertical-align:top;${cellBg};position:relative"><div style="display:flex;flex-direction:column;gap:1px">${pillsHtml}</div>${clickTarget}</td>`;
+    }
     }
     b+=`</tr>`;
   });
@@ -930,8 +976,11 @@ function renderSchedule() {
   const days2=daysIn();
   S.doctors.forEach(dr2=>{
     for(let d2=1;d2<=days2;d2++){
-      const {errors:e,warnings:w}=checkConflicts(dr2.id,d2,getCell(dr2.id,d2));
-      errCnt+=e.length>0?1:0; warnCnt+=w.length>0&&e.length===0?1:0;
+      const shifts2=getCells(dr2.id,d2);
+      let hasErr=false,hasWarn=false;
+      shifts2.forEach(v=>{const{errors:e,warnings:w}=checkConflicts(dr2.id,d2,v);if(e.length)hasErr=true;else if(w.length)hasWarn=true;});
+      if(shifts2.includes('N')&&shifts2.some(v=>['M','M1','M2','A'].includes(v)))hasErr=true;
+      errCnt+=hasErr?1:0; warnCnt+=(!hasErr&&hasWarn)?1:0;
     }
   });
   const cb=document.getElementById('conflict-badge');
@@ -1006,11 +1055,11 @@ let mDid='',mDay=0;
 function openModal(did,day){
   mDid=did;mDay=day;
   const d=doc(did); if(!d) return;
-  const val=getCell(did,day);
+  const currentShifts=getCells(did,day);
   const isH=isOffDay(day);
   const shifts=isH?HOLIDAY_SHIFTS:WORKDAY_SHIFTS;
 
-  document.getElementById('m-title').textContent=`${d.name}`;
+  document.getElementById('m-title').textContent=d.name;
   document.getElementById('m-sub').textContent=`วันที่ ${day} ${MONTHS_SHORT[S.currentMonth]} ${S.currentYear+543} (${DAYS_TH[weekday(day)]})${isH?' — วันหยุด':''}`;
 
   const ow=document.getElementById('m-off-warn');
@@ -1022,30 +1071,45 @@ function openModal(did,day){
   if(owHtml){ow.style.display='block';ow.innerHTML=owHtml;}
   else ow.style.display='none';
 
+  // Build shift toggle buttons — glow if selected, click to toggle
   document.getElementById('m-shifts').innerHTML=['-',...shifts].map(s=>{
     const ps=PILL_STYLE[s]||PILL_STYLE['-'];
-    const {errors,warnings}=s!=='-'?checkConflicts(did,day,s):{errors:[],warnings:[]};
-    const isSelected=s===val;
-    const icon=errors.length?'🔴':warnings.length?'🟡':'';
-    const allMsgs=[...errors,...warnings];
-    return `<button class="shift-btn${isSelected?' selected':''}${errors.length?' has-conflict':warnings.length?' has-warning':''}"
-      style="background:${ps.bg};color:${ps.col}"
+    const isOn=s==='-'?currentShifts.length===0:currentShifts.includes(s);
+    const{errors,warnings}=s!=='-'?checkConflicts(did,day,s):{errors:[],warnings:[]};
+    // NM combo check
+    const wouldCauseNM = s!=='-' && (
+      (s==='N' && currentShifts.some(v=>['M','M1','M2','A'].includes(v))) ||
+      (['M','M1','M2','A'].includes(s) && currentShifts.includes('N'))
+    );
+    const allErr=[...errors,...(wouldCauseNM?['ดึก+เช้า ❌']:[])];
+    const icon=allErr.length?'🔴':warnings.length?'🟡':'';
+    return `<button
+      class="shift-btn${isOn?' selected':''}${allErr.length?' has-conflict':warnings.length?' has-warning':''}"
+      style="background:${ps.bg};color:${ps.col};${isOn?`box-shadow:0 0 0 2.5px ${ps.col};font-weight:700`:''}"
       onclick="pickShift('${s}')"
-      title="${allMsgs.join(', ')}">${s==='–'?'–':s}${icon}</button>`;
+      title="${[...allErr,...warnings].join(', ')||s}">${s}${icon}</button>`;
   }).join('');
 
-  const {errors,warnings}=checkConflicts(did,day,val);
+  // Show current combo conflicts
+  const allErrors=[],allWarns=[];
+  currentShifts.forEach(v=>{
+    const{errors,warnings}=checkConflicts(did,day,v);
+    allErrors.push(...errors);allWarns.push(...warnings);
+  });
+  if(currentShifts.includes('N')&&currentShifts.some(v=>['M','M1','M2','A'].includes(v))) allErrors.push('ดึก+เช้า ❌');
   const mc=document.getElementById('m-conflicts');
   let html='';
-  if(errors.length) html+=`<div style="background:var(--err-bg);border-radius:6px;padding:7px 10px;font-size:12px;color:var(--err-text);margin-bottom:4px">🔴 ${errors.join(' / ')}</div>`;
-  if(warnings.length) html+=`<div style="background:#fef9c3;border:0.5px solid #f59e0b;border-radius:6px;padding:7px 10px;font-size:12px;color:#713f12">🟡 ${warnings.join(' / ')}</div>`;
+  if(allErrors.length) html+=`<div style="background:var(--err-bg);border-radius:6px;padding:7px 10px;font-size:12px;color:var(--err-text);margin-bottom:4px">🔴 ${[...new Set(allErrors)].join(' / ')}</div>`;
+  if(allWarns.length) html+=`<div style="background:#fef9c3;border:0.5px solid #f59e0b;border-radius:6px;padding:7px 10px;font-size:12px;color:#713f12">🟡 ${[...new Set(allWarns)].join(' / ')}</div>`;
+  if(currentShifts.length) html+=`<div style="font-size:12px;color:var(--muted);margin-top:6px">เวรปัจจุบัน: <b>${currentShifts.join(' + ')}</b> — กดปุ่มเพื่อเพิ่ม/ลบ</div>`;
   mc.innerHTML=html;
 
   document.getElementById('modal-bg').classList.add('open');
 }
 function pickShift(s){
-  setCell(mDid,mDay,s);
-  closeModal();renderSchedule();
+  toggleShift(mDid,mDay,s);
+  openModal(mDid,mDay); // re-render modal to show updated state
+  renderSchedule();
 }
 function closeModal(){document.getElementById('modal-bg').classList.remove('open');}
 function bgClose(e){if(e.target===document.getElementById('modal-bg'))closeModal();}
@@ -1095,31 +1159,28 @@ function autoGenerate(){
 function available(day, shiftType, lastShift, mKey){
   const dk_=dk(day);
   return S.doctors.filter(d=>{
-    // Already assigned today
-    const cur=S.schedule[mKey]?.[d.id]?.[day];
-    if(cur&&cur!=='-') return false;
-    // TOW
-    if(isTowDay(d.id,day)) return false;
-    // OFF week — also blocked from auto-gen
-    if(isOffWeekDay(d.id,day)) return false;
-    // No night → morning
+    const cur=getCells(d.id,day);
+    // TOW/OFF days blocked
+    if(isTowDay(d.id,day)||isOffWeekDay(d.id,day)) return false;
+    // Already has TOW or OFF
+    if(cur.includes('TOW')||cur.includes('OFF')) return false;
+    // Already has this shift
+    if(cur.includes(shiftType)) return false;
+    // HARD: no N+morning same day
+    if(shiftType==='N' && cur.some(v=>['M','M1','M2','A'].includes(v))) return false;
+    if(['M','M1','M2','A'].includes(shiftType) && cur.includes('N')) return false;
+    // No night → morning across days
     const prev=lastShift[d.id]||'-';
     if(['M1','M2','M','A'].includes(shiftType)&&prev==='N') return false;
-    // Preference: no-m-after-e
     if(['M1','M2','M','A'].includes(shiftType)&&prev==='E'&&(d.prefs||[]).includes('no-m-after-e')) return false;
-    // Preference: no-n-after-e
     if(shiftType==='N'&&prev==='E'&&(d.prefs||[]).includes('no-n-after-e')) return false;
-    // Off request — array format, M group covers M/M1/M2/A
+    // Off request
     const or=d.offRequests?.[dk_];
-    if(or) {
-      const arr=Array.isArray(or)?or:(or==='all'?['N','M','E']:[or]);
-      const grp=(['M','M1','M2','A'].includes(shiftType))?'M':shiftType;
-      if(arr.includes(grp)) return false;
-    }
+    if(or){const arr=Array.isArray(or)?or:(or==='all'?['N','M','E']:[or]);const grp=(['M','M1','M2','A'].includes(shiftType))?'M':shiftType;if(arr.includes(grp))return false;}
     // Chief: block M1/M2, limit A
     if(d.chief&&(shiftType==='M1'||shiftType==='M2')) return false;
     if(d.chief&&shiftType==='A'){
-      const cnt=Object.values(S.schedule[mKey]?.[d.id]||{}).filter(v=>v==='A').length;
+      const cnt=Object.values(S.schedule[mKey]?.[d.id]||{}).filter(v=>Array.isArray(v)?v.includes('A'):v==='A').length;
       if(cnt>=d.chiefLimit) return false;
     }
     return true;
@@ -1171,7 +1232,10 @@ function pick(avail, shiftType, tally, day){
 }
 
 function assign(did, day, shiftType, tally, lastShift, mKey){
-  S.schedule[mKey][did][day]=shiftType;
+  // Append to existing shifts array
+  const cur=getCells(did,day).filter(x=>x!=='-');
+  const newShifts=[...cur, shiftType];
+  S.schedule[mKey][did][day] = newShifts.length===1 ? newShifts[0] : newShifts;
   lastShift[did]=shiftType;
   const t=tally[did];
   if(['N','M','E','M1','M2','A'].includes(shiftType)) t[shiftType]++;
@@ -1219,12 +1283,12 @@ function renderSummary(){
   S.doctors.forEach(d=>counts[d.id]={N:0,M:0,E:0,M1:0,M2:0,A:0,OT:0,total:0});
   for(let day=1;day<=days;day++){
     S.doctors.forEach(d=>{
-      const v=getCell(d.id,day);
-      if(v&&v!=='-'&&v!=='OFF'&&v!=='TOW'){
+      getCells(d.id,day).forEach(v=>{
+        if(!v||v==='-'||v==='OFF'||v==='TOW') return;
         if(['N','M','E','M1','M2','A'].includes(v)) counts[d.id][v]++;
         if(OT_SHIFTS.includes(v)) counts[d.id].OT++;
         counts[d.id].total++;
-      }
+      });
     });
   }
 
@@ -1318,7 +1382,7 @@ function copySheet(){
     return `${d}(${DAYS_TH[weekday(d)]})${isHoliday(d)?'*':isWeekend(d)?'#':''}`;
   }).join('\t')];
   S.doctors.forEach(d=>{
-    lines.push(d.name+'\t'+Array.from({length:days},(_,i)=>getCell(d.id,i+1)).join('\t'));
+    lines.push(d.name+'\t'+Array.from({length:days},(_,i)=>getCells(d.id,i+1).join('+')||'-').join('\t'));
   });
   navigator.clipboard.writeText(lines.join('\n')).then(()=>showToast('Copied! พร้อม Paste ใน Google Sheet ✓'));
 }
