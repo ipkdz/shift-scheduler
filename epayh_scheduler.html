@@ -145,8 +145,25 @@ table.sum tr:nth-child(even) td{background:var(--bg)}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:rgba(0,0,0,.2);border-radius:3px}
 
-/* Pref display in schedule */
-.pref-chip{font-size:10px;color:var(--muted);margin-top:1px}
+/* Stamp buttons */
+.stamp-btn{padding:5px 12px;border-radius:6px;font-size:12px;font-family:inherit;cursor:pointer;font-weight:600;border:2px solid transparent;transition:.15s}
+.stamp-btn.active{box-shadow:0 0 0 2.5px #1a1a18;transform:scale(1.05)}
+
+/* Condition grid */
+.cond-grid-wrap{display:grid;gap:2px}
+.cond-day-col{min-width:44px;max-width:52px}
+.cond-day-header{text-align:center;font-size:10px;font-weight:600;color:var(--muted);padding:2px 0;border-radius:4px 4px 0 0}
+.cond-slot{width:100%;height:18px;border-radius:3px;border:0.5px solid var(--border);background:var(--bg);cursor:pointer;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;transition:.1s;margin-bottom:1px;color:transparent}
+.cond-slot:hover{filter:brightness(.9)}
+.cond-slot.s-off     {background:#fee2e2;border-color:#fca5a5;color:#991b1b}
+.cond-slot.s-notpref {background:#fef9c3;border-color:#fde68a;color:#92400e}
+.cond-slot.s-prefer  {background:#dcfce7;border-color:#86efac;color:#166534}
+.cond-slot.s-lock    {background:#e0e7ff;border-color:#a5b4fc;color:#3730a3}
+.cond-tow-bg{background:#ede9fe !important;border-color:#c4b5fd !important}
+.cond-off-bg{background:#fef9c3 !important;border-color:#fde68a !important}
+.cond-day-num{font-size:10px;font-weight:600;text-align:center;margin-bottom:2px;color:var(--text)}
+.cond-day-num.we{color:#2563eb}
+.cond-day-num.hol{color:#d97706}
 
 /* Off shift toggle buttons */
 #off-shift-picker{display:none;flex-direction:row;gap:6px;margin-bottom:8px}
@@ -162,6 +179,7 @@ table.sum tr:nth-child(even) td{background:var(--bg)}
   <div class="nav">
     <button onclick="goPage('setup')" id="nav-setup">⚙️ ตั้งค่า</button>
     <button onclick="goPage('tow')" id="nav-tow">📅 TOW</button>
+    <button onclick="goPage('condition')" id="nav-condition">🙋 Condition</button>
     <button onclick="goPage('schedule')" id="nav-schedule">🗓️ จัดตาราง</button>
     <button onclick="goPage('summary')" id="nav-summary">📊 สรุป OT</button>
   </div>
@@ -214,63 +232,11 @@ table.sum tr:nth-child(even) td{background:var(--bg)}
     </div>
   </div>
 
-  <div>
-    <!-- Doctor settings -->
-    <div class="card">
-      <div class="card-title">⚙️ ตั้งค่าแพทย์แต่ละคน</div>
-      <div class="form-group">
-        <label>เลือกแพทย์</label>
-        <select id="sel-doc" onchange="loadDocSettings()"></select>
-      </div>
-      <div id="doc-panel" style="display:none">
-        <div class="form-group">
-          <label>บทบาท</label>
-          <label style="display:flex;gap:8px;align-items:center;font-size:13px;cursor:pointer;margin-bottom:6px">
-            <input type="checkbox" id="is-chief">
-            <span>หัวหน้า — ห้าม M1/M2 ทั้งหมด, จำกัด A ไม่เกิน</span>
-            <input type="number" id="chief-lim" value="4" min="0" max="15" style="width:46px">
-            <span>เวร/เดือน</span>
-          </label>
-        </div>
-        <div class="form-group">
-          <label>ความชอบส่วนตัว (ส่งผลต่อ auto-generate)</label>
-          <div class="tag-wrap" id="pref-tags">
-            <span class="tag" data-p="consec-night">ดึกติดกัน</span>
-            <span class="tag" data-p="consec-we">เสาร์-อาทิตย์ติดกัน</span>
-            <span class="tag" data-p="eve-night">บ่าย→ดึก</span>
-            <span class="tag" data-p="like-morning">ชอบเช้า</span>
-            <span class="tag" data-p="like-night">ชอบดึก</span>
-            <span class="tag" data-p="like-eve">ชอบบ่าย</span>
-            <span class="tag" data-p="no-consec">ไม่ชอบติดกัน</span>
-            <span class="tag" data-p="no-n-after-e">ไม่ชอบบ่าย→ดึก</span>
-            <span class="tag" data-p="no-m-after-e">ไม่ชอบบ่าย→เช้า</span>
-          </div>
-        </div>
-        <div class="form-group">
-          <label>วันขอหยุด / ขออยู่เวร <span style="font-weight:400;color:var(--muted)">(M = เช้าทุกประเภท: M M1 M2 A)</span></label>
-          <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
-            <input type="date" id="off-d" style="flex:1" oninput="initOffShifts()">
-            <button id="req-mode-off" class="btn btn-primary btn-sm" onclick="setReqMode('off')" title="ขอไม่อยู่เวรนี้">🚫 ขอหยุด</button>
-            <button id="req-mode-want" class="btn btn-sm" onclick="setReqMode('want')" title="อยากได้เวรนี้">⭐ ขออยู่</button>
-            <button class="btn btn-sm" onclick="addOff()" style="white-space:nowrap">+ เพิ่ม</button>
-          </div>
-          <div id="off-shift-picker" style="display:none;gap:6px;margin-bottom:8px">
-            <button id="off-btn-N" class="off-shift-btn on" onclick="toggleOffShift('N')" title="00:00–08:00">🌙 N</button>
-            <button id="off-btn-M" class="off-shift-btn on" onclick="toggleOffShift('M')" title="08:00–16:00">☀️ M</button>
-            <button id="off-btn-E" class="off-shift-btn on" onclick="toggleOffShift('E')" title="16:00–24:00">🌆 E</button>
-          </div>
-          <div class="off-list" id="off-list"></div>
-        </div>
-        <button class="btn btn-primary" style="width:100%" onclick="saveDocSettings()">💾 บันทึก</button>
-      </div>
-    </div>
-
-    <!-- Carry over -->
-    <div class="card">
-      <div class="card-title">🔄 ยอดสะสมจากเดือนก่อน</div>
-      <p style="font-size:12px;color:var(--muted);margin-bottom:8px">ใส่จำนวนเวร (+/-) ที่ต้องชดเชยในเดือนถัดไป</p>
-      <div id="carry-list"></div>
-    </div>
+  <!-- Carry over -->
+  <div class="card" style="margin-top:14px">
+    <div class="card-title">🔄 ยอดสะสมจากเดือนก่อน</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">ใส่จำนวนเวร (+/-) ที่ต้องชดเชยในเดือนถัดไป</p>
+    <div id="carry-list"></div>
   </div>
 </div>
 </div>
@@ -388,6 +354,55 @@ table.sum tr:nth-child(even) td{background:var(--bg)}
   <div id="conflict-section" style="margin-top:14px"></div>
 </div>
 
+<!-- ===== CONDITION PAGE ===== -->
+<div id="page-condition" class="page">
+  <!-- Doctor tabs -->
+  <div id="cond-doc-tabs" style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:14px"></div>
+
+  <!-- Stamp selector -->
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+    <span style="font-size:12px;color:var(--muted);font-weight:500">แปะ:</span>
+    <button id="stamp-off"      class="stamp-btn" onclick="selectStamp('off')"      style="background:#fee2e2;color:#991b1b;border-color:#fca5a5">🚫 อยู่ไม่ได้</button>
+    <button id="stamp-notpref"  class="stamp-btn" onclick="selectStamp('notpref')"  style="background:#fef9c3;color:#713f12;border-color:#fde68a">🟡 ไม่อยากอยู่</button>
+    <button id="stamp-prefer"   class="stamp-btn" onclick="selectStamp('prefer')"   style="background:#dcfce7;color:#14532d;border-color:#86efac">⭐ อยากอยู่</button>
+    <button id="stamp-lock"     class="stamp-btn" onclick="selectStamp('lock')"     style="background:#e0e7ff;color:#3730a3;border-color:#a5b4fc">📌 ต้องอยู่</button>
+    <button id="stamp-clear"    class="stamp-btn" onclick="selectStamp('clear')"    style="background:var(--bg);color:var(--muted);border-color:var(--border)">✕ ลบ</button>
+    <span id="stamp-indicator" style="font-size:12px;color:var(--muted);margin-left:4px"></span>
+  </div>
+
+  <!-- Month nav -->
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+    <button class="btn" onclick="changeMonth(-1);renderCondition()">‹</button>
+    <span style="font-weight:600;font-size:15px;min-width:130px;text-align:center" id="cond-month"></span>
+    <button class="btn" onclick="changeMonth(1);renderCondition()">›</button>
+  </div>
+
+  <!-- Mini calendar grid -->
+  <div style="overflow-x:auto">
+    <div id="cond-grid"></div>
+  </div>
+
+  <!-- Preferences -->
+  <div class="card" style="margin-top:16px;max-width:700px">
+    <div class="card-title">⚙️ Preference <span id="cond-pref-name" style="color:var(--muted);font-weight:400"></span></div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px" id="cond-pref-tags">
+      <span class="tag" data-p="consec-shift">ชอบเวรติดๆกัน</span>
+      <span class="tag" data-p="no-consec">ไม่ชอบเวรติดๆกัน</span>
+      <span class="tag" data-p="like-me">ชอบเช้า-บ่าย (ME)</span>
+      <span class="tag" data-p="no-me">ไม่ชอบเช้า-บ่าย</span>
+      <span class="tag" data-p="like-en">ชอบบ่าย-ดึก (EN)</span>
+      <span class="tag" data-p="no-en">ไม่ชอบบ่าย-ดึก</span>
+      <span class="tag" data-p="like-em">ชอบบ่าย-เช้า (EM)</span>
+      <span class="tag" data-p="no-em">ไม่ชอบบ่าย-เช้า</span>
+      <span class="tag" data-p="like-ae">ชอบ A-บ่าย (AE)</span>
+      <span class="tag" data-p="consec-night">ชอบดึกติดกัน</span>
+      <span class="tag" data-p="no-consec-night">ไม่ชอบดึกติดกัน</span>
+      <span class="tag" data-p="we-same-week">เสาร์-อาทิตย์ขอภายในวีคเดียว</span>
+    </div>
+    <button class="btn btn-primary" style="margin-top:10px" onclick="saveCondPrefs()">💾 บันทึก preference</button>
+  </div>
+</div>
+
 </div><!-- end content -->
 </div><!-- end app -->
 
@@ -499,6 +514,7 @@ async function initFirebase(){
         const pid=active.id.replace('page-','');
         if(pid==='setup')renderSetup();
         else if(pid==='tow')renderTow();
+        else if(pid==='condition')renderCondition();
         else if(pid==='schedule')renderSchedule();
         else if(pid==='summary')renderSummary();
       }
@@ -608,6 +624,7 @@ function goPage(p) {
   document.getElementById('nav-'+p).classList.add('active');
   if (p==='setup') renderSetup();
   if (p==='tow') renderTow();
+  if (p==='condition') { selectStamp(activeStamp); renderCondition(); }
   if (p==='schedule') renderSchedule();
   if (p==='summary') renderSummary();
 }
@@ -615,8 +632,6 @@ function goPage(p) {
 // ========== SETUP PAGE ==========
 function renderSetup() {
   renderDocList();
-  renderDocSelect();
-  loadDocSettings();
   renderHolList();
   renderCarry();
   updateBackupInfo();
@@ -788,17 +803,44 @@ function addHol() {
 function delHol(d){delete S.holidays[d];save();renderHolList();}
 
 function renderCarry() {
+  // Auto-calculate totals from ALL scheduled months combined
+  const totals={};
+  S.doctors.forEach(d=>totals[d.id]={N:0,M:0,E:0,M1:0,M2:0,A:0});
+  Object.keys(S.schedule).forEach(monthKey=>{
+    const [yr,mo]=monthKey.split('-').map(Number);
+    const daysInMo=new Date(yr,mo,0).getDate();
+    const dkFn=(day)=>`${monthKey}-${String(day).padStart(2,'0')}`;
+    S.doctors.forEach(d=>{
+      for(let day=1;day<=daysInMo;day++){
+        const v=S.schedule[monthKey]?.[d.id]?.[day];
+        const arr=Array.isArray(v)?v:(v&&v!=='-'&&v!=='OFF'&&v!=='TOW'?[v]:[]);
+        arr.forEach(sh=>{if(['N','M','E','M1','M2','A'].includes(sh))totals[d.id][sh]++;});
+      }
+    });
+  });
+  // Find average per type
+  const n=S.doctors.length||1;
+  const avgs={};
+  ['N','M','E','M1','M2','A'].forEach(t=>{
+    avgs[t]=S.doctors.reduce((s,d)=>s+totals[d.id][t],0)/n;
+  });
+
   document.getElementById('carry-list').innerHTML = S.doctors.map(d=>{
     const co=S.carryOver[d.id]||{};
-    return `<div style="display:flex;align-items:center;gap:4px;margin-bottom:6px;flex-wrap:wrap">
-      <span style="flex:1;min-width:80px;font-size:13px">${d.name}</span>
-      ${BAL_COLS.filter(t=>t!=='OT').map(t=>`
-        <div style="text-align:center">
-          <div style="font-size:10px;color:var(--muted)">${t}</div>
+    return `<div style="margin-bottom:12px;padding-bottom:12px;border-bottom:0.5px solid var(--border)">
+      <div style="font-size:14px;font-weight:600;margin-bottom:6px">${d.name}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+      ${['N','M','E','M1','M2','A'].map(t=>{
+        const diff=totals[d.id][t]-avgs[t];
+        const diffColor=diff>1?'#dc2626':diff<-1?'#2563eb':'#059669';
+        return `<div style="text-align:center">
+          <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:2px">${t}</div>
+          <div style="font-size:10px;color:${diffColor};margin-bottom:2px">${diff>=0?'+':''}${diff.toFixed(1)}</div>
           <input type="number" value="${co[t]||0}" min="-20" max="20"
-            style="width:38px;font-size:12px;text-align:center"
+            style="width:52px;font-size:16px;text-align:center;padding:4px 2px;border-radius:6px;border:0.5px solid var(--border)"
             onchange="setCarry('${d.id}','${t}',this.value)">
-        </div>`).join('')}
+        </div>`;}).join('')}
+      </div>
     </div>`;}).join('');
 }
 function setCarry(did,t,v){if(!S.carryOver[did])S.carryOver[did]={};S.carryOver[did][t]=parseInt(v)||0;save();}
@@ -1148,11 +1190,24 @@ function autoGenerate(){
   const lastShift={};
   S.doctors.forEach(d=>lastShift[d.id]='-');
 
-  // First pass: mark TOW and OFF days
+  // First pass: mark TOW, OFF, and pre-assign LOCK conditions
   for(let day=1;day<=days;day++){
     S.doctors.forEach(d=>{
-      if(isTowDay(d.id,day)) S.schedule[mKey][d.id][day]='TOW';
-      else if(isOffWeekDay(d.id,day)) S.schedule[mKey][d.id][day]='OFF';
+      if(isTowDay(d.id,day)){ S.schedule[mKey][d.id][day]='TOW'; return; }
+      if(isOffWeekDay(d.id,day)){ S.schedule[mKey][d.id][day]='OFF'; return; }
+      if(S.conditions&&S.conditions[d.id]){
+        const dk_=dk(day);
+        const locked=Object.entries(S.conditions[d.id][dk_]||{})
+          .filter(([,v])=>v==='lock').map(([k])=>k);
+        if(locked.length){
+          S.schedule[mKey][d.id][day]=locked.length===1?locked[0]:locked;
+          locked.forEach(sh=>{
+            if(['N','M','E','M1','M2','A'].includes(sh))tally[d.id][sh]++;
+            if(OT_SHIFTS.includes(sh))tally[d.id].OT++;
+            tally[d.id].total++;
+          });
+        }
+      }
     });
   }
 
@@ -1187,7 +1242,18 @@ function available(day, shiftType, lastShift, mKey){
     if(['M1','M2','M','A'].includes(shiftType)&&prev==='N') return false;
     if(['M1','M2','M','A'].includes(shiftType)&&prev==='E'&&(d.prefs||[]).includes('no-m-after-e')) return false;
     if(shiftType==='N'&&prev==='E'&&(d.prefs||[]).includes('no-n-after-e')) return false;
-    // Off request
+    // Condition (new system) — check all slots of this shift group
+    const shiftSlots = shiftType==='M'?['M']:
+                       shiftType==='M1'?['M1']:
+                       shiftType==='M2'?['M2']:
+                       shiftType==='A'?['A']:
+                       shiftType==='E'?['E']:
+                       shiftType==='N'?['N']:[];
+    for(const sl of shiftSlots){
+      const cond=getCondition(d.id,day,sl);
+      if(cond==='off') return false; // hard block
+    }
+    // Legacy off request
     const or=d.offRequests?.[dk_];
     if(or){const arr=Array.isArray(or)?or:(or==='all'?['N','M','E']:[or]);const grp=(['M','M1','M2','A'].includes(shiftType))?'M':shiftType;if(arr.includes(grp))return false;}
     // Chief: block M1/M2, limit A
@@ -1209,8 +1275,13 @@ function score(d, shiftType, tally, day){
   // Secondary: total OT balance
   s += t.OT*3;
 
-  // ⭐ Want request: strong bonus (จัดให้ก่อนเลย)
-  const dk_=dk(day);
+  // Condition system boost/penalty
+  const cond=getCondition(d.id,day,shiftType==='M1'||shiftType==='M2'||shiftType==='A'?shiftType:shiftType);
+  if(cond==='lock')   s-=100; // highest priority
+  if(cond==='prefer') s-=50;
+  if(cond==='notpref')s+=20;
+
+  // Legacy want request
   const want=d.wantRequests?.[dk_];
   if(want){
     const wArr=Array.isArray(want)?want:[want];
@@ -1410,7 +1481,198 @@ function showToast(msg){
   setTimeout(()=>t.style.opacity='0',2500);
 }
 
-// ========== EXPOSE TO WINDOW (required for type="module") ==========
+// ========== CONDITION PAGE ==========
+let activeStamp = 'off';
+let condDocId = null;
+// S.conditions[docId][dateKey][shiftSlot] = 'off'|'notpref'|'prefer'|'lock'
+// shiftSlot = 'N'|'M1'|'M2'|'A'|'E'|'M' (M = holiday morning)
+
+function setCondDoc(id){ condDocId=id; renderCondition(); }
+window.setCondDoc=setCondDoc;
+
+function selectStamp(s){
+  // Re-click same stamp = deselect (fix #5)
+  if(activeStamp===s){
+    activeStamp=null;
+    document.querySelectorAll('.stamp-btn').forEach(b=>b.classList.remove('active'));
+    document.getElementById('stamp-indicator').textContent='';
+    return;
+  }
+  activeStamp=s;
+  document.querySelectorAll('.stamp-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('stamp-'+s).classList.add('active');
+  const labels={off:'🚫 อยู่ไม่ได้',notpref:'🟡 ไม่อยากอยู่',prefer:'⭐ อยากอยู่',lock:'📌 ต้องอยู่',clear:'✕ ลบ'};
+  document.getElementById('stamp-indicator').textContent='กำลังแปะ: '+labels[s];
+}
+
+function stampSlot(docId, dateKey, slot){
+  if(!activeStamp) return;
+  if(!S.conditions) S.conditions={};
+  if(!S.conditions[docId]) S.conditions[docId]={};
+  if(!S.conditions[docId][dateKey]) S.conditions[docId][dateKey]={};
+  const current=S.conditions[docId][dateKey][slot];
+  // Fix #2: clicking same stamp on filled cell = clear it
+  if(activeStamp==='clear'||(current&&current===activeStamp)){
+    delete S.conditions[docId][dateKey][slot];
+  } else {
+    S.conditions[docId][dateKey][slot]=activeStamp;
+  }
+  save();
+  // Re-render just the slot cell
+  const el=document.getElementById(`cslot-${docId}-${dateKey}-${slot}`);
+  if(el) applySlotStyle(el, S.conditions[docId]?.[dateKey]?.[slot]);
+}
+
+function applySlotStyle(el, state){
+  el.className='cond-slot'+(state?' s-'+state:'');
+  // Keep TOW/OFF bg class
+  if(el.dataset.toworoff) el.classList.add(el.dataset.toworoff);
+  const icons={off:'🚫',notpref:'🟡',prefer:'⭐',lock:'📌'};
+  el.textContent=state?icons[state]:'';
+}
+
+function renderCondition(){
+  if(!condDocId && S.doctors.length) condDocId=S.doctors[0].id;
+  if(!S.conditions) S.conditions={};
+
+  document.getElementById('cond-month').textContent=`${MONTHS_TH[S.currentMonth]} ${S.currentYear+543}`;
+
+  // Doc tabs — fix #3 full name, fix #4 use window variable
+  document.getElementById('cond-doc-tabs').innerHTML=S.doctors.map(d=>`
+    <button onclick="setCondDoc('${d.id}')"
+      style="padding:5px 14px;border-radius:20px;font-size:13px;font-family:inherit;cursor:pointer;font-weight:500;
+      border:1.5px solid ${condDocId===d.id?'var(--accent)':'var(--border)'};
+      background:${condDocId===d.id?'var(--accent)':'var(--surface)'};
+      color:${condDocId===d.id?'#fff':'var(--text)'}">
+      ${d.name}
+    </button>`).join('');
+
+  const d=doc(condDocId); if(!d) return;
+  const days=daysIn();
+  const conds=S.conditions[condDocId]||{};
+
+  // Chief settings
+  const chiefHtml=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;font-size:13px;padding:10px 14px;background:var(--surface);border:0.5px solid var(--border);border-radius:8px">
+    <b>${d.name}</b>
+    <label style="display:flex;gap:6px;align-items:center;cursor:pointer;margin-left:8px">
+      <input type="checkbox" id="cond-is-chief" ${d.chief?'checked':''} onchange="toggleChief('${condDocId}',this.checked)">
+      <span>หัวหน้า</span>
+    </label>
+    <span style="color:var(--muted)">| จำกัด A ≤</span>
+    <input type="number" id="cond-chief-lim" value="${d.chiefLimit||4}" min="0" max="15"
+      style="width:46px;font-size:13px;text-align:center" onchange="setChiefLimit('${condDocId}',this.value)">
+    <span style="color:var(--muted)">เวร/เดือน</span>
+  </div>`;
+
+  // Slot dimensions
+  const SW=36; // slot width px
+  const SH=36; // slot height px
+  const GAP=2;
+  const ICON={off:'🚫',notpref:'🟡',prefer:'⭐',lock:'📌'};
+  const SCOL={
+    off:'#fee2e2',notpref:'#fef9c3',prefer:'#dcfce7',lock:'#e0e7ff',
+  };
+  const SBORDER={off:'#fca5a5',notpref:'#fde68a',prefer:'#86efac',lock:'#a5b4fc'};
+  const STXT={off:'#991b1b',notpref:'#92400e',prefer:'#166534',lock:'#3730a3'};
+
+  // Build as table for alignment
+  // Rows: N, M1, M2, A, E (workday) — on holiday rows M1/M2/A collapse into M
+  const ROWS=['N','M1','M2','A','E'];
+  const ROWLABELS={N:'N',M1:'M1',M2:'M2',A:'A',E:'E'};
+
+  let tbl=`<div style="overflow-x:auto;padding-bottom:8px">
+  <table style="border-collapse:separate;border-spacing:${GAP}px;font-size:13px">
+  <thead><tr>
+    <td style="min-width:28px"></td>`;
+
+  // Day headers
+  for(let day=1;day<=days;day++){
+    const wd=weekday(day), we=isWeekend(day), hol=isHoliday(day);
+    const offDay=isOffDay(day);
+    const isTow=isTowDay(condDocId,day);
+    const isOffW=isOffWeekDay(condDocId,day);
+    const headerBg=isTow?'#ede9fe':isOffW?'#fef9c3':hol?'#fff7ed':we?'#dbeafe':'var(--bg)';
+    const headerCol=hol?'#d97706':we?'#1d4ed8':'var(--text)';
+    tbl+=`<td style="text-align:center;padding:2px ${GAP}px;background:${headerBg};border-radius:4px 4px 0 0;min-width:${SW}px">
+      <div style="font-size:13px;font-weight:700;color:${headerCol};line-height:1.2">${day}</div>
+      <div style="font-size:10px;color:${headerCol};opacity:.7">${DAYS_TH[wd]}</div>
+    </td>`;
+  }
+  tbl+=`</tr></thead><tbody>`;
+
+  ROWS.forEach((row,rowIdx)=>{
+    tbl+=`<tr>`;
+    // Row label
+    tbl+=`<td style="text-align:right;padding-right:5px;font-size:11px;font-weight:700;color:var(--muted);vertical-align:middle;height:${SH}px">${ROWLABELS[row]}</td>`;
+
+    for(let day=1;day<=days;day++){
+      const dk_=dk(day);
+      const offDay=isOffDay(day);
+      const isTow=isTowDay(condDocId,day);
+      const isOffW=isOffWeekDay(condDocId,day);
+      const weekBg=isTow?'rgba(139,92,246,.08)':isOffW?'rgba(245,158,11,.08)':'';
+
+      if(offDay){
+        // Holiday layout: N=row0, M=rows1-3 (span 3), E=row4
+        if(row==='M1'){
+          // M cell spanning 3 rows
+          const state=conds[dk_]?.['M'];
+          const bg=state?SCOL[state]:(weekBg||'var(--surface)');
+          const border=state?`2px solid ${SBORDER[state]}`:`1px solid var(--border)`;
+          tbl+=`<td rowspan="3" style="text-align:center;vertical-align:middle;width:${SW}px;height:${SH*3+GAP*2}px;background:${bg};border:${border};border-radius:6px;cursor:pointer;font-size:18px"
+            id="cslot-${condDocId}-${dk_}-M" data-toworoff="${isTow?'tow':isOffW?'off':''}"
+            onclick="stampSlot('${condDocId}','${dk_}','M')">${state?ICON[state]:''}</td>`;
+        } else if(row==='M2'||row==='A'){
+          // skip — covered by rowspan
+        } else {
+          // N or E
+          const slot=row;
+          const state=conds[dk_]?.[slot];
+          const bg=state?SCOL[state]:(weekBg||'var(--surface)');
+          const border=state?`2px solid ${SBORDER[state]}`:`1px solid var(--border)`;
+          tbl+=`<td style="text-align:center;vertical-align:middle;width:${SW}px;height:${SH}px;background:${bg};border:${border};border-radius:6px;cursor:pointer;font-size:16px"
+            id="cslot-${condDocId}-${dk_}-${slot}" data-toworoff="${isTow?'tow':isOffW?'off':''}"
+            onclick="stampSlot('${condDocId}','${dk_}','${slot}')">${state?ICON[state]:''}</td>`;
+        }
+      } else {
+        // Workday: all 5 slots normal
+        const slot=row;
+        const state=conds[dk_]?.[slot];
+        const bg=state?SCOL[state]:(weekBg||'var(--surface)');
+        const border=state?`2px solid ${SBORDER[state]}`:`1px solid var(--border)`;
+        tbl+=`<td style="text-align:center;vertical-align:middle;width:${SW}px;height:${SH}px;background:${bg};border:${border};border-radius:6px;cursor:pointer;font-size:16px"
+          id="cslot-${condDocId}-${dk_}-${slot}" data-toworoff=""
+          onclick="stampSlot('${condDocId}','${dk_}','${slot}')">${state?ICON[state]:''}</td>`;
+      }
+    }
+    tbl+=`</tr>`;
+  });
+
+  tbl+=`</tbody></table></div>`;
+  document.getElementById('cond-grid').innerHTML=chiefHtml+tbl;
+
+  // Load prefs
+  document.querySelectorAll('#cond-pref-tags .tag').forEach(t=>{
+    t.classList.toggle('on',(d.prefs||[]).includes(t.dataset.p));
+    t.onclick=()=>t.classList.toggle('on');
+  });
+  document.getElementById('cond-pref-name').textContent=`— ${d.name}`;
+}
+
+function saveCondPrefs(){
+  const d=doc(condDocId); if(!d) return;
+  d.prefs=[...document.querySelectorAll('#cond-pref-tags .tag.on')].map(t=>t.dataset.p);
+  save(); showToast('บันทึก preference แล้ว ✓');
+}
+function toggleChief(id,val){const d=doc(id);if(d){d.chief=val;save();}}
+function setChiefLimit(id,val){const d=doc(id);if(d){d.chiefLimit=parseInt(val)||4;save();}}
+
+// Helper: get condition state for auto-gen
+function getCondition(docId, day, slot){
+  if(!S.conditions) return null;
+  const dk_=dk(day);
+  return S.conditions[docId]?.[dk_]?.[slot]||null;
+}
 Object.assign(window, {
   goPage,changeMonth,clearSched,autoGenerate,
   openModal,pickShift,closeModal,bgClose,
@@ -1420,6 +1682,7 @@ Object.assign(window, {
   copySheet,exportJSON,importJSON,resetAll,
   setReqMode,initOffShifts,toggleOffShift,
   renderOffList,setCarry,
+  selectStamp,stampSlot,saveCondPrefs,renderCondition,toggleChief,setChiefLimit,
 });
 // inline onchange handlers use save() directly
 window.save=save;
