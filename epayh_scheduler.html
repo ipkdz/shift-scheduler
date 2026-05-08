@@ -1,0 +1,1259 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ระบบตารางเวรแพทย์ ER</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f4f0;--surface:#fff;--border:rgba(0,0,0,0.1);
+  --text:#1a1a18;--muted:#6b6b67;--faint:#9b9b97;
+  --accent:#1a5c3a;--accent2:#2d7a52;--accent-light:#e8f5ee;
+  --warn-bg:#fef9c3;--warn-text:#713f12;--warn-border:#f59e0b;
+  --err-bg:#fee2e2;--err-text:#7f1d1d;--err-border:#dc2626;
+  --r:8px;--r-lg:12px;
+}
+body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);font-size:14px;min-height:100vh}
+
+/* Layout */
+.app{display:flex;flex-direction:column;min-height:100vh}
+.topbar{background:var(--accent);color:#fff;padding:10px 20px;display:flex;align-items:center;gap:12px;flex-shrink:0;position:sticky;top:0;z-index:50}
+.topbar h1{font-size:15px;font-weight:600}
+.nav{display:flex;gap:3px;margin-left:auto}
+.nav button{background:rgba(255,255,255,.12);border:none;color:#fff;padding:6px 13px;border-radius:6px;font-size:13px;font-family:inherit;cursor:pointer;transition:.15s;white-space:nowrap}
+.nav button.active,.nav button:hover{background:rgba(255,255,255,.25)}
+.content{flex:1;padding:18px 20px;max-width:1600px;margin:0 auto;width:100%}
+.page{display:none}.page.active{display:block}
+
+/* Cards */
+.card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:14px}
+.card-title{font-size:13px;font-weight:600;color:var(--accent);margin-bottom:12px;display:flex;align-items:center;gap:6px}
+
+/* Buttons */
+.btn{border:0.5px solid var(--border);background:var(--surface);color:var(--text);padding:6px 14px;border-radius:6px;font-size:13px;font-family:inherit;cursor:pointer;transition:.15s;white-space:nowrap}
+.btn:hover{background:var(--bg)}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-primary:hover{background:var(--accent2);border-color:var(--accent2)}
+.btn-danger{background:var(--err-bg);color:var(--err-text);border-color:var(--err-border)}
+.btn-sm{padding:4px 10px;font-size:12px}
+
+/* Forms */
+input[type=text],input[type=number],input[type=date],select,textarea{
+  border:0.5px solid var(--border);border-radius:6px;padding:6px 10px;
+  font-size:13px;font-family:inherit;background:var(--surface);color:var(--text);width:100%}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:transparent}
+.form-group{margin-bottom:10px}
+.form-group label{font-size:12px;color:var(--muted);margin-bottom:4px;display:block;font-weight:500}
+.row{display:flex;gap:8px;align-items:center}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+
+/* Badges & Tags */
+.badge{font-size:11px;padding:2px 8px;border-radius:12px;font-weight:500;display:inline-block}
+.badge-chief{background:#fef3c7;color:#92400e}
+.badge-tow{background:#ede9fe;color:#4c1d95}
+.badge-ot{background:#fee2e2;color:#991b1b}
+.tag{background:var(--bg);border:0.5px solid var(--border);border-radius:12px;padding:3px 10px;font-size:12px;cursor:pointer;transition:.15s;display:inline-block}
+.tag.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.tag-wrap{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px}
+
+/* Doctor list */
+.doc-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:0.5px solid var(--border)}
+.doc-row:last-child{border-bottom:none}
+.avatar{width:34px;height:34px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}
+.avatar.chief{background:#92400e}
+
+/* Schedule table */
+.sched-wrap{overflow-x:auto;border-radius:var(--r);border:0.5px solid var(--border)}
+table.sched{border-collapse:collapse;width:100%;font-size:12px;min-width:600px}
+table.sched thead th{background:var(--accent);color:#fff;padding:5px 4px;text-align:center;white-space:nowrap;font-weight:500;position:sticky;top:0;z-index:4}
+table.sched thead th.name-col{text-align:left;min-width:100px;position:sticky;left:0;z-index:5;padding-left:10px}
+table.sched td{border-right:0.5px solid var(--border);border-bottom:0.5px solid var(--border);padding:2px;text-align:center;vertical-align:middle;min-width:46px;background:var(--surface)}
+table.sched td.name-col{text-align:left;padding:4px 8px;font-weight:500;background:var(--surface);position:sticky;left:0;z-index:2;border-right:1px solid var(--border)}
+table.sched td.we{background:#f0f9ff}
+table.sched td.hol{background:#fff7ed}
+table.sched td.tow-day{background:#f5f0ff}
+table.sched tr:hover td{filter:brightness(.97)}
+table.sched tr:hover td.name-col{filter:brightness(.97)}
+
+/* Shift pills */
+.pill{border-radius:4px;padding:2px 3px;font-size:11px;font-weight:600;cursor:pointer;border:none;width:100%;display:block;text-align:center;transition:.1s;line-height:1.4}
+.pill:hover{filter:brightness(.88);transform:scale(1.05)}
+.pill-M1{background:#fef9c3;color:#713f12}
+.pill-M2{background:#fde68a;color:#78350f}
+.pill-A{background:#bbf7d0;color:#14532d}
+.pill-E{background:#c7d2fe;color:#312e81}
+.pill-N{background:#1e293b;color:#cbd5e1}
+.pill-M{background:#fed7aa;color:#7c2d12}
+.pill-OFF{background:#f1f5f9;color:#64748b}
+.pill-TOW{background:#ddd6fe;color:#4c1d95;font-style:italic;font-size:10px}
+.pill-empty{background:transparent;color:var(--faint);border:0.5px dashed var(--border)}
+.pill.conflict{box-shadow:0 0 0 2px #dc2626 !important;background:#fee2e2 !important;color:#991b1b !important}
+.pill.warn-pill{box-shadow:0 0 0 2px #f59e0b !important;background:#fef9c3 !important;color:#713f12 !important}
+
+/* Day header */
+.dh{display:flex;flex-direction:column;align-items:center;line-height:1.3}
+.dh-num{font-weight:600;font-size:12px}
+.dh-day{font-size:9px;opacity:.75}
+.hol-dot{width:4px;height:4px;border-radius:50%;background:#f59e0b;margin:1px auto 0}
+
+/* Summary table */
+table.sum{width:100%;border-collapse:collapse;font-size:13px}
+table.sum th{background:var(--accent);color:#fff;padding:7px 10px;text-align:center;font-weight:500;white-space:nowrap}
+table.sum th:first-child{text-align:left;min-width:110px}
+table.sum td{border:0.5px solid var(--border);padding:5px 10px;text-align:center}
+table.sum td:first-child{text-align:left;font-weight:500}
+table.sum tr:nth-child(even) td{background:var(--bg)}
+.bar{height:5px;border-radius:3px;background:#e2e8f0;margin-top:3px;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px;background:var(--accent)}
+.bar-fill.warn{background:#f59e0b}
+.bar-fill.danger{background:#dc2626}
+
+/* Stats */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:16px}
+.stat{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:12px 14px}
+.stat-lbl{font-size:11px;color:var(--muted);margin-bottom:3px}
+.stat-val{font-size:20px;font-weight:700}
+
+/* TOW management */
+.week-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:0.5px solid var(--border);font-size:13px}
+.week-row:last-child{border-bottom:none}
+
+/* Conflict items */
+.conflict-item{background:var(--err-bg);border:0.5px solid var(--err-border);border-radius:6px;padding:7px 12px;margin-bottom:5px;font-size:12px;color:var(--err-text);display:flex;align-items:start;gap:6px}
+
+/* Modal */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:var(--surface);border-radius:var(--r-lg);padding:20px;width:340px;max-width:96vw;max-height:90vh;overflow-y:auto;position:relative}
+.modal h3{font-size:15px;font-weight:600;color:var(--accent);margin-bottom:4px}
+.shift-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin:12px 0}
+.shift-btn{padding:10px 6px;border-radius:6px;font-size:13px;font-family:inherit;cursor:pointer;font-weight:600;border:2px solid transparent;transition:.12s;text-align:center}
+.shift-btn:hover{filter:brightness(.88);transform:scale(1.03)}
+.shift-btn.selected{border-color:#1a1a18 !important;box-shadow:0 0 0 1px #1a1a18}
+.shift-btn.has-conflict{box-shadow:0 0 0 2px #dc2626}
+.shift-btn.has-warning{box-shadow:0 0 0 2px #f59e0b}
+
+/* Off request list */
+.off-list{max-height:130px;overflow-y:auto;margin-top:6px}
+.off-item{display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:3px 0;border-bottom:0.5px solid var(--border)}
+.del-btn{color:var(--err-border);cursor:pointer;font-size:18px;line-height:1;padding:0 3px;font-weight:300}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(0,0,0,.2);border-radius:3px}
+
+/* Pref display in schedule */
+.pref-chip{font-size:10px;color:var(--muted);margin-top:1px}
+
+/* Off shift toggle buttons */
+#off-shift-picker{display:none;flex-direction:row;gap:6px;margin-bottom:8px}
+.off-shift-btn{flex:1;padding:8px 4px;border-radius:6px;font-size:12px;font-family:inherit;cursor:pointer;font-weight:600;border:1.5px solid var(--border);transition:.15s;text-align:center}
+.off-shift-btn.on{border-color:var(--accent);background:var(--accent);color:#fff}
+.off-shift-btn.off{border-color:var(--border);background:var(--bg);color:var(--muted);text-decoration:line-through}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="topbar">
+  <h1>🏥 ตารางเวรแพทย์ ER — โรงพยาบาลพระนครศรีอยุธยา</h1>
+  <div class="nav">
+    <button onclick="goPage('setup')" id="nav-setup">⚙️ ตั้งค่า</button>
+    <button onclick="goPage('tow')" id="nav-tow">📅 TOW</button>
+    <button onclick="goPage('schedule')" id="nav-schedule">🗓️ จัดตาราง</button>
+    <button onclick="goPage('summary')" id="nav-summary">📊 สรุป OT</button>
+  </div>
+</div>
+
+<div class="content">
+
+<!-- ===== SETUP ===== -->
+<div id="page-setup" class="page">
+<div class="grid2">
+  <div>
+    <!-- Doctor list -->
+    <div class="card">
+      <div class="card-title">👨‍⚕️ รายชื่อแพทย์</div>
+      <div id="doc-list"></div>
+      <div class="row" style="margin-top:10px">
+        <input type="text" id="new-name" placeholder="ชื่อ-นามสกุล / ชื่อเล่น" style="flex:1">
+        <button class="btn btn-primary" onclick="addDoc()">+ เพิ่ม</button>
+      </div>
+    </div>
+
+    <!-- Holidays -->
+    <div class="card">
+      <div class="card-title">🎌 วันหยุดราชการ</div>
+      <div class="row" style="margin-bottom:8px;gap:6px">
+        <input type="date" id="hol-date" style="flex:1">
+        <button class="btn btn-primary" onclick="addHol()">+ เพิ่ม</button>
+      </div>
+      <div id="hol-list" style="max-height:200px;overflow-y:auto"></div>
+    </div>
+
+    <!-- Backup/Restore -->
+    <div class="card">
+      <div class="card-title">💾 สำรองข้อมูล (ป้องกัน browser ล้าง)</div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:10px">แนะนำ Export ทุกครั้งหลังจัดตาราง เก็บไฟล์ไว้ใน Google Drive หรือ USB</p>
+      <div class="row" style="gap:8px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="exportJSON()">⬇️ Export ข้อมูล (.json)</button>
+        <button class="btn" onclick="document.getElementById('import-file').click()">⬆️ Import ข้อมูล</button>
+        <input type="file" id="import-file" accept=".json" style="display:none" onchange="importJSON(this)">
+        <button class="btn btn-danger btn-sm" onclick="resetAll()">🗑️ Reset ทั้งหมด</button>
+      </div>
+      <div id="backup-info" style="margin-top:8px;font-size:12px;color:var(--muted)"></div>
+    </div>
+  </div>
+
+  <div>
+    <!-- Doctor settings -->
+    <div class="card">
+      <div class="card-title">⚙️ ตั้งค่าแพทย์แต่ละคน</div>
+      <div class="form-group">
+        <label>เลือกแพทย์</label>
+        <select id="sel-doc" onchange="loadDocSettings()"></select>
+      </div>
+      <div id="doc-panel" style="display:none">
+        <div class="form-group">
+          <label>บทบาท</label>
+          <label style="display:flex;gap:8px;align-items:center;font-size:13px;cursor:pointer;margin-bottom:6px">
+            <input type="checkbox" id="is-chief">
+            <span>หัวหน้า — ห้าม M1/M2 ทั้งหมด, จำกัด A ไม่เกิน</span>
+            <input type="number" id="chief-lim" value="4" min="0" max="15" style="width:46px">
+            <span>เวร/เดือน</span>
+          </label>
+        </div>
+        <div class="form-group">
+          <label>ความชอบส่วนตัว (ส่งผลต่อ auto-generate)</label>
+          <div class="tag-wrap" id="pref-tags">
+            <span class="tag" data-p="consec-night">ดึกติดกัน</span>
+            <span class="tag" data-p="consec-we">เสาร์-อาทิตย์ติดกัน</span>
+            <span class="tag" data-p="eve-night">บ่าย→ดึก</span>
+            <span class="tag" data-p="like-morning">ชอบเช้า</span>
+            <span class="tag" data-p="like-night">ชอบดึก</span>
+            <span class="tag" data-p="like-eve">ชอบบ่าย</span>
+            <span class="tag" data-p="no-consec">ไม่ชอบติดกัน</span>
+            <span class="tag" data-p="no-n-after-e">ไม่ชอบบ่าย→ดึก</span>
+            <span class="tag" data-p="no-m-after-e">ไม่ชอบบ่าย→เช้า</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>วันขอหยุด / ขออยู่เวร <span style="font-weight:400;color:var(--muted)">(M = เช้าทุกประเภท: M M1 M2 A)</span></label>
+          <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
+            <input type="date" id="off-d" style="flex:1" oninput="initOffShifts()">
+            <button id="req-mode-off" class="btn btn-primary btn-sm" onclick="setReqMode('off')" title="ขอไม่อยู่เวรนี้">🚫 ขอหยุด</button>
+            <button id="req-mode-want" class="btn btn-sm" onclick="setReqMode('want')" title="อยากได้เวรนี้">⭐ ขออยู่</button>
+            <button class="btn btn-sm" onclick="addOff()" style="white-space:nowrap">+ เพิ่ม</button>
+          </div>
+          <div id="off-shift-picker" style="display:none;gap:6px;margin-bottom:8px">
+            <button id="off-btn-N" class="off-shift-btn on" onclick="toggleOffShift('N')" title="00:00–08:00">🌙 N</button>
+            <button id="off-btn-M" class="off-shift-btn on" onclick="toggleOffShift('M')" title="08:00–16:00">☀️ M</button>
+            <button id="off-btn-E" class="off-shift-btn on" onclick="toggleOffShift('E')" title="16:00–24:00">🌆 E</button>
+          </div>
+          <div class="off-list" id="off-list"></div>
+        </div>
+        <button class="btn btn-primary" style="width:100%" onclick="saveDocSettings()">💾 บันทึก</button>
+      </div>
+    </div>
+
+    <!-- Carry over -->
+    <div class="card">
+      <div class="card-title">🔄 ยอดสะสมจากเดือนก่อน</div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:8px">ใส่จำนวนเวร (+/-) ที่ต้องชดเชยในเดือนถัดไป</p>
+      <div id="carry-list"></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ===== TOW MANAGEMENT ===== -->
+<div id="page-tow" class="page">
+<div class="card" style="max-width:900px">
+  <div class="card-title">📅 ตาราง TOW / OFF รายสัปดาห์</div>
+  <p style="font-size:12px;color:var(--muted);margin-bottom:14px">
+    <b>TOW</b> = สัปดาห์สอน + standby ฉุกเฉิน (ไม่มีเวรเลย) &nbsp;|&nbsp;
+    <b>OFF</b> = หยุดพัก (ไม่มีเวรเลย แต่ขอมีเวรได้)
+  </p>
+
+  <!-- Add week row -->
+  <div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:14px;flex-wrap:wrap;background:var(--bg);padding:12px;border-radius:var(--r)">
+    <div style="display:flex;flex-direction:column;gap:3px">
+      <label style="font-size:11px;color:var(--muted)">สัปดาห์ที่</label>
+      <input type="number" id="tw-week" min="1" max="60" style="width:70px" placeholder="1">
+    </div>
+    <div style="display:flex;flex-direction:column;gap:3px">
+      <label style="font-size:11px;color:var(--muted)">วันเริ่ม (จันทร์)</label>
+      <input type="date" id="tw-start" style="width:145px" oninput="autoFillEnd()">
+    </div>
+    <div style="display:flex;flex-direction:column;gap:3px">
+      <label style="font-size:11px;color:var(--muted)">วันจบ (อาทิตย์)</label>
+      <input type="date" id="tw-end" style="width:145px">
+    </div>
+    <div style="display:flex;flex-direction:column;gap:3px">
+      <label style="font-size:11px;color:var(--muted)">TOW (สัปดาห์สอน)</label>
+      <select id="tw-tow" style="width:140px">
+        <option value="">— ไม่มี —</option>
+      </select>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:3px">
+      <label style="font-size:11px;color:var(--muted)">OFF (หยุดพัก)</label>
+      <select id="tw-off" style="width:140px">
+        <option value="">— ไม่มี —</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" onclick="addTowRow()" style="height:34px;margin-top:auto">+ เพิ่มสัปดาห์</button>
+  </div>
+
+  <!-- Table -->
+  <div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:13px" id="tow-table">
+      <thead>
+        <tr>
+          <th style="background:var(--accent);color:#fff;padding:7px 10px;text-align:center;font-weight:500;min-width:60px">Week</th>
+          <th style="background:var(--accent);color:#fff;padding:7px 10px;text-align:center;font-weight:500">Start</th>
+          <th style="background:var(--accent);color:#fff;padding:7px 10px;text-align:center;font-weight:500">End</th>
+          <th style="background:#fbbf24;color:#78350f;padding:7px 10px;text-align:center;font-weight:600">TOW</th>
+          <th style="background:#4ade80;color:#14532d;padding:7px 10px;text-align:center;font-weight:600">OFF</th>
+          <th style="background:var(--accent);color:#fff;padding:7px 10px;text-align:center;font-weight:500;width:60px"></th>
+        </tr>
+      </thead>
+      <tbody id="tow-tbody"></tbody>
+    </table>
+  </div>
+</div>
+</div>
+
+<!-- ===== SCHEDULE ===== -->
+<div id="page-schedule" class="page">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:6px">
+      <button class="btn" onclick="changeMonth(-1)">‹</button>
+      <div style="font-size:16px;font-weight:600;min-width:130px;text-align:center" id="sched-month"></div>
+      <button class="btn" onclick="changeMonth(1)">›</button>
+    </div>
+    <button class="btn btn-primary" onclick="autoGenerate()">⚡ Auto-generate</button>
+    <button class="btn" onclick="clearSched()">🗑️ ล้างเดือนนี้</button>
+    <div id="conflict-badge" style="display:none;background:var(--err-bg);color:var(--err-text);border:0.5px solid var(--err-border);border-radius:12px;padding:3px 12px;font-size:12px;font-weight:500"></div>
+    <div id="ok-badge" style="display:none;background:#dcfce7;color:#14532d;border:0.5px solid #86efac;border-radius:12px;padding:3px 12px;font-size:12px;font-weight:500">✅ ไม่มี conflict</div>
+  </div>
+
+  <!-- Legend -->
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;font-size:12px;align-items:center">
+    <span style="color:var(--muted);font-size:11px">เวร:</span>
+    <span class="pill pill-M1" style="width:auto;padding:2px 7px;display:inline-block">M1 เช้า 8:00</span>
+    <span class="pill pill-M2" style="width:auto;padding:2px 7px;display:inline-block">M2 เช้า 9:00</span>
+    <span class="pill pill-A" style="width:auto;padding:2px 7px;display:inline-block">A AOC</span>
+    <span class="pill pill-E" style="width:auto;padding:2px 7px;display:inline-block">E บ่าย OT</span>
+    <span class="pill pill-N" style="width:auto;padding:2px 7px;display:inline-block">N ดึก OT</span>
+    <span class="pill pill-M" style="width:auto;padding:2px 7px;display:inline-block">M เช้าวันหยุด OT</span>
+    <span class="pill pill-OFF" style="width:auto;padding:2px 7px;display:inline-block">OFF</span>
+    <span class="pill pill-TOW" style="width:auto;padding:2px 7px;display:inline-block">TOW</span>
+    <span style="color:var(--muted);font-size:11px;margin-left:4px">🟧=วันหยุดราชการ 🟦=เสาร์-อาทิตย์ 🟣=TOW week</span>
+  </div>
+
+  <div class="sched-wrap">
+    <table class="sched" id="sched-tbl"></table>
+  </div>
+</div>
+
+<!-- ===== SUMMARY ===== -->
+<div id="page-summary" class="page">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:6px">
+      <button class="btn" onclick="changeMonth(-1);renderSummary()">‹</button>
+      <div style="font-size:16px;font-weight:600;min-width:130px;text-align:center" id="sum-month"></div>
+      <button class="btn" onclick="changeMonth(1);renderSummary()">›</button>
+    </div>
+    <button class="btn btn-primary" onclick="copySheet()">📋 Copy → Google Sheet</button>
+    <button class="btn" onclick="exportJSON()">⬇️ Export JSON</button>
+  </div>
+  <div class="stats-grid" id="sum-stats"></div>
+  <div class="card">
+    <div class="card-title">⚖️ สรุปเวรรายคน</div>
+    <div style="overflow-x:auto"><table class="sum" id="sum-tbl"></table></div>
+  </div>
+  <div class="card" style="margin-top:14px">
+    <div class="card-title">⚖️ ความสมดุล (เทียบกับค่าเฉลี่ย)</div>
+    <div id="balance-chart"></div>
+  </div>
+  <div id="conflict-section" style="margin-top:14px"></div>
+</div>
+
+</div><!-- end content -->
+</div><!-- end app -->
+
+<!-- MODAL -->
+<div class="modal-bg" id="modal-bg" onclick="bgClose(event)">
+<div class="modal">
+  <h3 id="m-title"></h3>
+  <div style="font-size:12px;color:var(--muted);margin-bottom:10px" id="m-sub"></div>
+  <div id="m-off-warn" style="display:none;background:var(--warn-bg);border:0.5px solid var(--warn-border);border-radius:6px;padding:6px 10px;font-size:12px;color:var(--warn-text);margin-bottom:8px"></div>
+  <div class="shift-grid" id="m-shifts"></div>
+  <div id="m-conflicts" style="margin-bottom:8px"></div>
+  <button class="btn" style="width:100%" onclick="closeModal()">ปิด</button>
+</div>
+</div>
+
+<script>
+// ========== CONSTANTS ==========
+const DAYS_TH = ['อา','จ','อ','พ','พฤ','ศ','ส'];
+const MONTHS_TH = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+const MONTHS_SHORT = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+const ALL_SHIFTS = ['M1','M2','A','E','N','M','OFF','TOW'];
+const WORKDAY_SHIFTS = ['M1','M2','A','E','N','OFF','TOW'];
+const HOLIDAY_SHIFTS = ['M','E','N','OFF','TOW'];
+const OT_SHIFTS = ['E','N','M'];
+const BAL_COLS = ['OT','N','M','E','M1','M2','A'];
+const PREFS_LABEL = {
+  'consec-night':'ดึกติดกัน','consec-we':'เสาร์-อาทิตย์ติดกัน',
+  'eve-night':'บ่าย→ดึก','like-morning':'ชอบเช้า','like-night':'ชอบดึก',
+  'like-eve':'ชอบบ่าย','no-consec':'ไม่ชอบติดกัน',
+  'no-n-after-e':'ไม่ชอบบ่าย→ดึก','no-m-after-e':'ไม่ชอบบ่าย→เช้า'
+};
+const PILL_STYLE = {
+  M1:{bg:'#fef9c3',col:'#713f12'},M2:{bg:'#fde68a',col:'#78350f'},
+  A:{bg:'#bbf7d0',col:'#14532d'},E:{bg:'#c7d2fe',col:'#312e81'},
+  N:{bg:'#1e293b',col:'#cbd5e1'},M:{bg:'#fed7aa',col:'#7c2d12'},
+  OFF:{bg:'#f1f5f9',col:'#64748b'},TOW:{bg:'#ddd6fe',col:'#4c1d95'},
+  '-':{bg:'#f5f4f0',col:'#9b9b97'}
+};
+
+// ========== STATE ==========
+let S = {
+  doctors: [],
+  holidays: {},
+  schedule: {},
+  carryOver: {},
+  towWeeks: [],
+  currentYear: new Date().getFullYear(),
+  currentMonth: new Date().getMonth(),
+  lastSaved: null
+};
+
+function save() {
+  S.lastSaved = new Date().toISOString();
+  localStorage.setItem('er_sched_v4', JSON.stringify(S));
+  updateBackupInfo();
+}
+function load() {
+  const d = localStorage.getItem('er_sched_v4');
+  if (d) { try { const p = JSON.parse(d); Object.keys(p).forEach(k=>S[k]=p[k]); } catch(e){} }
+  if (!S.doctors.length) initDefaultDoctors();
+}
+function initDefaultDoctors() {
+  const names = ['น.พ.สมชาย ใจดี','พ.ญ.สมหญิง รักดี','น.พ.วิชัย เก่งกาจ',
+    'พ.ญ.มาลี สวยงาม','น.พ.ธนา มั่งมี','พ.ญ.ณัฐ ฉลาด',
+    'น.พ.ปิยะ รวดเร็ว','พ.ญ.รัตนา แข็งแกร่ง','หัวหน้า'];
+  S.doctors = names.map((n,i)=>({
+    id:'d'+(i+1),name:n,
+    chief: i===8,
+    chiefLimit: 4,
+    prefs:[],
+    offRequests:{}
+  }));
+}
+function updateBackupInfo() {
+  const el = document.getElementById('backup-info');
+  if (el && S.lastSaved) {
+    const d = new Date(S.lastSaved);
+    el.textContent = `บันทึกล่าสุด: ${d.toLocaleDateString('th-TH')} ${d.toLocaleTimeString('th-TH')}`;
+  }
+}
+
+// ========== UTILS ==========
+function mk() { return `${S.currentYear}-${String(S.currentMonth+1).padStart(2,'0')}`; }
+function dk(d) { return `${S.currentYear}-${String(S.currentMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
+function daysIn() { return new Date(S.currentYear, S.currentMonth+1, 0).getDate(); }
+function weekday(d) { return new Date(S.currentYear, S.currentMonth, d).getDay(); }
+function isWeekend(d) { const w=weekday(d); return w===0||w===6; }
+function isHoliday(d) { return !!S.holidays[dk(d)]; }
+function isOffDay(d) { return isWeekend(d)||isHoliday(d); }
+function isTowDay(did, d) {
+  const dateStr = dk(d);
+  return S.towWeeks.some(t=>t.towDocId===did && t.start && dateStr>=t.start && dateStr<=t.end);
+}
+function isOffWeekDay(did, d) {
+  const dateStr = dk(d);
+  return S.towWeeks.some(t=>t.offDocId===did && t.start && dateStr>=t.start && dateStr<=t.end);
+}
+function getCell(did, d) { return S.schedule[mk()]?.[did]?.[d] || '-'; }
+function setCell(did, d, v) {
+  if (!S.schedule[mk()]) S.schedule[mk()]={};
+  if (!S.schedule[mk()][did]) S.schedule[mk()][did]={};
+  S.schedule[mk()][did][d] = v;
+  save();
+}
+function doc(id) { return S.doctors.find(x=>x.id===id); }
+function avatarInitials(name) {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length>=2) return parts[parts.length-2].slice(0,1)+parts[parts.length-1].slice(0,1);
+  return name.slice(-2);
+}
+
+// ========== NAVIGATION ==========
+function goPage(p) {
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  document.getElementById('nav-'+p).classList.add('active');
+  if (p==='setup') renderSetup();
+  if (p==='tow') renderTow();
+  if (p==='schedule') renderSchedule();
+  if (p==='summary') renderSummary();
+}
+
+// ========== SETUP PAGE ==========
+function renderSetup() {
+  renderDocList();
+  renderDocSelect();
+  loadDocSettings();
+  renderHolList();
+  renderCarry();
+  updateBackupInfo();
+}
+
+function renderDocList() {
+  document.getElementById('doc-list').innerHTML = S.doctors.map(d=>`
+    <div class="doc-row">
+      <div class="avatar${d.chief?' chief':''}">${avatarInitials(d.name)}</div>
+      <div style="flex:1">
+        <div style="font-weight:500;font-size:13px">${d.name}
+          ${d.chief?`<span class="badge badge-chief">หัวหน้า A≤${d.chiefLimit}</span>`:''}
+        </div>
+        ${d.prefs.length?`<div class="pref-chip">${d.prefs.map(p=>PREFS_LABEL[p]||p).join(' · ')}</div>`:''}
+      </div>
+      <button class="btn btn-sm" onclick="renameDoc('${d.id}')" style="font-size:11px">✏️</button>
+      <button class="btn btn-sm" onclick="removeDoc('${d.id}')" style="font-size:11px">✕</button>
+    </div>`).join('');
+}
+
+function renderDocSelect() {
+  const sel = document.getElementById('sel-doc');
+  const prev = sel.value;
+  sel.innerHTML = S.doctors.map(d=>`<option value="${d.id}">${d.name}</option>`).join('');
+  if (prev && S.doctors.find(x=>x.id===prev)) sel.value=prev;
+  // Also TOW select
+  const ts = document.getElementById('tow-doc');
+  if (ts) ts.innerHTML = sel.innerHTML;
+}
+
+function loadDocSettings() {
+  const did = document.getElementById('sel-doc').value;
+  const d = doc(did);
+  if (!d) { document.getElementById('doc-panel').style.display='none'; return; }
+  document.getElementById('doc-panel').style.display='block';
+  document.getElementById('is-chief').checked = d.chief||false;
+  document.getElementById('chief-lim').value = d.chiefLimit||2;
+  document.querySelectorAll('#pref-tags .tag').forEach(t=>{
+    t.classList.toggle('on',(d.prefs||[]).includes(t.dataset.p));
+    t.onclick = ()=>t.classList.toggle('on');
+  });
+  renderOffList(did);
+}
+
+function renderOffList(did) {
+  const d=doc(did); if(!d) return;
+  const or=d.offRequests||{};
+  const wt=d.wantRequests||{};
+  const SL={N:'🌙N',M:'☀️M',E:'🌆E'};
+  let rows='';
+  // Off requests
+  Object.entries(or).sort((a,b)=>a[0]<b[0]?-1:1).forEach(([k,v])=>{
+    const arr=Array.isArray(v)?v:(v==='all'?['N','M','E']:[v]);
+    const label=arr.length===3?'ทั้งวัน':arr.map(s=>SL[s]||s).join('+');
+    rows+=`<div class="off-item"><span style="font-size:11px;background:#fee2e2;color:#991b1b;border-radius:4px;padding:1px 5px;margin-right:4px">🚫ขอหยุด</span><span style="font-weight:500">${k}</span><span style="color:var(--muted);font-size:12px;margin-left:4px">${label}</span><span class="del-btn" onclick="delOff('${did}','${k}')">×</span></div>`;
+  });
+  // Want requests
+  Object.entries(wt).sort((a,b)=>a[0]<b[0]?-1:1).forEach(([k,v])=>{
+    const arr=Array.isArray(v)?v:[v];
+    const label=arr.map(s=>SL[s]||s).join('+');
+    rows+=`<div class="off-item"><span style="font-size:11px;background:#fef9c3;color:#713f12;border-radius:4px;padding:1px 5px;margin-right:4px">⭐ขออยู่</span><span style="font-weight:500">${k}</span><span style="color:var(--muted);font-size:12px;margin-left:4px">${label}</span><span class="del-btn" onclick="delWant('${did}','${k}')">×</span></div>`;
+  });
+  document.getElementById('off-list').innerHTML=rows||'<div style="color:var(--muted);font-size:12px;padding:4px 0">ไม่มีรายการ</div>';
+}
+
+// Off/Want request state
+let offShiftState={N:true,M:true,E:true};
+let reqMode='off'; // 'off' | 'want'
+
+function setReqMode(mode){
+  reqMode=mode;
+  // default shifts: off=all on, want=all off (เลือกเองว่าอยากได้เวรไหน)
+  if(mode==='off') offShiftState={N:true,M:true,E:true};
+  else offShiftState={N:false,M:false,E:false};
+  refreshOffBtns();
+  document.getElementById('req-mode-off').className='btn btn-sm'+(mode==='off'?' btn-primary':'');
+  document.getElementById('req-mode-want').className='btn btn-sm'+(mode==='want'?' btn-primary':'');
+}
+function initOffShifts(){
+  const d=document.getElementById('off-d').value;
+  const picker=document.getElementById('off-shift-picker');
+  if(d){
+    picker.style.display='flex';
+    if(reqMode==='off') offShiftState={N:true,M:true,E:true};
+    else offShiftState={N:false,M:false,E:false};
+    refreshOffBtns();
+  } else picker.style.display='none';
+}
+function refreshOffBtns(){
+  ['N','M','E'].forEach(s=>{
+    const btn=document.getElementById('off-btn-'+s);
+    if(btn) btn.className='off-shift-btn '+(offShiftState[s]?'on':'off');
+  });
+}
+function toggleOffShift(s){offShiftState[s]=!offShiftState[s];refreshOffBtns();}
+
+function addOff(){
+  const did=document.getElementById('sel-doc').value;
+  const d=doc(did); if(!d) return;
+  const dt=document.getElementById('off-d').value; if(!dt) return;
+  const selected=Object.entries(offShiftState).filter(([,v])=>v).map(([k])=>k);
+  if(!selected.length){alert('กรุณาเลือกอย่างน้อย 1 เวร');return;}
+  if(reqMode==='off'){
+    if(!d.offRequests) d.offRequests={};
+    d.offRequests[dt]=selected;
+  } else {
+    if(!d.wantRequests) d.wantRequests={};
+    d.wantRequests[dt]=selected;
+  }
+  document.getElementById('off-d').value='';
+  document.getElementById('off-shift-picker').style.display='none';
+  save(); renderOffList(did);
+}
+function delOff(did,k){
+  const d=doc(did);if(d&&d.offRequests){delete d.offRequests[k];save();renderOffList(did);}
+}
+function delWant(did,k){
+  const d=doc(did);if(d&&d.wantRequests){delete d.wantRequests[k];save();renderOffList(did);}
+}
+function saveDocSettings(){
+  const did = document.getElementById('sel-doc').value;
+  const d = doc(did); if (!d) return;
+  d.chief = document.getElementById('is-chief').checked;
+  d.chiefLimit = parseInt(document.getElementById('chief-lim').value)||4;
+  d.prefs = [...document.querySelectorAll('#pref-tags .tag.on')].map(t=>t.dataset.p);
+  save(); renderDocList();
+  showToast('บันทึกแล้ว ✓');
+}
+
+function addDoc() {
+  const n = document.getElementById('new-name').value.trim(); if (!n) return;
+  S.doctors.push({id:'d'+Date.now(),name:n,chief:false,chiefLimit:4,prefs:[],offRequests:{}});
+  document.getElementById('new-name').value='';
+  save(); renderSetup();
+}
+function removeDoc(id) {
+  if (!confirm('ลบแพทย์คนนี้?')) return;
+  S.doctors = S.doctors.filter(x=>x.id!==id);
+  save(); renderSetup();
+}
+function renameDoc(id) {
+  const d=doc(id); if(!d) return;
+  const n=prompt('เปลี่ยนชื่อ:',d.name);
+  if(n&&n.trim()){d.name=n.trim();save();renderSetup();}
+}
+
+function saveDocSettings() {
+  const did=document.getElementById('sel-doc').value;
+  const d=doc(did); if(!d) return;
+  d.chief=document.getElementById('is-chief').checked;
+  d.chiefLimit=parseInt(document.getElementById('chief-lim').value)||4;
+  d.prefs=[...document.querySelectorAll('#pref-tags .tag.on')].map(t=>t.dataset.p);
+  save(); renderDocList();
+  showToast('บันทึกแล้ว ✓');
+}
+
+function renderHolList() {
+  document.getElementById('hol-list').innerHTML = Object.keys(S.holidays).sort().map(d=>`
+    <div class="off-item"><span>${d}</span><span class="del-btn" onclick="delHol('${d}')">×</span></div>`).join('')||
+    '<div style="color:var(--muted);font-size:12px;padding:4px 0">ยังไม่มีวันหยุดราชการ</div>';
+}
+function addHol() {
+  const d=document.getElementById('hol-date').value;
+  if(!d) return;
+  S.holidays[d]=true; save(); renderHolList();
+}
+function delHol(d){delete S.holidays[d];save();renderHolList();}
+
+function renderCarry() {
+  document.getElementById('carry-list').innerHTML = S.doctors.map(d=>{
+    const co=S.carryOver[d.id]||{};
+    return `<div style="display:flex;align-items:center;gap:4px;margin-bottom:6px;flex-wrap:wrap">
+      <span style="flex:1;min-width:80px;font-size:13px">${d.name}</span>
+      ${BAL_COLS.filter(t=>t!=='OT').map(t=>`
+        <div style="text-align:center">
+          <div style="font-size:10px;color:var(--muted)">${t}</div>
+          <input type="number" value="${co[t]||0}" min="-20" max="20"
+            style="width:38px;font-size:12px;text-align:center"
+            onchange="setCarry('${d.id}','${t}',this.value)">
+        </div>`).join('')}
+    </div>`;}).join('');
+}
+function setCarry(did,t,v){if(!S.carryOver[did])S.carryOver[did]={};S.carryOver[did][t]=parseInt(v)||0;save();}
+
+// Export/Import
+function exportJSON() {
+  const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const d=new Date();
+  a.href=url;a.download=`er_schedule_backup_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}.json`;
+  a.click();URL.revokeObjectURL(url);
+}
+function importJSON(input) {
+  const f=input.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=e=>{
+    try{
+      const p=JSON.parse(e.target.result);
+      Object.keys(p).forEach(k=>S[k]=p[k]);
+      save();goPage('setup');showToast('Import สำเร็จ ✓');
+    }catch(err){alert('ไฟล์ไม่ถูกต้อง: '+err.message);}
+  };
+  r.readAsText(f);input.value='';
+}
+function resetAll(){if(confirm('Reset ข้อมูลทั้งหมด? (ไม่สามารถกู้คืนได้)')){localStorage.removeItem('er_sched_v4');location.reload();}}
+
+// ========== TOW PAGE ==========
+function autoFillEnd(){
+  const s=document.getElementById('tw-start').value;
+  if(!s) return;
+  const d=new Date(s); d.setDate(d.getDate()+6);
+  document.getElementById('tw-end').value=d.toISOString().slice(0,10);
+  if(!document.getElementById('tw-week').value){
+    const wn=S.towWeeks.length?Math.max(...S.towWeeks.map(t=>t.week||0))+1:1;
+    document.getElementById('tw-week').value=wn;
+  }
+}
+function formatDateTH(s){
+  if(!s) return '';
+  const [y,m,d]=s.split('-');
+  return `${parseInt(d)}/${parseInt(m)}/${parseInt(y)-543}`.replace(/(\d{4})/,(_,yr)=>String(parseInt(yr)+543));
+}
+function renderTow() {
+  const tbody=document.getElementById('tow-tbody');
+  if(!S.towWeeks.length){
+    tbody.innerHTML=`<tr><td colspan="6" style="text-align:center;padding:16px;color:var(--muted);font-size:13px">ยังไม่มีข้อมูล — เพิ่มสัปดาห์ด้านบน</td></tr>`;
+    return;
+  }
+  const sorted=[...S.towWeeks].sort((a,b)=>(a.start||'')>(b.start||'')?1:-1);
+  tbody.innerHTML=sorted.map((t,i)=>{
+    const ti=S.towWeeks.indexOf(t);
+    const even=i%2===0;
+    const [y,m,d]=t.start?t.start.split('-'):['','',''];
+    const [ye,me,de]=t.end?t.end.split('-'):['','',''];
+    const startTH=t.start?`${parseInt(d)}/${parseInt(m)}/${parseInt(y)-543+543}`.replace(/\d{4}/,y2=>parseInt(y2)+543-543):``;
+    // simpler formatting:
+    const fmt=s=>{if(!s)return'';const p=s.split('-');return`${parseInt(p[2])}/${parseInt(p[1])}/${parseInt(p[0])-2500}`.replace('NaN','').replace(/-\d+/,'')||s;};
+    // just show yyyy-mm-dd shortened
+    const show=s=>s?s.slice(5).replace('-','/')+'/'+(parseInt(s.slice(0,4))+543-2500):'-';
+    return `<tr style="background:${even?'var(--surface)':'var(--bg)'}">
+      <td style="text-align:center;padding:6px 10px;border:0.5px solid var(--border);font-weight:600">${t.week||i+1}</td>
+      <td style="text-align:center;padding:6px 10px;border:0.5px solid var(--border)">${show(t.start)}</td>
+      <td style="text-align:center;padding:6px 10px;border:0.5px solid var(--border)">${show(t.end)}</td>
+      <td style="text-align:center;padding:6px 10px;border:0.5px solid var(--border);background:${t.towDocId?'#fef9c3':'inherit'}">
+        <select onchange="S.towWeeks[${ti}].towDocId=this.value||null;save();" style="font-size:12px;padding:3px 6px;background:transparent;border:none;cursor:pointer;font-family:inherit;max-width:120px">
+          <option value="">—</option>
+          ${S.doctors.map(d=>`<option value="${d.id}"${t.towDocId===d.id?' selected':''}>${d.name}</option>`).join('')}
+        </select>
+      </td>
+      <td style="text-align:center;padding:6px 10px;border:0.5px solid var(--border);background:${t.offDocId?'#dcfce7':'inherit'}">
+        <select onchange="S.towWeeks[${ti}].offDocId=this.value||null;save();" style="font-size:12px;padding:3px 6px;background:transparent;border:none;cursor:pointer;font-family:inherit;max-width:120px">
+          <option value="">—</option>
+          ${S.doctors.map(d=>`<option value="${d.id}"${t.offDocId===d.id?' selected':''}>${d.name}</option>`).join('')}
+        </select>
+      </td>
+      <td style="text-align:center;padding:6px 4px;border:0.5px solid var(--border)">
+        <button class="btn btn-sm" onclick="delTowRow(${ti})" style="color:var(--err-text);padding:2px 6px">✕</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+function addTowRow(){
+  const week=parseInt(document.getElementById('tw-week').value)||S.towWeeks.length+1;
+  const start=document.getElementById('tw-start').value;
+  const end=document.getElementById('tw-end').value;
+  const towDocId=document.getElementById('tw-tow').value||null;
+  const offDocId=document.getElementById('tw-off').value||null;
+  if(!start||!end){alert('กรุณาใส่วันที่');return;}
+  S.towWeeks.push({week,start,end,towDocId,offDocId});
+  document.getElementById('tw-week').value='';
+  document.getElementById('tw-start').value='';
+  document.getElementById('tw-end').value='';
+  document.getElementById('tw-tow').value='';
+  document.getElementById('tw-off').value='';
+  save();renderTow();showToast('เพิ่มสัปดาห์แล้ว ✓');
+}
+function delTowRow(i){S.towWeeks.splice(i,1);save();renderTow();}
+
+// ========== SCHEDULE PAGE ==========
+function changeMonth(d) {
+  S.currentMonth+=d;
+  if(S.currentMonth<0){S.currentMonth=11;S.currentYear--;}
+  if(S.currentMonth>11){S.currentMonth=0;S.currentYear++;}
+  save();renderSchedule();
+}
+
+function renderSchedule() {
+  const days=daysIn();
+  const mLabel=`${MONTHS_TH[S.currentMonth]} ${S.currentYear+543}`;
+  document.getElementById('sched-month').textContent=mLabel;
+
+  // Build header
+  let h=`<thead><tr><th class="name-col">แพทย์</th>`;
+  for(let d=1;d<=days;d++){
+    const we=isWeekend(d), hol=isHoliday(d), tow=false;
+    h+=`<th style="min-width:46px${we?' background:#dbeafe':''} ${hol?' background:#ffedd5':''}">
+      <div class="dh">
+        <div class="dh-num">${d}</div>
+        <div class="dh-day">${DAYS_TH[weekday(d)]}</div>
+        ${hol?`<div class="hol-dot" title="${S.holidays[dk(d)]}"></div>`:''}
+      </div></th>`;
+  }
+  h+=`</tr></thead>`;
+
+  // Build body
+  let b=`<tbody>`;
+  S.doctors.forEach(dr=>{
+    b+=`<tr><td class="name-col">
+      <div style="font-size:12px;font-weight:500">${dr.name}</div>
+      ${dr.chief?'<div style="font-size:10px;color:#92400e">หัวหน้า</div>':''}
+      ${dr.prefs.length?`<div style="font-size:9px;color:var(--muted)" title="${dr.prefs.map(p=>PREFS_LABEL[p]).join(', ')}">${dr.prefs.length} preference</div>`:''}
+    </td>`;
+    for(let d=1;d<=days;d++){
+      const val=getCell(dr.id,d);
+      const {errors,warnings}=checkConflicts(dr.id,d,val);
+      const isHol=isHoliday(d), isWe=isWeekend(d), isTow=isTowDay(dr.id,d);
+      const cellClass=isTow?'tow-day':isHol?'hol':isWe?'we':'';
+      const ps=PILL_STYLE[val]||PILL_STYLE['-'];
+      const pillCls=val&&val!=='-'?`pill pill-${val}`:'pill pill-empty';
+      const conflictCls=errors.length?'conflict':warnings.length?'warn-pill':'';
+      const tooltip=[...errors,...warnings].join(' / ')||val;
+      b+=`<td class="${cellClass}">
+        <button class="${pillCls} ${conflictCls}"
+          onclick="openModal('${dr.id}',${d})"
+          style="background:${val&&val!=='-'?ps.bg:'transparent'};color:${ps.col}"
+          title="${tooltip}">${val==='-'?'·':val}${errors.length?'🔴':warnings.length?'🟡':''}</button>
+      </td>`;
+    }
+    b+=`</tr>`;
+  });
+  b+=`</tbody>`;
+  document.getElementById('sched-tbl').innerHTML=h+b;
+
+  // Conflict badge
+  let errCnt=0,warnCnt=0;
+  const days2=daysIn();
+  S.doctors.forEach(dr2=>{
+    for(let d2=1;d2<=days2;d2++){
+      const {errors:e,warnings:w}=checkConflicts(dr2.id,d2,getCell(dr2.id,d2));
+      errCnt+=e.length>0?1:0; warnCnt+=w.length>0&&e.length===0?1:0;
+    }
+  });
+  const cb=document.getElementById('conflict-badge');
+  const ok=document.getElementById('ok-badge');
+  if(errCnt>0||warnCnt>0){
+    cb.style.display='inline';
+    cb.style.background=errCnt>0?'var(--err-bg)':'#fef9c3';
+    cb.style.color=errCnt>0?'var(--err-text)':'#713f12';
+    cb.style.borderColor=errCnt>0?'var(--err-border)':'#f59e0b';
+    cb.textContent=`${errCnt>0?`🔴 ${errCnt} error`:''}${errCnt>0&&warnCnt>0?' · ':''}${warnCnt>0?`🟡 ${warnCnt} warning`:''}`;
+    ok.style.display='none';
+  } else {
+    cb.style.display='none'; ok.style.display='inline';
+  }
+}
+
+// ========== CONFLICT CHECKING ==========
+// Returns {errors: [...], warnings: [...]}
+// errors = hard rules (แดง), warnings = soft/manual-ok (เหลือง)
+function checkConflicts(did, day, val) {
+  const errors=[], warnings=[];
+  if(!val||val==='-') return {errors,warnings};
+  const d=doc(did); if(!d) return {errors,warnings};
+  const mKey=mk();
+
+  // HARD: ดึกต่อเช้า
+  if(['M1','M2','M','A'].includes(val)) {
+    const prev=getCell(did,day-1);
+    if(prev==='N') errors.push('ดึกต่อเช้า ❌');
+  }
+  // HARD: ผิดประเภทวัน
+  if(isOffDay(day)&&['M1','M2','A'].includes(val)) errors.push('M1/M2/A ไม่มีในวันหยุด');
+  if(!isOffDay(day)&&val==='M') errors.push('M เฉพาะวันหยุด');
+
+  // WARN: หัวหน้า M1/M2 (ทำได้ถ้าแก้เอง แต่ขึ้นเตือน)
+  if(d.chief&&(val==='M1'||val==='M2')) warnings.push('หัวหน้าไม่ควรอยู่ M1/M2');
+  // WARN: หัวหน้า A เกิน limit
+  if(d.chief&&val==='A') {
+    const cnt=Object.values(S.schedule[mKey]?.[did]||{}).filter(v=>v==='A').length;
+    if(cnt>d.chiefLimit) warnings.push(`A เกิน ${d.chiefLimit} เวร/เดือน`);
+  }
+  // WARN: Want request — got a different shift than requested
+  const wantDay=d.wantRequests?.[dk(day)];
+  if(wantDay && !['TOW','OFF','-'].includes(val)) {
+    const wArr=Array.isArray(wantDay)?wantDay:[wantDay];
+    const grp=(['M','M1','M2','A'].includes(val))?'M':val;
+    if(!wArr.includes(grp)) warnings.push(`ขออยู่เวร ${wArr.join('+')} แต่ได้ ${val}`);
+  }
+  const orDay=d.offRequests?.[dk(day)];
+  if(orDay) {
+    const arr=Array.isArray(orDay)?orDay:(orDay==='all'?['N','M','E']:[orDay]);
+    const shiftGroup=(['M','M1','M2','A'].includes(val))?'M':val; // M1/M2/A all map to 'M' group
+    if(arr.includes(shiftGroup)||arr.length===3) warnings.push(`ขอหยุดเวร ${arr.length===3?'ทั้งวัน':arr.join('+')} (${val})`);
+  }
+  // WARN: TOW week (ฉุกเฉินทำได้)
+  if(isTowDay(did,day)&&!['TOW','OFF','-'].includes(val)) warnings.push('สัปดาห์ TOW');
+  // WARN: OFF week
+  if(isOffWeekDay(did,day)&&!['TOW','OFF','-'].includes(val)) warnings.push('สัปดาห์ OFF');
+
+  return {errors,warnings};
+}
+function hasAnyIssue(did,day,val){ const c=checkConflicts(did,day,val); return c.errors.length+c.warnings.length>0; }
+function isHardError(did,day,val){ return checkConflicts(did,day,val).errors.length>0; }
+function countAllConflicts(){
+  let n=0; const days=daysIn();
+  S.doctors.forEach(d=>{for(let day=1;day<=days;day++){if(hasAnyIssue(d.id,day,getCell(d.id,day)))n++;}});
+  return n;
+}
+
+// ========== MODAL ==========
+let mDid='',mDay=0;
+function openModal(did,day){
+  mDid=did;mDay=day;
+  const d=doc(did); if(!d) return;
+  const val=getCell(did,day);
+  const isH=isOffDay(day);
+  const shifts=isH?HOLIDAY_SHIFTS:WORKDAY_SHIFTS;
+
+  document.getElementById('m-title').textContent=`${d.name}`;
+  document.getElementById('m-sub').textContent=`วันที่ ${day} ${MONTHS_SHORT[S.currentMonth]} ${S.currentYear+543} (${DAYS_TH[weekday(day)]})${isH?' — วันหยุด':''}`;
+
+  const ow=document.getElementById('m-off-warn');
+  const orDay=d.offRequests?.[dk(day)];
+  const wtDay=d.wantRequests?.[dk(day)];
+  let owHtml='';
+  if(orDay){const arr=Array.isArray(orDay)?orDay:(orDay==='all'?['N','M','E']:[orDay]);owHtml+=`🚫 ขอหยุด: ${arr.length===3?'ทั้งวัน':arr.join('+')} `;}
+  if(wtDay){const arr=Array.isArray(wtDay)?wtDay:[wtDay];owHtml+=`⭐ ขออยู่: ${arr.join('+')} `;}
+  if(owHtml){ow.style.display='block';ow.innerHTML=owHtml;}
+  else ow.style.display='none';
+
+  document.getElementById('m-shifts').innerHTML=['-',...shifts].map(s=>{
+    const ps=PILL_STYLE[s]||PILL_STYLE['-'];
+    const {errors,warnings}=s!=='-'?checkConflicts(did,day,s):{errors:[],warnings:[]};
+    const isSelected=s===val;
+    const icon=errors.length?'🔴':warnings.length?'🟡':'';
+    const allMsgs=[...errors,...warnings];
+    return `<button class="shift-btn${isSelected?' selected':''}${errors.length?' has-conflict':warnings.length?' has-warning':''}"
+      style="background:${ps.bg};color:${ps.col}"
+      onclick="pickShift('${s}')"
+      title="${allMsgs.join(', ')}">${s==='–'?'–':s}${icon}</button>`;
+  }).join('');
+
+  const {errors,warnings}=checkConflicts(did,day,val);
+  const mc=document.getElementById('m-conflicts');
+  let html='';
+  if(errors.length) html+=`<div style="background:var(--err-bg);border-radius:6px;padding:7px 10px;font-size:12px;color:var(--err-text);margin-bottom:4px">🔴 ${errors.join(' / ')}</div>`;
+  if(warnings.length) html+=`<div style="background:#fef9c3;border:0.5px solid #f59e0b;border-radius:6px;padding:7px 10px;font-size:12px;color:#713f12">🟡 ${warnings.join(' / ')}</div>`;
+  mc.innerHTML=html;
+
+  document.getElementById('modal-bg').classList.add('open');
+}
+function pickShift(s){
+  setCell(mDid,mDay,s);
+  closeModal();renderSchedule();
+}
+function closeModal(){document.getElementById('modal-bg').classList.remove('open');}
+function bgClose(e){if(e.target===document.getElementById('modal-bg'))closeModal();}
+
+function clearSched(){
+  if(!confirm('ล้างตารางเดือนนี้ทั้งหมด?'))return;
+  delete S.schedule[mk()];save();renderSchedule();
+}
+
+// ========== AUTO-GENERATE ==========
+function autoGenerate(){
+  if(!confirm(`Auto-generate ตาราง ${MONTHS_TH[S.currentMonth]} ${S.currentYear+543}?\n\nจะเขียนทับตารางปัจจุบัน`))return;
+  const mKey=mk();
+  S.schedule[mKey]={};
+  S.doctors.forEach(d=>S.schedule[mKey][d.id]={});
+  const days=daysIn();
+
+  // Tally: start from carry-over
+  const tally={};
+  S.doctors.forEach(d=>{
+    tally[d.id]={N:0,M:0,E:0,M1:0,M2:0,A:0,OT:0,total:0};
+    const co=S.carryOver[d.id]||{};
+    ['N','M','E','M1','M2','A'].forEach(t=>tally[d.id][t]=co[t]||0);
+  });
+
+  const lastShift={};
+  S.doctors.forEach(d=>lastShift[d.id]='-');
+
+  // First pass: mark TOW and OFF days
+  for(let day=1;day<=days;day++){
+    S.doctors.forEach(d=>{
+      if(isTowDay(d.id,day)) S.schedule[mKey][d.id][day]='TOW';
+      else if(isOffWeekDay(d.id,day)) S.schedule[mKey][d.id][day]='OFF';
+    });
+  }
+
+  // Second pass: assign shifts
+  for(let day=1;day<=days;day++){
+    if(isOffDay(day)) genHolidayDay(day,tally,lastShift,mKey);
+    else genWorkday(day,tally,lastShift,mKey);
+  }
+
+  save();renderSchedule();
+  showToast('Auto-generate เสร็จแล้ว ✓');
+}
+
+function available(day, shiftType, lastShift, mKey){
+  const dk_=dk(day);
+  return S.doctors.filter(d=>{
+    // Already assigned today
+    const cur=S.schedule[mKey]?.[d.id]?.[day];
+    if(cur&&cur!=='-') return false;
+    // TOW
+    if(isTowDay(d.id,day)) return false;
+    // OFF week — also blocked from auto-gen
+    if(isOffWeekDay(d.id,day)) return false;
+    // No night → morning
+    const prev=lastShift[d.id]||'-';
+    if(['M1','M2','M','A'].includes(shiftType)&&prev==='N') return false;
+    // Preference: no-m-after-e
+    if(['M1','M2','M','A'].includes(shiftType)&&prev==='E'&&(d.prefs||[]).includes('no-m-after-e')) return false;
+    // Preference: no-n-after-e
+    if(shiftType==='N'&&prev==='E'&&(d.prefs||[]).includes('no-n-after-e')) return false;
+    // Off request — array format, M group covers M/M1/M2/A
+    const or=d.offRequests?.[dk_];
+    if(or) {
+      const arr=Array.isArray(or)?or:(or==='all'?['N','M','E']:[or]);
+      const grp=(['M','M1','M2','A'].includes(shiftType))?'M':shiftType;
+      if(arr.includes(grp)) return false;
+    }
+    // Chief: block M1/M2, limit A
+    if(d.chief&&(shiftType==='M1'||shiftType==='M2')) return false;
+    if(d.chief&&shiftType==='A'){
+      const cnt=Object.values(S.schedule[mKey]?.[d.id]||{}).filter(v=>v==='A').length;
+      if(cnt>=d.chiefLimit) return false;
+    }
+    return true;
+  });
+}
+
+function score(d, shiftType, tally, day){
+  const t=tally[d.id];
+  const prefs=d.prefs||[];
+  let s=0;
+  // Primary: balance by type
+  s += t[shiftType]*10;
+  // Secondary: total OT balance
+  s += t.OT*3;
+
+  // ⭐ Want request: strong bonus (จัดให้ก่อนเลย)
+  const dk_=dk(day);
+  const want=d.wantRequests?.[dk_];
+  if(want){
+    const wArr=Array.isArray(want)?want:[want];
+    const grp=(['M','M1','M2','A'].includes(shiftType))?'M':shiftType;
+    if(wArr.includes(grp)) s-=50; // strong pull
+  }
+
+  // Preference bonuses/penalties
+  if(shiftType==='N'&&prefs.includes('like-night')) s-=8;
+  if(shiftType==='N'&&prefs.includes('no-consec')) {
+    const yd=getCell(d.id,day-1);
+    if(yd==='N') s+=6;
+  }
+  if(shiftType==='N'&&prefs.includes('consec-night')) {
+    const yd=getCell(d.id,day-1);
+    if(yd==='N') s-=8;
+  }
+  if((shiftType==='M1'||shiftType==='M2')&&prefs.includes('like-morning')) s-=5;
+  if(shiftType==='E'&&prefs.includes('like-eve')) s-=5;
+  // Weekend consecutive preference
+  const wd=new Date(S.currentYear,S.currentMonth,day).getDay();
+  if(prefs.includes('consec-we')&&(wd===6||wd===0)){
+    const yd=getCell(d.id,day-1);
+    if(yd&&yd!=='-'&&yd!=='OFF') s-=5;
+  }
+  return s;
+}
+
+function pick(avail, shiftType, tally, day){
+  if(!avail.length) return null;
+  return avail.slice().sort((a,b)=>score(a,shiftType,tally,day)-score(b,shiftType,tally,day))[0];
+}
+
+function assign(did, day, shiftType, tally, lastShift, mKey){
+  S.schedule[mKey][did][day]=shiftType;
+  lastShift[did]=shiftType;
+  const t=tally[did];
+  if(['N','M','E','M1','M2','A'].includes(shiftType)) t[shiftType]++;
+  if(OT_SHIFTS.includes(shiftType)) t.OT++;
+  t.total++;
+}
+
+function genHolidayDay(day,tally,lastShift,mKey){
+  const avM=available(day,'M',lastShift,mKey);
+  const pM=pick(avM,'M',tally,day);
+  if(pM) assign(pM.id,day,'M',tally,lastShift,mKey);
+  const avE=available(day,'E',lastShift,mKey);
+  const pE=pick(avE,'E',tally,day);
+  if(pE) assign(pE.id,day,'E',tally,lastShift,mKey);
+  const avN=available(day,'N',lastShift,mKey);
+  const pN=pick(avN,'N',tally,day);
+  if(pN) assign(pN.id,day,'N',tally,lastShift,mKey);
+}
+
+function genWorkday(day,tally,lastShift,mKey){
+  const avM1=available(day,'M1',lastShift,mKey);
+  const p1=pick(avM1,'M1',tally,day);
+  if(p1) assign(p1.id,day,'M1',tally,lastShift,mKey);
+  const avM2=available(day,'M2',lastShift,mKey);
+  const p2=pick(avM2,'M2',tally,day);
+  if(p2) assign(p2.id,day,'M2',tally,lastShift,mKey);
+  const avA=available(day,'A',lastShift,mKey);
+  const pA=pick(avA,'A',tally,day);
+  if(pA) assign(pA.id,day,'A',tally,lastShift,mKey);
+  const avE=available(day,'E',lastShift,mKey);
+  const pE=pick(avE,'E',tally,day);
+  if(pE) assign(pE.id,day,'E',tally,lastShift,mKey);
+  const avN=available(day,'N',lastShift,mKey);
+  const pN=pick(avN,'N',tally,day);
+  if(pN) assign(pN.id,day,'N',tally,lastShift,mKey);
+}
+
+// ========== SUMMARY PAGE ==========
+function renderSummary(){
+  document.getElementById('sum-month').textContent=`${MONTHS_TH[S.currentMonth]} ${S.currentYear+543}`;
+  const days=daysIn();
+
+  // Count
+  const counts={};
+  S.doctors.forEach(d=>counts[d.id]={N:0,M:0,E:0,M1:0,M2:0,A:0,OT:0,total:0});
+  for(let day=1;day<=days;day++){
+    S.doctors.forEach(d=>{
+      const v=getCell(d.id,day);
+      if(v&&v!=='-'&&v!=='OFF'&&v!=='TOW'){
+        if(['N','M','E','M1','M2','A'].includes(v)) counts[d.id][v]++;
+        if(OT_SHIFTS.includes(v)) counts[d.id].OT++;
+        counts[d.id].total++;
+      }
+    });
+  }
+
+  // Stats
+  const ots=S.doctors.map(d=>counts[d.id].OT);
+  const tots=S.doctors.map(d=>counts[d.id].total);
+  const maxOT=Math.max(...ots),minOT=Math.min(...ots);
+  document.getElementById('sum-stats').innerHTML=`
+    <div class="stat"><div class="stat-lbl">OT รวม</div><div class="stat-val" style="color:var(--accent)">${ots.reduce((a,b)=>a+b,0)}</div></div>
+    <div class="stat"><div class="stat-lbl">เวรรวม</div><div class="stat-val" style="color:var(--accent)">${tots.reduce((a,b)=>a+b,0)}</div></div>
+    <div class="stat"><div class="stat-lbl">OT สูงสุด</div><div class="stat-val" style="color:#dc2626">${maxOT}</div></div>
+    <div class="stat"><div class="stat-lbl">OT ต่ำสุด</div><div class="stat-val" style="color:#059669">${minOT}</div></div>
+    <div class="stat"><div class="stat-lbl">ส่วนต่าง OT</div><div class="stat-val" style="color:${maxOT-minOT>3?'#dc2626':'#059669'}">${maxOT-minOT}</div></div>`;
+
+  // Table
+  const maxVals={};
+  ['N','M','E','M1','M2','A','OT','total'].forEach(t=>maxVals[t]=Math.max(1,...S.doctors.map(d=>counts[d.id][t])));
+  let tbl=`<thead><tr><th>แพทย์</th><th>OT</th><th>N ดึก</th><th>M เช้าหยุด</th><th>E บ่าย</th><th>M1</th><th>M2</th><th>A</th><th>รวม</th></tr></thead><tbody>`;
+  S.doctors.forEach(d=>{
+    const c=counts[d.id];
+    const co=S.carryOver[d.id]||{};
+    tbl+=`<tr>
+      <td>${d.name}${d.chief?'<span class="badge badge-chief" style="margin-left:4px">หน.</span>':''}</td>
+      <td style="font-weight:600;color:${c.OT>=maxVals.OT&&maxVals.OT>0?'#dc2626':'inherit'}">${c.OT}</td>
+      <td>${c.N}${co.N?`<span style="color:var(--muted);font-size:11px">(${co.N>0?'+'+co.N:co.N})</span>`:''}</td>
+      <td>${c.M}${co.M?`<span style="color:var(--muted);font-size:11px">(${co.M>0?'+'+co.M:co.M})</span>`:''}</td>
+      <td>${c.E}${co.E?`<span style="color:var(--muted);font-size:11px">(${co.E>0?'+'+co.E:co.E})</span>`:''}</td>
+      <td>${c.M1}</td><td>${c.M2}</td><td>${c.A}</td>
+      <td style="font-weight:600">${c.total}</td>
+    </tr>`;
+  });
+  tbl+=`</tbody>`;
+  document.getElementById('sum-tbl').innerHTML=tbl;
+
+  // Balance chart
+  const avg={};
+  ['N','M','E','M1','M2','A'].forEach(t=>{
+    avg[t]=S.doctors.reduce((s,d)=>s+counts[d.id][t],0)/S.doctors.length;
+  });
+  let bc=`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">
+    <thead><tr><th style="text-align:left;padding:4px 6px;background:var(--accent);color:#fff;border-radius:4px 0 0 0">แพทย์</th>
+    ${['N','M','E','M1','M2','A'].map(t=>`<th style="padding:4px 6px;background:var(--accent);color:#fff;text-align:center">${t}<div style="font-size:10px;opacity:.7">avg ${avg[t].toFixed(1)}</div></th>`).join('')}
+    </tr></thead><tbody>`;
+  S.doctors.forEach(d=>{
+    bc+=`<tr><td style="padding:4px 6px;border-bottom:0.5px solid var(--border);font-weight:500">${d.name}</td>`;
+    ['N','M','E','M1','M2','A'].forEach(t=>{
+      const v=counts[d.id][t];
+      const diff=v-avg[t];
+      const color=diff>1.5?'#dc2626':diff<-1.5?'#2563eb':'#059669';
+      const pct=Math.min(100,maxVals[t]>0?v/maxVals[t]*100:0);
+      bc+=`<td style="padding:4px 6px;text-align:center;border-bottom:0.5px solid var(--border)">
+        <div style="font-weight:500;color:${color}">${v}</div>
+        <div class="bar"><div class="bar-fill${diff>1.5?' danger':diff<-1.5?' warn':''}" style="width:${pct}%"></div></div>
+      </td>`;
+    });
+    bc+=`</tr>`;
+  });
+  bc+=`</tbody></table></div>`;
+  document.getElementById('balance-chart').innerHTML=bc;
+
+  // Conflicts
+  const allErrs=[],allWarns=[];
+  for(let day=1;day<=days;day++){
+    S.doctors.forEach(d=>{
+      const v=getCell(d.id,day);
+      const {errors,warnings}=checkConflicts(d.id,day,v);
+      if(errors.length) allErrs.push({name:d.name,day,msgs:errors});
+      else if(warnings.length) allWarns.push({name:d.name,day,msgs:warnings});
+    });
+  }
+  const cs=document.getElementById('conflict-section');
+  let cs_html='';
+  if(allErrs.length){
+    cs_html+=`<div class="card"><div class="card-title" style="color:var(--err-text)">🔴 Hard Errors (${allErrs.length}) — ต้องแก้</div>`+
+      allErrs.map(c=>`<div class="conflict-item">🔴 <span><b>${c.name}</b> วันที่ ${c.day} — ${c.msgs.join(' / ')}</span></div>`).join('')+'</div>';
+  }
+  if(allWarns.length){
+    cs_html+=`<div class="card" style="margin-top:10px"><div class="card-title" style="color:#92400e">🟡 Warnings (${allWarns.length}) — แก้ได้ถ้าจำเป็น</div>`+
+      allWarns.map(c=>`<div class="conflict-item" style="background:#fef9c3;border-color:#f59e0b;color:#713f12">🟡 <span><b>${c.name}</b> วันที่ ${c.day} — ${c.msgs.join(' / ')}</span></div>`).join('')+'</div>';
+  }
+  if(!allErrs.length&&!allWarns.length){
+    cs_html=`<div class="card"><div class="card-title" style="color:#059669">✅ ไม่มี conflict ทั้งหมด</div></div>`;
+  }
+  cs.innerHTML=cs_html;
+}
+
+function copySheet(){
+  const days=daysIn();
+  const lines=[`แพทย์\t`+Array.from({length:days},(_,i)=>{
+    const d=i+1;
+    return `${d}(${DAYS_TH[weekday(d)]})${isHoliday(d)?'*':isWeekend(d)?'#':''}`;
+  }).join('\t')];
+  S.doctors.forEach(d=>{
+    lines.push(d.name+'\t'+Array.from({length:days},(_,i)=>getCell(d.id,i+1)).join('\t'));
+  });
+  navigator.clipboard.writeText(lines.join('\n')).then(()=>showToast('Copied! พร้อม Paste ใน Google Sheet ✓'));
+}
+
+// Toast
+function showToast(msg){
+  let t=document.getElementById('toast');
+  if(!t){t=document.createElement('div');t.id='toast';
+    t.style.cssText='position:fixed;bottom:20px;right:20px;background:#1a5c3a;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;z-index:999;transition:opacity .3s;font-family:Sarabun,sans-serif';
+    document.body.appendChild(t);}
+  t.textContent=msg;t.style.opacity='1';
+  setTimeout(()=>t.style.opacity='0',2500);
+}
+
+// ========== INIT ==========
+load();
+goPage('setup');
+</script>
+</body>
+</html>
