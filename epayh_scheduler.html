@@ -833,13 +833,13 @@ function renderTow() {
       <td style="text-align:center;padding:6px 10px;border:0.5px solid var(--border)">${show(t.start)}</td>
       <td style="text-align:center;padding:6px 10px;border:0.5px solid var(--border)">${show(t.end)}</td>
       <td style="text-align:center;padding:6px 10px;border:0.5px solid var(--border);background:${t.towDocId?'#fef9c3':'inherit'}">
-        <select onchange="S.towWeeks[${ti}].towDocId=this.value||null;save();" style="font-size:12px;padding:3px 6px;background:transparent;border:none;cursor:pointer;font-family:inherit;max-width:120px">
+        <select onchange="updateTow(${ti},'towDocId',this.value)" style="font-size:12px;padding:3px 6px;background:transparent;border:none;cursor:pointer;font-family:inherit;max-width:120px">
           <option value="">—</option>
           ${S.doctors.map(d=>`<option value="${d.id}"${t.towDocId===d.id?' selected':''}>${d.name}</option>`).join('')}
         </select>
       </td>
       <td style="text-align:center;padding:6px 10px;border:0.5px solid var(--border);background:${t.offDocId?'#dcfce7':'inherit'}">
-        <select onchange="S.towWeeks[${ti}].offDocId=this.value||null;save();" style="font-size:12px;padding:3px 6px;background:transparent;border:none;cursor:pointer;font-family:inherit;max-width:120px">
+        <select onchange="updateTow(${ti},'offDocId',this.value)" style="font-size:12px;padding:3px 6px;background:transparent;border:none;cursor:pointer;font-family:inherit;max-width:120px">
           <option value="">—</option>
           ${S.doctors.map(d=>`<option value="${d.id}"${t.offDocId===d.id?' selected':''}>${d.name}</option>`).join('')}
         </select>
@@ -866,6 +866,9 @@ function addTowRow(){
   save();renderTow();showToast('เพิ่มสัปดาห์แล้ว ✓');
 }
 function delTowRow(i){S.towWeeks.splice(i,1);save();renderTow();}
+function updateTow(idx,field,val){
+  if(S.towWeeks[idx]){S.towWeeks[idx][field]=val||null;save();}
+}
 
 // ========== SCHEDULE PAGE ==========
 function changeMonth(d) {
@@ -1336,7 +1339,7 @@ Object.assign(window, {
   openModal,pickShift,closeModal,bgClose,
   addDoc,removeDoc,renameDoc,moveDoc,editInitials,saveDocSettings,loadDocSettings,
   addOff,delOff,delWant,addHol,delHol,
-  addTowRow,delTowRow,autoFillEnd,
+  addTowRow,delTowRow,updateTow,autoFillEnd,
   copySheet,exportJSON,importJSON,resetAll,
   setReqMode,initOffShifts,toggleOffShift,
   renderOffList,setCarry,
