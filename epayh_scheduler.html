@@ -568,12 +568,16 @@ function setDayShifts(did, d, arr) {
 }
 function toggleShift(did, d, shift) {
   let arr = getCells(did, d).filter(x=>x!=='TOW'&&x!=='OFF'&&x!=='-');
-  if(['TOW','OFF'].includes(shift)){
-    setDayShifts(did, d, [shift]); return;
-  }
+  if(['TOW','OFF'].includes(shift)){ setDayShifts(did, d, [shift]); return; }
   if(shift==='-'){ setDayShifts(did, d, []); return; }
-  if(arr.includes(shift)) arr = arr.filter(x=>x!==shift);
-  else arr = [...arr, shift];
+  if(arr.includes(shift)){
+    arr = arr.filter(x=>x!==shift);
+  } else {
+    // M1/M2/A are mutually exclusive — remove others in morning group first
+    const MORNING=['M1','M2','A'];
+    if(MORNING.includes(shift)) arr = arr.filter(x=>!MORNING.includes(x));
+    arr = [...arr, shift];
+  }
   setDayShifts(did, d, arr);
 }
 function setCell(did, d, v) { // legacy compat
@@ -1005,7 +1009,12 @@ function checkConflicts(did, day, val) {
   const d=doc(did); if(!d) return {errors,warnings};
   const mKey=mk();
 
-  // HARD: ดึกต่อเช้า
+  // HARD: M1/M2/A mutual exclusive (same time slot)
+  const MORNING=['M1','M2','A'];
+  if(MORNING.includes(val)){
+    const cur=getCells(did,day).filter(v=>v!==val);
+    if(cur.some(v=>MORNING.includes(v))) errors.push('M1/M2/A อยู่ด้วยกันไม่ได้');
+  }
   if(['M1','M2','M','A'].includes(val)) {
     const prev=getCell(did,day-1);
     if(prev==='N') errors.push('ดึกต่อเช้า ❌');
@@ -1076,11 +1085,13 @@ function openModal(did,day){
     const isOn=s==='-'?currentShifts.length===0:currentShifts.includes(s);
     const{errors,warnings}=s!=='-'?checkConflicts(did,day,s):{errors:[],warnings:[]};
     // NM combo check
+    const MORNING=['M1','M2','A'];
     const wouldCauseNM = s!=='-' && (
       (s==='N' && currentShifts.some(v=>['M','M1','M2','A'].includes(v))) ||
       (['M','M1','M2','A'].includes(s) && currentShifts.includes('N'))
     );
-    const allErr=[...errors,...(wouldCauseNM?['ดึก+เช้า ❌']:[])];
+    const wouldCauseMorningConflict = MORNING.includes(s) && currentShifts.some(v=>MORNING.includes(v)&&v!==s);
+    const allErr=[...errors,...(wouldCauseNM?['ดึก+เช้า ❌']:[]),(wouldCauseMorningConflict?['M1/M2/A อยู่ด้วยกันไม่ได้']:[])];
     const icon=allErr.length?'🔴':warnings.length?'🟡':'';
     return `<button
       class="shift-btn${isOn?' selected':''}${allErr.length?' has-conflict':warnings.length?' has-warning':''}"
@@ -1165,6 +1176,9 @@ function available(day, shiftType, lastShift, mKey){
     if(cur.includes('TOW')||cur.includes('OFF')) return false;
     // Already has this shift
     if(cur.includes(shiftType)) return false;
+    // HARD: M1/M2/A mutual exclusive
+    const MORNING=['M1','M2','A'];
+    if(MORNING.includes(shiftType) && cur.some(v=>MORNING.includes(v))) return false;
     // HARD: no N+morning same day
     if(shiftType==='N' && cur.some(v=>['M','M1','M2','A'].includes(v))) return false;
     if(['M','M1','M2','A'].includes(shiftType) && cur.includes('N')) return false;
