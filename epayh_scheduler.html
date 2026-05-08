@@ -165,6 +165,13 @@ table.sum tr:nth-child(even) td{background:var(--bg)}
     <button onclick="goPage('schedule')" id="nav-schedule">🗓️ จัดตาราง</button>
     <button onclick="goPage('summary')" id="nav-summary">📊 สรุป OT</button>
   </div>
+  <span id="sync-badge" style="margin-left:8px;font-size:12px;color:rgba(255,255,255,.6)">🔄 กำลังเชื่อมต่อ...</span>
+</div>
+
+<div id="fb-loading" style="display:none;position:fixed;inset:0;background:rgba(245,244,240,.95);z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:10px">
+  <div style="font-size:36px">🏥</div>
+  <div style="font-size:15px;font-weight:600;color:#1a5c3a">กำลังโหลดข้อมูล...</div>
+  <div style="font-size:12px;color:#6b6b67">เชื่อมต่อ Firebase</div>
 </div>
 
 <div class="content">
@@ -396,7 +403,21 @@ table.sum tr:nth-child(even) td{background:var(--bg)}
 </div>
 </div>
 
-<script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+import { getFirestore, doc as fsDoc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+
+const _app = initializeApp({
+  apiKey:"AIzaSyCh_bHkty6Sn_iqjQazC2TYvsX9DQXt1FQ",
+  authDomain:"shift-scheduler-rn-ayh.firebaseapp.com",
+  projectId:"shift-scheduler-rn-ayh",
+  storageBucket:"shift-scheduler-rn-ayh.firebasestorage.app",
+  messagingSenderId:"50253427407",
+  appId:"1:50253427407:web:2d14553b8b9339430a7dba"
+});
+const _db = getFirestore(_app);
+const _ref = fsDoc(_db, 'er_schedule', 'state_er');
+
 // ========== CONSTANTS ==========
 const DAYS_TH = ['อา','จ','อ','พ','พฤ','ศ','ส'];
 const MONTHS_TH = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
@@ -422,25 +443,74 @@ const PILL_STYLE = {
 
 // ========== STATE ==========
 let S = {
-  doctors: [],
-  holidays: {},
-  schedule: {},
-  carryOver: {},
-  towWeeks: [],
-  currentYear: new Date().getFullYear(),
-  currentMonth: new Date().getMonth(),
-  lastSaved: null
+  doctors:[],holidays:{},schedule:{},carryOver:{},towWeeks:[],
+  currentYear:new Date().getFullYear(),currentMonth:new Date().getMonth(),lastSaved:null
 };
+let _saving=false, _pendingSave=false, _unsub=null;
 
-function save() {
-  S.lastSaved = new Date().toISOString();
-  localStorage.setItem('er_sched_v4', JSON.stringify(S));
+// ========== FIREBASE SAVE/LOAD ==========
+async function save(){
+  S.lastSaved=new Date().toISOString();
+  localStorage.setItem('er_sched_v4',JSON.stringify(S));
   updateBackupInfo();
+  if(_saving){_pendingSave=true;return;}
+  _saving=true;
+  try{ await setDoc(_ref, JSON.parse(JSON.stringify(S))); }
+  catch(e){ console.error(e); showToast('⚠️ บันทึก offline'); }
+  _saving=false;
+  if(_pendingSave){_pendingSave=false;save();}
 }
-function load() {
-  const d = localStorage.getItem('er_sched_v4');
-  if (d) { try { const p = JSON.parse(d); Object.keys(p).forEach(k=>S[k]=p[k]); } catch(e){} }
-  if (!S.doctors.length) initDefaultDoctors();
+function load(){
+  const d=localStorage.getItem('er_sched_v4');
+  if(d){try{const p=JSON.parse(d);Object.keys(p).forEach(k=>S[k]=p[k]);}catch(e){}}
+  if(!S.doctors.length)initDefaultDoctors();
+}
+async function initFirebase(){
+  const loading=document.getElementById('fb-loading');
+  const badge=document.getElementById('sync-badge');
+  if(loading) loading.style.display='flex';
+  try{
+    const snap=await getDoc(_ref);
+    if(snap.exists()){
+      const r=snap.data(),yr=S.currentYear,mo=S.currentMonth;
+      Object.keys(r).forEach(k=>S[k]=r[k]);
+      S.currentYear=yr;S.currentMonth=mo;
+      localStorage.setItem('er_sched_v4',JSON.stringify(S));
+    } else {
+      if(!S.doctors.length)initDefaultDoctors();
+      await setDoc(_ref,JSON.parse(JSON.stringify(S)));
+    }
+  }catch(e){
+    console.error('Firebase load error:',e);
+  }
+  if(loading) loading.style.display='none';
+  goPage('setup'); // always run this no matter what
+  // Start real-time listener after page is shown
+  try{
+    _unsub=onSnapshot(_ref, snap=>{
+      if(!snap.exists())return;
+      const r=snap.data(),yr=S.currentYear,mo=S.currentMonth;
+      Object.keys(r).forEach(k=>S[k]=r[k]);
+      S.currentYear=yr;S.currentMonth=mo;
+      localStorage.setItem('er_sched_v4',JSON.stringify(S));
+      updateBackupInfo();
+      const active=document.querySelector('.page.active');
+      if(active){
+        const pid=active.id.replace('page-','');
+        if(pid==='setup')renderSetup();
+        else if(pid==='tow')renderTow();
+        else if(pid==='schedule')renderSchedule();
+        else if(pid==='summary')renderSummary();
+      }
+      if(badge){badge.textContent='🟢 Synced';badge.style.color='#86efac';}
+    }, err=>{
+      console.error('Snapshot error:',err);
+      if(badge){badge.textContent='🔴 Offline';badge.style.color='#fca5a5';}
+    });
+  }catch(e){
+    console.error('onSnapshot error:',e);
+    if(badge){badge.textContent='🔴 Offline';badge.style.color='#fca5a5';}
+  }
 }
 function initDefaultDoctors() {
   const names = ['น.พ.สมชาย ใจดี','พ.ญ.สมหญิง รักดี','น.พ.วิชัย เก่งกาจ',
@@ -673,15 +743,6 @@ function moveDoc(id, dir) {
   save(); renderDocList(); renderDocSelect();
 }
 
-function saveDocSettings() {
-  const did=document.getElementById('sel-doc').value;
-  const d=doc(did); if(!d) return;
-  d.chief=document.getElementById('is-chief').checked;
-  d.chiefLimit=parseInt(document.getElementById('chief-lim').value)||4;
-  d.prefs=[...document.querySelectorAll('#pref-tags .tag.on')].map(t=>t.dataset.p);
-  save(); renderDocList();
-  showToast('บันทึกแล้ว ✓');
-}
 
 function renderHolList() {
   document.getElementById('hol-list').innerHTML = Object.keys(S.holidays).sort().map(d=>`
@@ -1269,9 +1330,23 @@ function showToast(msg){
   setTimeout(()=>t.style.opacity='0',2500);
 }
 
+// ========== EXPOSE TO WINDOW (required for type="module") ==========
+Object.assign(window, {
+  goPage,changeMonth,clearSched,autoGenerate,
+  openModal,pickShift,closeModal,bgClose,
+  addDoc,removeDoc,renameDoc,moveDoc,editInitials,saveDocSettings,loadDocSettings,
+  addOff,delOff,delWant,addHol,delHol,
+  addTowRow,delTowRow,autoFillEnd,
+  copySheet,exportJSON,importJSON,resetAll,
+  setReqMode,initOffShifts,toggleOffShift,
+  renderOffList,setCarry,
+});
+// inline onchange handlers use save() directly
+window.save=save;
+
 // ========== INIT ==========
-load();
-goPage('setup');
+load(); // load localStorage as fallback first
+initFirebase(); // then connect Firebase
 </script>
 </body>
 </html>
