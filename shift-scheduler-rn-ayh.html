@@ -672,6 +672,9 @@ function loadFromFirebase(cb){
       if(q.staff)assignState.staff=q.staff;
       if(q.assignments)assignState.assignments=q.assignments;
       if(q.rosters)assignState.rosters=q.rosters;
+      // staff คือ master → sync persons
+      dedupeStaff();
+      shiftState.persons=assignState.staff.map(function(st){return st.name;});
       try{localStorage.setItem('erAssign3',JSON.stringify(assignState));}catch(e){}
     }
     check();
@@ -683,13 +686,13 @@ function listenFirebase(){
   window.db.collection('schedules').doc('main').onSnapshot(function(doc){
     if(_skipNextSnapshot){_skipNextSnapshot=false;return;}
     if(doc.exists){var p=doc.data();
-      if(p.persons)shiftState.persons=p.persons;
       if(p.data)shiftState.data=p.data;
       if(p.holidays)shiftState.holidays=p.holidays;
       if(p.special)shiftState.special=p.special;
       if(p.threshold)shiftState.threshold=p.threshold;
+      // persons: ใช้จาก Firebase เฉพาะถ้า assignState.staff ว่างอยู่
+      if(p.persons&&assignState.staff.length===0)shiftState.persons=p.persons;
       try{localStorage.setItem('erShift',JSON.stringify(shiftState));}catch(e){}
-      dedupeStaff();syncStaffAndPersons();
       renderSchedule();renderPersonList();renderStaffTable();
       var si=document.getElementById('syncInd');
       si.textContent='🔄 ซิงค์แล้ว';si.style.opacity='1';
@@ -703,9 +706,12 @@ function listenFirebase(){
       if(q.staff)assignState.staff=q.staff;
       if(q.assignments)assignState.assignments=q.assignments;
       if(q.rosters)assignState.rosters=q.rosters;
+      // sync persons จาก staff (staff คือ master)
+      dedupeStaff();
+      shiftState.persons=assignState.staff.map(function(st){return st.name;});
       try{localStorage.setItem('erAssign3',JSON.stringify(assignState));}catch(e){}
-      dedupeStaff();syncStaffAndPersons();
-      renderStaffTable();renderAssignCalendar();
+      try{localStorage.setItem('erShift',JSON.stringify(shiftState));}catch(e){}
+      renderStaffTable();renderSchedule();renderPersonList();renderAssignCalendar();
       if(document.getElementById('assign-daily-view').style.display!=='none')renderDayView();
       var si=document.getElementById('syncInd');
       si.textContent='🔄 ซิงค์แล้ว';si.style.opacity='1';
@@ -1846,19 +1852,18 @@ updateMonthDisplay();
 
 // sync สองทิศทาง: persons ↔ staff — ไม่ reorder ที่มีอยู่แล้ว
 function syncStaffAndPersons(){
-  // persons → staff (เพิ่มคนที่มีใน persons แต่ไม่มีใน staff)
+  // staff คือ source of truth
+  // persons ต้องตรงกับ staff เสมอ (ลำดับตาม staff)
+  var staffNames=assignState.staff.map(function(st){return st.name;});
+  // เพิ่มคนใน persons ที่ไม่มีใน staff ต่อท้าย staff (เผื่อมีคนใน schedule แต่ยังไม่ได้เพิ่มใน staff)
   shiftState.persons.forEach(function(name){
-    if(!getStaffByName(name))
+    if(staffNames.indexOf(name)<0)
       assignState.staff.push({name:name,caps:['incharge','teamlead','triage','resus','member','observe','refer'],conds:[],limits:{},note:''});
   });
-  // staff → persons (เพิ่มคนที่มีใน staff แต่ไม่มีใน persons — ต่อท้าย ไม่ reorder)
-  assignState.staff.forEach(function(st){
-    if(shiftState.persons.indexOf(st.name)<0)
-      shiftState.persons.push(st.name);
-  });
+  // sync persons ให้ตรงกับ staff (staff เป็น master)
+  shiftState.persons=assignState.staff.map(function(st){return st.name;});
   dedupeStaff();
-  saveAssign();
-  // ไม่ saveShift() ที่นี่เพื่อกัน loop กับ Firebase
+  // ไม่ saveShift/saveAssign ที่นี่เพื่อกัน loop
 }
 
 syncStaffAndPersons();
