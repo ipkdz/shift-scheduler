@@ -770,6 +770,7 @@ function dedupeStaff(){
     seen2[n]=true;return true;
   });
 }
+function getHoliday(y,m,d){var s=ds(y,m,d);for(var i=0;i<shiftState.holidays.length;i++)if(shiftState.holidays[i].date===s)return shiftState.holidays[i];return null;}
 function getCell(pi,d){
   var name=shiftState.persons[pi];
   var k=mk(shiftState.year,shiftState.month);
