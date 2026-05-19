@@ -1704,9 +1704,10 @@ function removeStaff(idx){
   var name=assignState.staff[idx].name;
   if(!confirm('ลบ "'+name+'" ออก?'))return;
   assignState.staff.splice(idx,1);
-  var pi=shiftState.persons.indexOf(name);
-  if(pi>=0){shiftState.persons.splice(pi,1);saveShift();renderSchedule();}
-  saveAssign();renderStaffTable();renderPersonList();
+  // saveAssign จะ sync persons จาก staff และ save ทั้งคู่
+  saveAssign();
+  saveShift();
+  renderStaffTable();renderPersonList();renderSchedule();
   showToast('ลบ "'+name+'" แล้ว');
 }
 
@@ -1800,7 +1801,14 @@ document.getElementById('btnModalSave').addEventListener('click',function(){
 document.getElementById('summaryFilter').addEventListener('change',renderSummary);
 
 // Persons
-document.getElementById('btnAddPerson').addEventListener('click',function(){var inp=document.getElementById('newPersonName'),name=inp.value.trim();if(!name)return;shiftState.persons.push(name);inp.value='';saveShift();renderPersonList();renderSchedule();showToast('เพิ่ม "'+name+'" แล้ว');});
+document.getElementById('btnAddPerson').addEventListener('click',function(){
+  var inp=document.getElementById('newPersonName'),name=inp.value.trim();
+  if(!name)return;
+  if(getStaffByName(name)){showToast('มีชื่อนี้อยู่แล้ว');return;}
+  assignState.staff.push({name:name,caps:['incharge','teamlead','triage','resus','member','observe','refer'],conds:[],limits:{},note:''});
+  inp.value='';saveAssign();saveShift();renderPersonList();renderStaffTable();renderSchedule();
+  showToast('เพิ่ม "'+name+'" แล้ว');
+});
 document.getElementById('newPersonName').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('btnAddPerson').click();});
 
 // Holiday
@@ -1850,9 +1858,8 @@ document.getElementById('btnSModalRename').addEventListener('click',function(){
   if(!n||!n.trim()||n.trim()===old)return;
   var newName=n.trim();
   assignState.staff[sModalIdx].name=newName;
-  var pi=shiftState.persons.indexOf(old);
-  if(pi>=0){shiftState.persons[pi]=newName;saveShift();renderSchedule();}
-  saveAssign();renderStaffTable();renderPersonList();
+  saveAssign();saveShift();
+  renderStaffTable();renderPersonList();renderSchedule();
   document.getElementById('sModalName').textContent=newName;
   showToast('แก้ชื่อเป็น "'+newName+'" แล้ว ✓');
 });
