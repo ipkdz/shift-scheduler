@@ -556,7 +556,6 @@ var POS_CLASS=[null,'pc-1','pc-2','pc-3','pc-4','pc-5'];
 var POS_COLOR=['#e0e0e0','#111','#e53935','#8e24aa','#388e3c','#1565c0'];
 var POS_LABELS=['ไม่ระบุ','ตึก','OT','C2','EMD','EMS'];
 var SPECIAL_STAMPS=[
-  // key, label, char, bgClass, canPair, countsAs(1=ตึก,2=OT,null=ไม่นับสี), countsShift(นับเป็นคนขึ้นเวร), countsTotal(นับใน total)
   {key:'vac',       label:'Vac (ลาพักผ่อน)', char:'Vac', bgClass:'cell-vac',        canPair:false, countsAs:1,    countsShift:false, countsTotal:true},
   {key:'lk',        label:'ลก (ลากิจ)',       char:'ลก',  bgClass:'cell-lk',         canPair:false, countsAs:null, countsShift:false, countsTotal:false},
   {key:'lp',        label:'ลป (ลาป่วย)',      char:'ลป',  bgClass:'cell-lp',         canPair:false, countsAs:null, countsShift:false, countsTotal:false},
@@ -727,6 +726,8 @@ function loadFromFirebase(cb){
     migrateDataToNameBased();
     try{localStorage.setItem('erAssign3',JSON.stringify(assignState));}catch(e){}
     try{localStorage.setItem('erShift',JSON.stringify(shiftState));}catch(e){}
+    // save migrated data กลับ Firebase เพื่อ overwrite index-based data เก่า
+    saveShift();
     check();
   }).catch(function(){check();});
 }
@@ -757,6 +758,7 @@ function listenFirebase(){
       if(q.rosters)assignState.rosters=q.rosters;
       dedupeStaff();
       shiftState.persons=assignState.staff.map(function(s){return s.name;});
+      migrateDataToNameBased();
       try{localStorage.setItem('erAssign3',JSON.stringify(assignState));}catch(e){}
       try{localStorage.setItem('erShift',JSON.stringify(shiftState));}catch(e){}
       renderStaffTable();renderSchedule();renderPersonList();renderAssignCalendar();
@@ -773,28 +775,44 @@ function listenFirebase(){
 function migrateDataToNameBased(){
   var persons=shiftState.persons;
   if(!persons||persons.length===0)return;
+  // ฟังก์ชันช่วย: เช็คว่า key นี้เป็น index เลข (ไม่ใช่ชื่อคน)
+  function isIndexKey(k){
+    var n=Number(k);
+    return Number.isInteger(n)&&n>=0&&n<persons.length&&String(n)===String(k);
+  }
   for(var mk2 in shiftState.data){
     var monthData=shiftState.data[mk2];
-    var needsMigration=false;
-    for(var key in monthData){if(!isNaN(parseInt(key))&&parseInt(key).toString()===key){needsMigration=true;break;}}
-    if(!needsMigration)continue;
+    var keys=Object.keys(monthData);
+    if(keys.length===0)continue;
+    // ถ้ามี key ไหนเป็น index → migrate ทั้ง month
+    var needsMig=keys.some(function(k){return isIndexKey(k);});
+    if(!needsMig)continue;
     var newData={};
-    for(var idx in monthData){
-      var name=persons[parseInt(idx)];
-      if(name)newData[name]=monthData[idx];
-    }
+    keys.forEach(function(k){
+      if(isIndexKey(k)){
+        var name=persons[parseInt(k)];
+        if(name)newData[name]=monthData[k];
+      }else{
+        newData[k]=monthData[k]; // ชื่อจริงแล้ว เก็บไว้
+      }
+    });
     shiftState.data[mk2]=newData;
   }
   for(var sk in shiftState.special){
     var monthSpec=shiftState.special[sk];
-    var needsMig2=false;
-    for(var key2 in monthSpec){if(!isNaN(parseInt(key2))&&parseInt(key2).toString()===key2){needsMig2=true;break;}}
+    var keys2=Object.keys(monthSpec);
+    if(keys2.length===0)continue;
+    var needsMig2=keys2.some(function(k){return isIndexKey(k);});
     if(!needsMig2)continue;
     var newSpec={};
-    for(var idx2 in monthSpec){
-      var name2=persons[parseInt(idx2)];
-      if(name2)newSpec[name2]=monthSpec[idx2];
-    }
+    keys2.forEach(function(k){
+      if(isIndexKey(k)){
+        var name2=persons[parseInt(k)];
+        if(name2)newSpec[name2]=monthSpec[k];
+      }else{
+        newSpec[k]=monthSpec[k];
+      }
+    });
     shiftState.special[sk]=newSpec;
   }
 }
@@ -824,7 +842,43 @@ function setCell(pi,d,val){
   if(!shiftState.data[k])shiftState.data[k]={};
   if(!shiftState.data[k][name])shiftState.data[k][name]={};
   shiftState.data[k][name][d]=val;
-  saveShift();
+  // save local ก่อน
+  try{localStorage.setItem('erShift',JSON.stringify(shiftState));}catch(e){}
+  // update เฉพาะ field นี้ใน Firebase (ไม่ overwrite ทั้ง document)
+  if(window.db){
+    _skipNextSnapshot=true;
+    var update={};
+    update['data.'+k+'.'+name+'.'+d]=val;
+    window.db.collection('schedules').doc('main').update(update).catch(function(e){
+      // ถ้า update ไม่ได้ (document ยังไม่มี) ให้ set แทน
+      saveShift();
+    });
+  }
+}
+function setSpecialDirect(pi,d,val){
+  var name=shiftState.persons[pi];
+  var k=mk(shiftState.year,shiftState.month);
+  if(!shiftState.special[k])shiftState.special[k]={};
+  if(!shiftState.special[k][name])shiftState.special[k][name]={};
+  if(val===null){
+    delete shiftState.special[k][name][d];
+  }else{
+    shiftState.special[k][name][d]=val;
+  }
+  try{localStorage.setItem('erShift',JSON.stringify(shiftState));}catch(e){}
+  if(window.db){
+    _skipNextSnapshot=true;
+    var update2={};
+    var fieldPath='special.'+k+'.'+name+'.'+d;
+    if(val===null){
+      update2[fieldPath]=window.firebase&&window.firebase.firestore?window.firebase.firestore.FieldValue.delete():null;
+      // fallback: ใช้ saveShift ถ้าลบ field ไม่ได้
+      saveShift();
+    }else{
+      update2[fieldPath]=val;
+      window.db.collection('schedules').doc('main').update(update2).catch(function(){saveShift();});
+    }
+  }
 }
 function getSpecial(pi,d){
   var name=shiftState.persons[pi];
@@ -836,8 +890,23 @@ function setSpecial(pi,d,val){
   var k=mk(shiftState.year,shiftState.month);
   if(!shiftState.special[k])shiftState.special[k]={};
   if(!shiftState.special[k][name])shiftState.special[k][name]={};
-  shiftState.special[k][name][d]=val;
-  saveShift();
+  if(val===null){
+    delete shiftState.special[k][name][d];
+  }else{
+    shiftState.special[k][name][d]=val;
+  }
+  try{localStorage.setItem('erShift',JSON.stringify(shiftState));}catch(e){}
+  if(window.db){
+    _skipNextSnapshot=true;
+    var update={};
+    update['special.'+k+'.'+name+'.'+d]=val===null?'__DELETE__':val;
+    // ถ้า val เป็น null ต้อง saveShift แทน (ลบ field ด้วย update ต้องใช้ FieldValue.delete)
+    if(val===null){
+      saveShift();
+    }else{
+      window.db.collection('schedules').doc('main').update(update).catch(function(){saveShift();});
+    }
+  }
 }
 function countColor(d,shift,colorIdx,excludePi){
   var cnt=0;
@@ -865,6 +934,7 @@ function renderStampButtons(){
     }
   }
   for(var xi=0;xi<SPECIAL_STAMPS.length;xi++){var sp=SPECIAL_STAMPS[xi];
+    if(sp.hidden)continue;
     var isActiveX=stampMode&&stampMode.type==='special'&&stampMode.key===sp.key;
     var spBgMap={vac:'#f1f5f9',lk:'#fef9c3',lp:'#fef2f2',mpch:'#e0f2fe',mha:'#e0f2fe',tunit:'#fff1f2',preceptor:'#fff7ed',teach:'#fffde7'};
     var spBg=spBgMap[sp.key]||'#eee';
@@ -921,11 +991,11 @@ function renderSchedule(){
     var pc={total:0,P:0};for(var ci0=1;ci0<=5;ci0++)pc[ci0]=0;
     for(var d1=1;d1<=days;d1++){
       var sp1=getSpecial(pi1,d1),spInf1=sp1?getSpInfo(sp1):null;
-      // นับ special ที่ countsAs (ตึก/OT ฯลฯ)
-      if(sp1&&spInf1&&spInf1.countsAs)pc[spInf1.countsAs]++;
       // นับ P แยก
       if(sp1&&sp1==='preceptor')pc.P++;
-      // นับจาก cell เสมอถ้า canPair หรือไม่มี special
+      // นับ countsAs ของ special เสมอ (ทั้ง canPair และไม่ canPair)
+      if(sp1&&spInf1&&spInf1.countsAs)pc[spInf1.countsAs]++;
+      // นับจาก cell ถ้า canPair หรือไม่มี special
       if(!sp1||(spInf1&&spInf1.canPair)){
         var c1=getCell(pi1,d1);
         for(var si2=0;si2<c1.shifts.length;si2++){
@@ -1022,6 +1092,8 @@ function handleCell(pi,d){
   // stamp เวร — ถ้า special ปัจจุบัน canPair=false → ไม่ให้ stamp เวรทับ
   var curSp=getSpecial(pi,d),curSpInf=curSp?getSpInfo(curSp):null;
   if(curSp&&curSpInf&&!curSpInf.canPair){showToast('⚠️ '+curSpInf.label+' ไม่สามารถคู่กับเวรได้');return;}
+  // ชปช/ชHA คู่กับเวรเช้าไม่ได้ (เพราะเป็นเช้าเหมือนกัน)
+  if(curSp&&(curSp==='mpch'||curSp==='mha')&&stampMode.shift==='ช'){showToast('⚠️ ชปช/ชHA คู่กับเวรเช้าไม่ได้');return;}
   var cell=getCell(pi,d),shifts=cell.shifts.slice(),colors=Object.assign({},cell.colors);
   var s=stampMode.shift,c=stampMode.color;
   if(c===3&&s==='ด'){showToast('⚠️ C2 ไม่มีเวรดึก');return;}
