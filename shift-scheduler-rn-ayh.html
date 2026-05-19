@@ -709,6 +709,8 @@ function loadFromFirebase(cb){
       if(p.holidays)shiftState.holidays=p.holidays;
       if(p.special)shiftState.special=p.special;
       if(p.threshold)shiftState.threshold=p.threshold;
+      migrateDataToNameBased();
+      try{localStorage.setItem('erShift',JSON.stringify(shiftState));}catch(e){}
     }
     check();
   }).catch(function(){check();});
@@ -738,6 +740,7 @@ function listenFirebase(){
       if(p.holidays)shiftState.holidays=p.holidays;
       if(p.special)shiftState.special=p.special;
       if(p.threshold)shiftState.threshold=p.threshold;
+      migrateDataToNameBased();
       try{localStorage.setItem('erShift',JSON.stringify(shiftState));}catch(e){}
       renderSchedule();renderPersonList();
       var si=document.getElementById('syncInd');
@@ -1788,23 +1791,20 @@ function exportScheduleExcel(){
 }
 function printSchedule(){
   var y=shiftState.year,m=shiftState.month,days=daysIn(y,m);
-  var monthName=MONTHS_TH[m]+' '+(y+543);
-  var html='<div class="print-title">ตารางมอบหมายงาน — '+monthName+'</div>';
+  var thaiMonth=MONTHS_TH[m],thaiYear=y+543;
+  var html='<div class="print-title">ตารางเวรแผนกอุบัติเหตุ-ฉุกเฉิน ประจำเดือน '+thaiMonth+' ปี '+thaiYear+'</div>';
   html+='<table><colgroup>';
-  html+='<col style="width:70pt">';
-  for(var dc=1;dc<=days;dc++)html+='<col style="width:16pt">';
-  for(var sc=0;sc<7;sc++)html+='<col style="width:12pt">';
+  html+='<col style="width:72pt">';
+  for(var dc=1;dc<=days;dc++)html+='<col style="width:17pt">';
   html+='</colgroup><thead><tr>';
   html+='<th class="print-header print-name-col">ชื่อ</th>';
   for(var d=1;d<=days;d++){
     var dow=new Date(y,m,d).getDay(),isWE=dow===0||dow===6;
-    html+='<th class="print-header print-day-col'+(isWE?' print-we':'')+'">'+d+'<br><span style="font-size:6.5pt;color:#888;">'+DAYS_TH[dow]+'</span></th>';
+    html+='<th class="print-header print-day-col'+(isWE?' print-we':'')+'">'+d+'<br><span class="day-sub">'+DAYS_TH[dow]+'</span></th>';
   }
-  ['ตึก','OT','C2','EMD','EMS','P','รวม'].forEach(function(lbl){html+='<th class="print-header print-sum-col">'+lbl+'</th>';});
   html+='</tr></thead><tbody>';
 
   for(var pi=0;pi<shiftState.persons.length;pi++){
-    var pc={total:0,P:0};for(var ci=1;ci<=5;ci++)pc[ci]=0;
     html+='<tr><td class="print-name-col">'+shiftState.persons[pi]+'</td>';
     for(var d2=1;d2<=days;d2++){
       var dow2=new Date(y,m,d2).getDay(),isWE2=dow2===0||dow2===6,extraCls=isWE2?' print-we':'';
@@ -1812,75 +1812,51 @@ function printSchedule(){
       var cell=getCell(pi,d2);
       if(sp&&spInf){
         if(spInf.canPair&&cell.shifts&&cell.shifts.length>0){
-          html+='<td class="print-day-col'+extraCls+'" style="padding:0;">';
-          html+='<div style="font-size:7pt;font-weight:700;line-height:1.1;" class="'+spInf.bgClass+'">'+spInf.char+'</div>';
+          html+='<td class="print-day-col'+extraCls+'">';
+          html+='<span class="sp-char '+spInf.bgClass+'">'+spInf.char+'</span>';
           for(var si=0;si<cell.shifts.length;si++){var sh=cell.shifts[si],co=cell.colors[sh]||0;
-            html+='<div class="'+(co?'pc-'+co:'')+'" style="font-size:9pt;font-weight:700;line-height:1.1;">'+sh+'</div>';
-            if(co>0)pc[co]++;}
+            html+='<span class="'+(co?'pc-'+co:'')+' shift-char">'+sh+'</span>';}
           html+='</td>';
-          if(spInf.countsAs)pc[spInf.countsAs]++;if(sp==='preceptor')pc.P++;
         }else{
-          html+='<td class="print-day-col '+spInf.bgClass+extraCls+'" style="font-size:8.5pt;font-weight:700;">'+spInf.char+'</td>';
-          if(spInf.countsAs)pc[spInf.countsAs]++;if(sp==='preceptor')pc.P++;
+          html+='<td class="print-day-col '+spInf.bgClass+extraCls+'">'+spInf.char+'</td>';
         }
+      }else if(cell.shifts&&cell.shifts.length>0){
+        html+='<td class="print-day-col'+extraCls+'">';
+        for(var si2=0;si2<cell.shifts.length;si2++){var sh2=cell.shifts[si2],co2=cell.colors[sh2]||0;
+          html+='<span class="'+(co2?'pc-'+co2:'')+' shift-char">'+sh2+'</span>';}
+        html+='</td>';
       }else{
-        if(cell.shifts&&cell.shifts.length>0){
-          html+='<td class="print-day-col'+extraCls+'" style="padding:1px 0;">';
-          for(var si2=0;si2<cell.shifts.length;si2++){var sh2=cell.shifts[si2],co2=cell.colors[sh2]||0;
-            html+='<div class="'+(co2?'pc-'+co2:'')+'" style="font-size:9.5pt;font-weight:700;line-height:1.15;">'+sh2+'</div>';
-            if(co2>0)pc[co2]++;}
-          html+='</td>';
-        }else{html+='<td class="print-day-col'+extraCls+'"></td>';}
+        html+='<td class="print-day-col'+extraCls+'"></td>';
       }
     }
-    pc.total=pc[1]+pc[2]+pc[3]+pc[4]+pc[5]+pc.P;
-    [1,2,3,4,5].forEach(function(ci2){html+='<td class="print-sum-col">'+(pc[ci2]||'')+'</td>';});
-    html+='<td class="print-sum-col">'+(pc.P||'')+'</td>';
-    html+='<td class="print-sum-col" style="font-weight:700;">'+pc.total+'</td></tr>';
+    html+='</tr>';
   }
-
-  var sumLabels={ด:'ดึก',ช:'เช้า',บ:'บ่าย'};
-  var thrMap={'ช':shiftState.threshold['ช']||11,'บ':shiftState.threshold['บ']||11,'ด':shiftState.threshold['ด']||7};
-  ['ด','ช','บ'].forEach(function(sv){
-    html+='<tr><td class="sum-row-label print-name-col">'+sv+' '+sumLabels[sv]+'</td>';
-    for(var d3=1;d3<=days;d3++){
-      var dow3=new Date(y,m,d3).getDay(),isWE3=dow3===0||dow3===6,cnt=0,hasEMS=false;
-      for(var pi2=0;pi2<shiftState.persons.length;pi2++){
-        var sp2=getSpecial(pi2,d3),spInf2=sp2?getSpInfo(sp2):null;
-        if(sp2&&spInf2&&!spInf2.countsShift&&!spInf2.canPair)continue;
-        var c2=getCell(pi2,d3);
-        if(c2.shifts.indexOf(sv)>=0){var co3=c2.colors[sv]||0;if(co3!==4){cnt++;if(co3===5)hasEMS=true;}}
-      }
-      var need=thrMap[sv]+(hasEMS?1:0),scls=cnt===0&&need===0?'':cnt===need?'sum-ok':'sum-ng';
-      html+='<td class="print-day-col '+(isWE3?'print-we ':'')+scls+'">'+(cnt||'')+'</td>';
-    }
-    html+='<td class="print-sum-col" colspan="7"></td></tr>';
-  });
   html+='</tbody></table>';
 
   var printWin=window.open('','_blank','width=1200,height=800');
   printWin.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8">');
-  printWin.document.write('<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&family=Prompt:wght@700&display=swap" rel="stylesheet">');
+  printWin.document.write('<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">');
   printWin.document.write('<style>');
   printWin.document.write('@page{size:A4 landscape;margin:8mm;}');
   printWin.document.write('*{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}');
   printWin.document.write('body{font-family:Sarabun,sans-serif;background:#fff;}');
-  printWin.document.write('.print-title{font-family:Prompt,sans-serif;font-size:13pt;font-weight:700;text-align:center;margin-bottom:3mm;color:#1a1d2e;}');
+  printWin.document.write('.print-title{font-family:Sarabun,sans-serif;font-size:12pt;font-weight:700;text-align:center;margin-bottom:4mm;color:#1a1d2e;}');
   printWin.document.write('table{border-collapse:collapse;width:100%;table-layout:fixed;}');
-  printWin.document.write('th,td{border:0.5pt solid #bbb;padding:2px 1px;text-align:center;vertical-align:middle;overflow:hidden;}');
-  printWin.document.write('.print-name-col{text-align:left;padding-left:3px;font-weight:600;width:70pt;font-size:7.5pt;}');
-  printWin.document.write('.print-day-col{width:16pt;font-size:9.5pt;font-weight:700;}');
-  printWin.document.write('.print-sum-col{width:12pt;font-size:7pt;color:#555;}');
-  printWin.document.write('.print-header{background:#eef0f7;font-size:7pt;font-weight:700;color:#444;}');
+  printWin.document.write('thead{display:table-header-group;}');
+  printWin.document.write('th,td{border:0.5pt solid #ccc;text-align:center;vertical-align:middle;overflow:hidden;height:18pt;}');
+  printWin.document.write('.print-name-col{text-align:left;padding-left:4px;font-weight:600;font-size:9pt;width:72pt;white-space:nowrap;overflow:hidden;}');
+  printWin.document.write('.print-day-col{font-size:11pt;font-weight:700;width:17pt;padding:1px 0;}');
+  printWin.document.write('.print-header{background:#eef0f7;font-size:10pt;font-weight:700;color:#333;height:22pt;}');
+  printWin.document.write('tbody tr{height:22pt;}');
+  printWin.document.write('.day-sub{font-size:7pt;font-weight:400;color:#777;display:block;}');
   printWin.document.write('.print-we{background:#dbeafe;}');
+  printWin.document.write('.shift-char{display:block;line-height:1.2;}');
+  printWin.document.write('.sp-char{display:block;font-size:7pt;font-weight:700;line-height:1.2;}');
   printWin.document.write('.pc-1{color:#111;}.pc-2{color:#e53935;}.pc-3{color:#8e24aa;}.pc-4{color:#388e3c;}.pc-5{color:#1565c0;}');
   printWin.document.write('.cell-vac{background:#f1f5f9;color:#111;}.cell-lk{background:#fef9c3;color:#713f12;}');
   printWin.document.write('.cell-lp{background:#fef2f2;color:#991b1b;}.cell-mpch{background:#e0f2fe;color:#111;}');
   printWin.document.write('.cell-mha{background:#e0f2fe;color:#111;}.cell-tunit{background:#fff1f2;color:#dc2626;}');
   printWin.document.write('.cell-preceptor{background:#fff7ed;color:#ea580c;}.cell-teach{background:#fffde7;color:#d4a017;}');
-  printWin.document.write('.sum-row-label{background:#f8f8f8;font-weight:700;font-size:7.5pt;}');
-  printWin.document.write('.sum-ok{background:#d1fae5;color:#065f46;font-weight:700;}.sum-ng{background:#fee2e2;color:#991b1b;font-weight:700;}');
-  printWin.document.write('thead{display:table-header-group;}');
   printWin.document.write('</style></head><body>');
   printWin.document.write(html);
   printWin.document.write('</body></html>');
