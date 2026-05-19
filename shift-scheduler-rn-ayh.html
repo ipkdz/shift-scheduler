@@ -605,20 +605,25 @@ function showToast(msg){var t=document.getElementById('toast');t.textContent=msg
 
 // ===== SAVE / LOAD =====
 var _skipNextSnapshot=false;
+var _skipNextAssignSnapshot=false;
+
 function saveShift(){
   try{localStorage.setItem('erShift',JSON.stringify(shiftState));}catch(e){}
   if(window.db){
     _skipNextSnapshot=true;
     window.db.collection('schedules').doc('main').set({
-      persons:shiftState.persons,data:shiftState.data,
-      holidays:shiftState.holidays,special:shiftState.special,
+      data:shiftState.data,
+      holidays:shiftState.holidays,
+      special:shiftState.special,
       threshold:shiftState.threshold
     }).catch(function(e){console.error(e);});
   }
 }
-var _skipNextAssignSnapshot=false;
 function saveAssign(){
   try{localStorage.setItem('erAssign3',JSON.stringify(assignState));}catch(e){}
+  // persons เก็บใน assigns เป็น master
+  shiftState.persons=assignState.staff.map(function(s){return s.name;});
+  try{localStorage.setItem('erShift',JSON.stringify(shiftState));}catch(e){}
   if(window.db){
     _skipNextAssignSnapshot=true;
     window.db.collection('assigns').doc('main').set({
@@ -634,7 +639,6 @@ function loadLocal(){
     if(s){var p=JSON.parse(s);
       if(p.year)shiftState.year=p.year;
       if(p.month!==undefined)shiftState.month=p.month;
-      if(p.persons)shiftState.persons=p.persons;
       if(p.data)shiftState.data=p.data;
       if(p.holidays)shiftState.holidays=p.holidays;
       if(p.special)shiftState.special=p.special;
@@ -649,40 +653,45 @@ function loadLocal(){
       if(q.rosters)assignState.rosters=q.rosters;
     }
   }catch(e){}
+  // persons มาจาก staff เสมอ
+  if(assignState.staff.length>0)
+    shiftState.persons=assignState.staff.map(function(s){return s.name;});
   dedupeStaff();
+  migrateDataToNameBased();
 }
 function loadFromFirebase(cb){
   if(!window.db){cb();return;}
-  // โหลดทั้ง shiftState และ assignState พร้อมกัน
   var done=0;
-  function check(){done++;if(done===2)cb();}
+  function check(){if(++done===2)cb();}
+  // schedules: เฉพาะ data/holidays/special/threshold (ไม่มี persons)
   window.db.collection('schedules').doc('main').get().then(function(doc){
     if(doc.exists){var p=doc.data();
-      if(p.persons)shiftState.persons=p.persons;
       if(p.data)shiftState.data=p.data;
       if(p.holidays)shiftState.holidays=p.holidays;
       if(p.special)shiftState.special=p.special;
       if(p.threshold)shiftState.threshold=p.threshold;
-      try{localStorage.setItem('erShift',JSON.stringify(shiftState));}catch(e){}
     }
     check();
   }).catch(function(){check();});
+  // assigns: staff เป็น master ของ persons
   window.db.collection('assigns').doc('main').get().then(function(doc){
     if(doc.exists){var q=doc.data();
       if(q.staff)assignState.staff=q.staff;
       if(q.assignments)assignState.assignments=q.assignments;
       if(q.rosters)assignState.rosters=q.rosters;
-      // staff คือ master → sync persons
-      dedupeStaff();
-      shiftState.persons=assignState.staff.map(function(st){return st.name;});
-      try{localStorage.setItem('erAssign3',JSON.stringify(assignState));}catch(e){}
     }
+    // persons ตาม staff เสมอ
+    dedupeStaff();
+    shiftState.persons=assignState.staff.map(function(s){return s.name;});
+    migrateDataToNameBased();
+    try{localStorage.setItem('erAssign3',JSON.stringify(assignState));}catch(e){}
+    try{localStorage.setItem('erShift',JSON.stringify(shiftState));}catch(e){}
     check();
   }).catch(function(){check();});
 }
 function listenFirebase(){
   if(!window.db)return;
-  // listen shiftState
+  // schedules: ตารางเวร/วันหยุด/special — ไม่แตะ persons
   window.db.collection('schedules').doc('main').onSnapshot(function(doc){
     if(_skipNextSnapshot){_skipNextSnapshot=false;return;}
     if(doc.exists){var p=doc.data();
@@ -690,25 +699,22 @@ function listenFirebase(){
       if(p.holidays)shiftState.holidays=p.holidays;
       if(p.special)shiftState.special=p.special;
       if(p.threshold)shiftState.threshold=p.threshold;
-      // persons: ใช้จาก Firebase เฉพาะถ้า assignState.staff ว่างอยู่
-      if(p.persons&&assignState.staff.length===0)shiftState.persons=p.persons;
       try{localStorage.setItem('erShift',JSON.stringify(shiftState));}catch(e){}
-      renderSchedule();renderPersonList();renderStaffTable();
+      renderSchedule();renderPersonList();
       var si=document.getElementById('syncInd');
       si.textContent='🔄 ซิงค์แล้ว';si.style.opacity='1';
       setTimeout(function(){si.style.opacity='0';},2000);
     }
   });
-  // listen assignState
+  // assigns: staff/assignments/rosters — persons ตาม staff
   window.db.collection('assigns').doc('main').onSnapshot(function(doc){
     if(_skipNextAssignSnapshot){_skipNextAssignSnapshot=false;return;}
     if(doc.exists){var q=doc.data();
       if(q.staff)assignState.staff=q.staff;
       if(q.assignments)assignState.assignments=q.assignments;
       if(q.rosters)assignState.rosters=q.rosters;
-      // sync persons จาก staff (staff คือ master)
       dedupeStaff();
-      shiftState.persons=assignState.staff.map(function(st){return st.name;});
+      shiftState.persons=assignState.staff.map(function(s){return s.name;});
       try{localStorage.setItem('erAssign3',JSON.stringify(assignState));}catch(e){}
       try{localStorage.setItem('erShift',JSON.stringify(shiftState));}catch(e){}
       renderStaffTable();renderSchedule();renderPersonList();renderAssignCalendar();
@@ -721,6 +727,35 @@ function listenFirebase(){
 }
 
 // ===== DEDUP & SYNC STAFF =====
+// migrate index-based data → name-based
+function migrateDataToNameBased(){
+  var persons=shiftState.persons;
+  if(!persons||persons.length===0)return;
+  for(var mk2 in shiftState.data){
+    var monthData=shiftState.data[mk2];
+    var needsMigration=false;
+    for(var key in monthData){if(!isNaN(parseInt(key))&&parseInt(key).toString()===key){needsMigration=true;break;}}
+    if(!needsMigration)continue;
+    var newData={};
+    for(var idx in monthData){
+      var name=persons[parseInt(idx)];
+      if(name)newData[name]=monthData[idx];
+    }
+    shiftState.data[mk2]=newData;
+  }
+  for(var sk in shiftState.special){
+    var monthSpec=shiftState.special[sk];
+    var needsMig2=false;
+    for(var key2 in monthSpec){if(!isNaN(parseInt(key2))&&parseInt(key2).toString()===key2){needsMig2=true;break;}}
+    if(!needsMig2)continue;
+    var newSpec={};
+    for(var idx2 in monthSpec){
+      var name2=persons[parseInt(idx2)];
+      if(name2)newSpec[name2]=monthSpec[idx2];
+    }
+    shiftState.special[sk]=newSpec;
+  }
+}
 function dedupeStaff(){
   // remove duplicate names in assignState.staff (keep first occurrence)
   var seen={};
@@ -735,12 +770,41 @@ function dedupeStaff(){
     seen2[n]=true;return true;
   });
 }
-function getCell(pi,d){var k=mk(shiftState.year,shiftState.month);return(shiftState.data[k]&&shiftState.data[k][pi]&&shiftState.data[k][pi][d])||{shifts:[],colors:{}};}
-function setCell(pi,d,val){var k=mk(shiftState.year,shiftState.month);if(!shiftState.data[k])shiftState.data[k]={};if(!shiftState.data[k][pi])shiftState.data[k][pi]={};shiftState.data[k][pi][d]=val;saveShift();}
-function getHoliday(y,m,d){var s=ds(y,m,d);for(var i=0;i<shiftState.holidays.length;i++)if(shiftState.holidays[i].date===s)return shiftState.holidays[i];return null;}
-function getSpecial(pi,d){var k=mk(shiftState.year,shiftState.month);return(shiftState.special[k]&&shiftState.special[k][pi]&&shiftState.special[k][pi][d])||null;}
-function setSpecial(pi,d,val){var k=mk(shiftState.year,shiftState.month);if(!shiftState.special[k])shiftState.special[k]={};if(!shiftState.special[k][pi])shiftState.special[k][pi]={};shiftState.special[k][pi][d]=val;saveShift();}
-function countColor(d,shift,colorIdx,excludePi){var cnt=0;for(var i=0;i<shiftState.persons.length;i++){if(i===excludePi)continue;var c=getCell(i,d);if(c.shifts.indexOf(shift)>=0&&(c.colors[shift]||0)===colorIdx)cnt++;}return cnt;}
+function getCell(pi,d){
+  var name=shiftState.persons[pi];
+  var k=mk(shiftState.year,shiftState.month);
+  return(shiftState.data[k]&&shiftState.data[k][name]&&shiftState.data[k][name][d])||{shifts:[],colors:{}};
+}
+function setCell(pi,d,val){
+  var name=shiftState.persons[pi];
+  var k=mk(shiftState.year,shiftState.month);
+  if(!shiftState.data[k])shiftState.data[k]={};
+  if(!shiftState.data[k][name])shiftState.data[k][name]={};
+  shiftState.data[k][name][d]=val;
+  saveShift();
+}
+function getSpecial(pi,d){
+  var name=shiftState.persons[pi];
+  var k=mk(shiftState.year,shiftState.month);
+  return(shiftState.special[k]&&shiftState.special[k][name]&&shiftState.special[k][name][d])||null;
+}
+function setSpecial(pi,d,val){
+  var name=shiftState.persons[pi];
+  var k=mk(shiftState.year,shiftState.month);
+  if(!shiftState.special[k])shiftState.special[k]={};
+  if(!shiftState.special[k][name])shiftState.special[k][name]={};
+  shiftState.special[k][name][d]=val;
+  saveShift();
+}
+function countColor(d,shift,colorIdx,excludePi){
+  var cnt=0;
+  for(var i=0;i<shiftState.persons.length;i++){
+    if(i===excludePi)continue;
+    var c=getCell(i,d);
+    if(c.shifts.indexOf(shift)>=0&&(c.colors[shift]||0)===colorIdx)cnt++;
+  }
+  return cnt;
+}
 function updateMonthDisplay(){document.getElementById('monthDisplay')&&(document.getElementById('monthDisplay').textContent=MONTHS_TH[shiftState.month]+' '+(shiftState.year+543));}
 
 // ===== STAMP =====
@@ -1104,8 +1168,19 @@ function renderPersonList(){
         }
       }
       else if(action==='del'){if(confirm('ลบ "'+shiftState.persons[idx]+'" ออกจากรายชื่อ?')){shiftState.persons.splice(idx,1);saveShift();renderPersonList();renderSchedule();}}
-      else if(action==='up'&&idx>0){swapShiftDataRows(idx-1,idx);var t=shiftState.persons[idx-1];shiftState.persons[idx-1]=shiftState.persons[idx];shiftState.persons[idx]=t;saveShift();renderPersonList();renderSchedule();}
-      else if(action==='down'&&idx<shiftState.persons.length-1){swapShiftDataRows(idx,idx+1);var t2=shiftState.persons[idx+1];shiftState.persons[idx+1]=shiftState.persons[idx];shiftState.persons[idx]=t2;saveShift();renderPersonList();renderSchedule();}
+      else if(action==='up'&&idx>0){
+        var t=shiftState.persons[idx-1];shiftState.persons[idx-1]=shiftState.persons[idx];shiftState.persons[idx]=t;
+        // sync staff order
+        var stA=getStaffByName(shiftState.persons[idx-1]),stB=getStaffByName(shiftState.persons[idx]);
+        if(stA&&stB){var iA=assignState.staff.indexOf(stA),iB=assignState.staff.indexOf(stB);if(iA>=0&&iB>=0){assignState.staff[iA]=stB;assignState.staff[iB]=stA;}}
+        saveShift();saveAssign();renderPersonList();renderSchedule();
+      }
+      else if(action==='down'&&idx<shiftState.persons.length-1){
+        var t2=shiftState.persons[idx+1];shiftState.persons[idx+1]=shiftState.persons[idx];shiftState.persons[idx]=t2;
+        var stC=getStaffByName(shiftState.persons[idx+1]),stD=getStaffByName(shiftState.persons[idx]);
+        if(stC&&stD){var iC=assignState.staff.indexOf(stC),iD=assignState.staff.indexOf(stD);if(iC>=0&&iD>=0){assignState.staff[iC]=stD;assignState.staff[iD]=stC;}}
+        saveShift();saveAssign();renderPersonList();renderSchedule();
+      }
     });
   });
 }
@@ -1611,54 +1686,18 @@ function renderStaffTable(){
 }
 function staffMoveUp(idx){
   if(idx===0)return;
-  // find person indices before swap
-  var nameA=assignState.staff[idx].name,nameB=assignState.staff[idx-1].name;
-  var piA=shiftState.persons.indexOf(nameA),piB=shiftState.persons.indexOf(nameB);
-  // swap staff array
   var st=assignState.staff,tmp=st[idx-1];st[idx-1]=st[idx];st[idx]=tmp;
-  syncPersonsOrderFromStaff();
-  // swap shift data rows
-  if(piA>=0&&piB>=0)swapShiftDataRows(piA,piB);
+  shiftState.persons=assignState.staff.map(function(s){return s.name;});
   saveAssign();saveShift();renderStaffTable();renderSchedule();renderPersonList();
 }
 function staffMoveDown(idx){
   if(idx===assignState.staff.length-1)return;
-  var nameA=assignState.staff[idx].name,nameB=assignState.staff[idx+1].name;
-  var piA=shiftState.persons.indexOf(nameA),piB=shiftState.persons.indexOf(nameB);
   var st=assignState.staff,tmp=st[idx+1];st[idx+1]=st[idx];st[idx]=tmp;
-  syncPersonsOrderFromStaff();
-  if(piA>=0&&piB>=0)swapShiftDataRows(piA,piB);
+  shiftState.persons=assignState.staff.map(function(s){return s.name;});
   saveAssign();saveShift();renderStaffTable();renderSchedule();renderPersonList();
 }
-function swapShiftDataRows(piA,piB){
-  // swap in shiftState.data (all months)
-  for(var mk in shiftState.data){
-    var monthData=shiftState.data[mk];
-    var rowA=monthData[piA],rowB=monthData[piB];
-    if(rowA!==undefined||rowB!==undefined){
-      monthData[piA]=rowB;
-      monthData[piB]=rowA;
-      if(monthData[piA]===undefined)delete monthData[piA];
-      if(monthData[piB]===undefined)delete monthData[piB];
-    }
-  }
-  // swap in shiftState.special (all months)
-  for(var sk in shiftState.special){
-    var monthSpec=shiftState.special[sk];
-    var specA=monthSpec[piA],specB=monthSpec[piB];
-    if(specA!==undefined||specB!==undefined){
-      monthSpec[piA]=specB;
-      monthSpec[piB]=specA;
-      if(monthSpec[piA]===undefined)delete monthSpec[piA];
-      if(monthSpec[piB]===undefined)delete monthSpec[piB];
-    }
-  }
-}
 function syncPersonsOrderFromStaff(){
-  var ordered=[];
-  assignState.staff.forEach(function(st){if(shiftState.persons.indexOf(st.name)>=0)ordered.push(st.name);});
-  shiftState.persons.forEach(function(n){if(ordered.indexOf(n)<0)ordered.push(n);});
-  shiftState.persons=ordered;
+  shiftState.persons=assignState.staff.map(function(s){return s.name;});
 }
 function removeStaff(idx){
   var name=assignState.staff[idx].name;
