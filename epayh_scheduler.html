@@ -40,7 +40,8 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);fon
 .btn-sm{padding:4px 10px;font-size:12px}
 
 /* Forms */
-input[type=text],input[type=number],input[type=date],select,textarea{
+input,select,textarea,button{font-family:inherit}
+input[type=text],input[type=number],input[type=date],input[type=month],input[type=password],select,textarea{
   border:0.5px solid var(--border);border-radius:6px;padding:6px 10px;
   font-size:13px;font-family:inherit;background:var(--surface);color:var(--text);width:100%}
 input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:transparent}
@@ -67,12 +68,12 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-
 /* Schedule table */
 .sched-wrap{overflow-x:auto;border-radius:var(--r);border:0.5px solid var(--border)}
 table.sched{border-collapse:collapse;width:100%;font-size:11px;min-width:600px}
-table.sched thead th{background:var(--accent);color:#fff;padding:3px 2px;text-align:center;white-space:nowrap;font-weight:500;position:sticky;top:0;z-index:4}
+table.sched thead th{background:var(--accent);color:#fff;padding:8px 4px;text-align:center;white-space:nowrap;font-weight:500;position:sticky;top:0;z-index:4}
 table.sched thead th.name-col{text-align:center;min-width:48px;position:sticky;left:0;z-index:5}
 table.sched td{border-right:0.5px solid var(--border);border-bottom:0.5px solid var(--border);padding:1px;text-align:center;vertical-align:middle;min-width:52px;background:var(--surface)}
 table.sched td.name-col{text-align:center;padding:2px 2px;font-weight:500;background:var(--surface);position:sticky;left:0;z-index:2;border-right:1px solid var(--border);min-width:48px}
-table.sched td.we{background:#f0f9ff}
-table.sched td.hol{background:#60a5fa}
+table.sched td.we{background:#bfd0db}
+table.sched td.hol{background:#bfd0db;font-weight:700}
 table.sched td.tow-day{background:#ede9fe}
 table.sched tr:hover td{filter:brightness(.97)}
 table.sched tr:hover td.name-col{filter:brightness(.97)}
@@ -95,7 +96,7 @@ table.sched tr:hover td.name-col{filter:brightness(.97)}
 /* Day header */
 .dh{display:flex;flex-direction:row;align-items:baseline;justify-content:center;gap:4px;line-height:1}
 .dh-num{font-weight:700;font-size:14px}
-.dh-day{font-size:10px;opacity:.75}
+.dh-day{font-size:14px;opacity:.75}
 
 /* Summary table */
 table.sum{width:100%;border-collapse:collapse;font-size:13px}
@@ -183,6 +184,7 @@ table.sum tr:nth-child(even) td{background:var(--bg)}
     <button onclick="goPage('schedule')" id="nav-schedule">🗓️ จัดตาราง</button>
     <button onclick="goPage('summary')" id="nav-summary">📊 สรุป OT</button>
   </div>
+  <button id="lock-toggle" onclick="toggleLock()" title="ล็อกป้องกันการแก้ไข (จัดตาราง/TOW/ตั้งค่า) — ปิดกั้นแค่การคลิกพลาด ไม่ใช่ระบบความปลอดภัยจริง" style="background:rgba(255,255,255,.12);border:none;color:#fff;padding:6px 10px;border-radius:6px;font-size:14px;cursor:pointer;margin-left:6px">🔓</button>
   <span id="sync-badge" style="margin-left:8px;font-size:12px;color:rgba(255,255,255,.6)">🔄 กำลังเชื่อมต่อ...</span>
 </div>
 
@@ -229,6 +231,17 @@ table.sum tr:nth-child(even) td{background:var(--bg)}
         <button class="btn btn-danger btn-sm" onclick="resetAll()">🗑️ Reset ทั้งหมด</button>
       </div>
       <div id="backup-info" style="margin-top:8px;font-size:12px;color:var(--muted)"></div>
+    </div>
+
+    <!-- Lock password -->
+    <div class="card">
+      <div class="card-title">🔒 รหัสผ่านล็อกหน้าจัดตาราง</div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:10px">ใช้กันคลิกพลาดเฉยๆ ไม่ใช่ระบบความปลอดภัยจริง — ใครก็เปลี่ยนโค้ดข้ามได้ถ้าตั้งใจ<br>ล็อกจะครอบคลุมหน้า จัดตาราง / TOW / ตั้งค่า (หน้า Condition ยังแก้ได้เสมอ)</p>
+      <div class="row" style="gap:8px;flex-wrap:wrap">
+        <input type="password" id="lock-pw-input" placeholder="ตั้ง/เปลี่ยนรหัสผ่านใหม่" style="flex:1;min-width:160px">
+        <button class="btn btn-primary" onclick="saveLockPassword()">💾 บันทึกรหัสผ่าน</button>
+      </div>
+      <div id="lock-pw-status" style="margin-top:8px;font-size:12px;color:var(--muted)"></div>
     </div>
   </div>
 
@@ -313,6 +326,8 @@ table.sum tr:nth-child(even) td{background:var(--bg)}
     </div>
     <button class="btn btn-primary" onclick="autoGenerate()">⚡ Auto-generate</button>
     <button class="btn" onclick="clearSched()">🗑️ ล้างเดือนนี้</button>
+    <button class="btn" id="export-png-btn" onclick="exportSchedulePNG()">🖼️ Export PNG</button>
+    <button class="btn" id="export-pdf-btn" onclick="exportSchedulePDF()">📄 Export PDF</button>
     <div id="conflict-badge" style="display:none;background:var(--err-bg);color:var(--err-text);border:0.5px solid var(--err-border);border-radius:12px;padding:3px 12px;font-size:12px;font-weight:500"></div>
     <div id="ok-badge" style="display:none;background:#dcfce7;color:#14532d;border:0.5px solid #86efac;border-radius:12px;padding:3px 12px;font-size:12px;font-weight:500">✅ ไม่มี conflict</div>
   </div>
@@ -331,14 +346,16 @@ table.sum tr:nth-child(even) td{background:var(--bg)}
     <span style="color:var(--muted);font-size:11px;margin-left:4px">🔷=วันหยุดราชการ 🟦=เสาร์-อาทิตย์ 🟣=TOW week</span>
   </div>
 
-  <div class="sched-wrap">
-    <table class="sched" id="sched-tbl"></table>
-  </div>
+  <div id="export-capture">
+    <div class="sched-wrap">
+      <table class="sched" id="sched-tbl"></table>
+    </div>
 
-  <!-- Per-doctor shift-count summary -->
-  <div class="card" style="margin-top:14px">
-    <div class="card-title">⚖️ สรุปเวรรายคน (เดือนนี้)</div>
-    <div style="overflow-x:auto"><table class="sum" id="sched-sum-tbl" style="table-layout:fixed"></table></div>
+    <!-- Per-doctor shift-count summary -->
+    <div class="card" style="margin-top:14px">
+      <div class="card-title">⚖️ สรุปเวรรายคน (เดือนนี้)</div>
+      <div style="overflow-x:auto"><table class="sum" id="sched-sum-tbl" style="table-layout:fixed"></table></div>
+    </div>
   </div>
 </div>
 
@@ -471,7 +488,8 @@ const PILL_STYLE = {
 // ========== STATE ==========
 let S = {
   doctors:[],holidays:{},schedule:{},carryOver:{},towWeeks:[],
-  currentYear:new Date().getFullYear(),currentMonth:new Date().getMonth(),lastSaved:null
+  currentYear:new Date().getFullYear(),currentMonth:new Date().getMonth(),lastSaved:null,
+  locked:false,lockPasswordHash:null
 };
 let _saving=false, _pendingSave=false, _unsub=null;
 
@@ -521,6 +539,7 @@ async function initFirebase(){
       S.currentYear=yr;S.currentMonth=mo;
       localStorage.setItem('er_sched_v4',JSON.stringify(S));
       updateBackupInfo();
+      renderLockUI();
       const active=document.querySelector('.page.active');
       if(active){
         const pid=active.id.replace('page-','');
@@ -625,6 +644,7 @@ function avatarInitials(d) {
   return d.name.slice(-2);
 }
 function editInitials(id){
+  if(!requireUnlocked())return;
   const d=doc(id); if(!d) return;
   const cur=d.initials||avatarInitials(d);
   const n=prompt('ตัวย่อในวงกลม (1-3 ตัว):',cur);
@@ -642,6 +662,7 @@ function goPage(p) {
   if (p==='condition') { selectStamp(activeStamp); renderCondition(); }
   if (p==='schedule') renderSchedule();
   if (p==='summary') renderSummary();
+  renderLockUI();
 }
 
 // ========== SETUP PAGE ==========
@@ -748,6 +769,7 @@ function refreshOffBtns(){
 function toggleOffShift(s){offShiftState[s]=!offShiftState[s];refreshOffBtns();}
 
 function addOff(){
+  if(!requireUnlocked())return;
   const did=document.getElementById('sel-doc').value;
   const d=doc(did); if(!d) return;
   const dt=document.getElementById('off-d').value; if(!dt) return;
@@ -765,12 +787,15 @@ function addOff(){
   save(); renderOffList(did);
 }
 function delOff(did,k){
+  if(!requireUnlocked())return;
   const d=doc(did);if(d&&d.offRequests){delete d.offRequests[k];save();renderOffList(did);}
 }
 function delWant(did,k){
+  if(!requireUnlocked())return;
   const d=doc(did);if(d&&d.wantRequests){delete d.wantRequests[k];save();renderOffList(did);}
 }
 function saveDocSettings(){
+  if(!requireUnlocked())return;
   const did = document.getElementById('sel-doc').value;
   const d = doc(did); if (!d) return;
   d.chief = document.getElementById('is-chief').checked;
@@ -781,22 +806,26 @@ function saveDocSettings(){
 }
 
 function addDoc() {
+  if(!requireUnlocked())return;
   const n = document.getElementById('new-name').value.trim(); if (!n) return;
   S.doctors.push({id:'d'+Date.now(),name:n,chief:false,chiefLimit:4,prefs:[],offRequests:{}});
   document.getElementById('new-name').value='';
   save(); renderSetup();
 }
 function removeDoc(id) {
+  if(!requireUnlocked())return;
   if (!confirm('ลบแพทย์คนนี้?')) return;
   S.doctors = S.doctors.filter(x=>x.id!==id);
   save(); renderSetup();
 }
 function renameDoc(id) {
+  if(!requireUnlocked())return;
   const d=doc(id); if(!d) return;
   const n=prompt('เปลี่ยนชื่อ:',d.name);
   if(n&&n.trim()){d.name=n.trim();save();renderSetup();}
 }
 function moveDoc(id, dir) {
+  if(!requireUnlocked())return;
   const i=S.doctors.findIndex(x=>x.id===id); if(i<0) return;
   const j=i+dir;
   if(j<0||j>=S.doctors.length) return;
@@ -811,17 +840,18 @@ function renderHolList() {
     '<div style="color:var(--muted);font-size:12px;padding:4px 0">ยังไม่มีวันหยุดราชการ</div>';
 }
 function addHol() {
+  if(!requireUnlocked())return;
   const d=document.getElementById('hol-date').value;
   if(!d) return;
   S.holidays[d]=true; save(); renderHolList();
 }
-function delHol(d){delete S.holidays[d];save();renderHolList();}
+function delHol(d){if(!requireUnlocked())return;delete S.holidays[d];save();renderHolList();}
 
 // Real cumulative N / total-OT / A counts per doctor, summed from S.balanceStartMonth (if set)
 // up to (but not including) beforeMonthKey — pass null/undefined for "all the way to present"
 function cumulativeTotals(beforeMonthKey){
   const totals={};
-  S.doctors.forEach(d=>totals[d.id]={N:0,OT:0,A:0});
+  S.doctors.forEach(d=>totals[d.id]={N:0,OT:0,A:0,M1M2:0});
   const start=S.balanceStartMonth||null;
   Object.keys(S.schedule).forEach(monthKey=>{
     if(start && monthKey<start) return;
@@ -836,6 +866,7 @@ function cumulativeTotals(beforeMonthKey){
           if(sh==='N') totals[d.id].N++;
           if(OT_SHIFTS.includes(sh)) totals[d.id].OT++;
           if(sh==='A') totals[d.id].A++;
+          if(sh==='M1'||sh==='M2') totals[d.id].M1M2++;
         });
       }
     });
@@ -846,13 +877,16 @@ function renderCumulative(){
   const startInput=document.getElementById('balance-start-month');
   if(startInput) startInput.value=S.balanceStartMonth||mk();
   const totals=cumulativeTotals(null);
-  let html=`<table class="sum"><thead><tr><th>แพทย์</th><th>N</th><th>OT รวม</th><th>A</th></tr></thead><tbody>`;
+  let html=`<table class="sum" style="table-layout:fixed;width:100%">
+    <colgroup><col style="width:40%"><col style="width:15%"><col style="width:15%"><col style="width:15%"><col style="width:15%"></colgroup>
+    <thead><tr><th>แพทย์</th><th>N</th><th>OT รวม</th><th>M1+M2</th><th>A</th></tr></thead><tbody>`;
   S.doctors.forEach(d=>{
     const t=totals[d.id];
     html+=`<tr>
       <td>${d.name}${d.chief?'<span class="badge badge-chief" style="margin-left:4px">หน.</span>':''}</td>
       <td>${t.N}</td>
       <td style="font-weight:600">${t.OT}</td>
+      <td>${t.M1M2}</td>
       <td>${t.A}</td>
     </tr>`;
   });
@@ -860,6 +894,57 @@ function renderCumulative(){
   document.getElementById('cumulative-list').innerHTML=html;
 }
 function setBalanceStartMonth(val){ S.balanceStartMonth=val||null; save(); renderCumulative(); }
+
+// Export schedule table as an image / PDF (loads html2canvas / jsPDF from CDN on first use — needs internet)
+function loadScriptOnce(src){
+  return new Promise((resolve,reject)=>{
+    if(document.querySelector(`script[src="${src}"]`)){ resolve(); return; }
+    const s=document.createElement('script');
+    s.src=src; s.onload=()=>resolve(); s.onerror=()=>reject(new Error('โหลดไม่สำเร็จ: '+src));
+    document.head.appendChild(s);
+  });
+}
+async function captureScheduleCanvas(){
+  await loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+  const capture=document.querySelector('#page-schedule #export-capture');
+  const wrap=capture.querySelector('.sched-wrap');
+  wrap.scrollLeft=0; wrap.scrollTop=0; // sticky headers/columns only render correctly when unscrolled
+  return await html2canvas(capture, {scale:2, backgroundColor:'#ffffff'});
+}
+function scheduleFileBaseName(){
+  return `ตารางเวร_${MONTHS_TH[S.currentMonth]}_${S.currentYear+543}`;
+}
+async function exportSchedulePNG(){
+  const btn=document.getElementById('export-png-btn');
+  if(btn){btn.disabled=true;btn.textContent='⏳ กำลังสร้างรูป...';}
+  try{
+    const canvas=await captureScheduleCanvas();
+    canvas.toBlob(blob=>{
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=url; a.download=scheduleFileBaseName()+'.png';
+      a.click(); URL.revokeObjectURL(url);
+    });
+  }catch(e){
+    console.error(e); showToast('⚠️ Export PNG ไม่สำเร็จ (ต้องต่อเน็ตครั้งแรก)');
+  }
+  if(btn){btn.disabled=false;btn.textContent='🖼️ Export PNG';}
+}
+async function exportSchedulePDF(){
+  const btn=document.getElementById('export-pdf-btn');
+  if(btn){btn.disabled=true;btn.textContent='⏳ กำลังสร้าง PDF...';}
+  try{
+    const canvas=await captureScheduleCanvas();
+    await loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+    const { jsPDF }=window.jspdf;
+    const pdf=new jsPDF({orientation: canvas.width>canvas.height?'landscape':'portrait', unit:'px', format:[canvas.width, canvas.height]});
+    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, canvas.width, canvas.height);
+    pdf.save(scheduleFileBaseName()+'.pdf');
+  }catch(e){
+    console.error(e); showToast('⚠️ Export PDF ไม่สำเร็จ (ต้องต่อเน็ตครั้งแรก)');
+  }
+  if(btn){btn.disabled=false;btn.textContent='📄 Export PDF';}
+}
 
 // Export/Import
 function exportJSON() {
@@ -871,6 +956,7 @@ function exportJSON() {
   a.click();URL.revokeObjectURL(url);
 }
 function importJSON(input) {
+  if(!requireUnlocked()){input.value='';return;}
   const f=input.files[0];if(!f)return;
   const r=new FileReader();
   r.onload=e=>{
@@ -882,7 +968,7 @@ function importJSON(input) {
   };
   r.readAsText(f);input.value='';
 }
-function resetAll(){if(confirm('Reset ข้อมูลทั้งหมด? (ไม่สามารถกู้คืนได้)')){localStorage.removeItem('er_sched_v4');location.reload();}}
+function resetAll(){if(!requireUnlocked())return;if(confirm('Reset ข้อมูลทั้งหมด? (ไม่สามารถกู้คืนได้)')){localStorage.removeItem('er_sched_v4');location.reload();}}
 
 // ========== TOW PAGE ==========
 function autoFillEnd(){
@@ -940,6 +1026,7 @@ function renderTow() {
   }).join('');
 }
 function addTowRow(){
+  if(!requireUnlocked())return;
   const week=parseInt(document.getElementById('tw-week').value)||S.towWeeks.length+1;
   const start=document.getElementById('tw-start').value;
   const end=document.getElementById('tw-end').value;
@@ -954,8 +1041,9 @@ function addTowRow(){
   document.getElementById('tw-off').value='';
   save();renderTow();showToast('เพิ่มสัปดาห์แล้ว ✓');
 }
-function delTowRow(i){S.towWeeks.splice(i,1);save();renderTow();}
+function delTowRow(i){if(!requireUnlocked())return;S.towWeeks.splice(i,1);save();renderTow();}
 function updateTow(idx,field,val){
+  if(!requireUnlocked()){renderTow();return;}
   if(S.towWeeks[idx]){S.towWeeks[idx][field]=val||null;save();}
 }
 
@@ -973,13 +1061,13 @@ function renderSchedule() {
   document.getElementById('sched-month').textContent=mLabel;
 
   // Build header — one column per doctor, corner cell labels the date column
-  let h=`<thead><tr><th class="name-col">วันที่</th>`;
+  let h=`<thead><tr><th class="name-col" style="font-size:13px">วันที่</th>`;
   S.doctors.forEach(dr=>{
     h+=`<th style="min-width:52px;vertical-align:middle;text-align:center" title="${dr.prefs.length?dr.prefs.map(p=>PREFS_LABEL[p]).join(', '):''}">
-      <div style="font-size:11px;font-weight:600;line-height:1.25">${dr.name}</div>
+      <div style="font-size:13px;font-weight:600;line-height:1.3">${dr.name}</div>
     </th>`;
   });
-  h+=`<th style="min-width:64px;border-left:4px solid #1a1a18">ครบ?</th></tr></thead>`;
+  h+=`<th style="min-width:64px;border-left:4px solid #1a1a18;font-size:13px">ครบ?</th></tr></thead>`;
 
   // Build body — one row per date
   let b=`<tbody>`;
@@ -1011,8 +1099,7 @@ function renderSchedule() {
       let cellBg='';
       if(hasTOW) cellBg='background:#ede9fe';
       else if(hasOFF||isOffW) cellBg='background:#fef9c3';
-      else if(isHol) cellBg='background:#60a5fa';
-      else if(isWe) cellBg='background:#f0f9ff';
+      else if(isHol||isWe) cellBg='background:#bfd0db';
       const realShifts=sortShifts(shifts.filter(v=>v!=='TOW'&&v!=='OFF'&&v!=='-'));
       // collect conflicts
       const allErrors=[],allWarns=[];
@@ -1081,39 +1168,42 @@ function renderSchedule() {
 function renderSchedSummary(){
   const days=daysIn();
   const counts={};
-  S.doctors.forEach(d=>counts[d.id]={N:0,M:0,E:0,M1:0,M2:0,A:0,OT:0,total:0});
+  S.doctors.forEach(d=>counts[d.id]={N:0,M:0,E:0,M1:0,M2:0,A:0,OT:0,workday:0,total:0});
   for(let day=1;day<=days;day++){
     S.doctors.forEach(d=>{
       getCells(d.id,day).forEach(v=>{
         if(!v||v==='-'||v==='OFF'||v==='TOW') return;
         if(['N','M','E','M1','M2','A'].includes(v)) counts[d.id][v]++;
         if(OT_SHIFTS.includes(v)) counts[d.id].OT++;
+        if(['M1','M2','A'].includes(v)) counts[d.id].workday++;
         counts[d.id].total++;
       });
     });
   }
   const DIV='border-left:4px solid #1a1a18'; // thick divider between ในเวลา / นอกเวลา / รวม
+  const TOTAL_STYLE='background:#475569;color:#fff'; // shared "this is a total column" color
   let tbl=`<colgroup>
-    <col style="width:22%">
-    <col style="width:8%"><col style="width:8%"><col style="width:8%">
-    <col style="width:8%"><col style="width:8%"><col style="width:8%"><col style="width:8%">
-    <col style="width:10%">
+    <col style="width:19%">
+    <col style="width:9%"><col style="width:9%"><col style="width:9%"><col style="width:9%">
+    <col style="width:9%"><col style="width:9%"><col style="width:9%"><col style="width:9%">
+    <col style="width:9%">
   </colgroup>
   <thead>
     <tr>
       <th rowspan="2">แพทย์</th>
-      <th colspan="3" style="background:#d1fae5;color:#065f46">ในเวลา</th>
-      <th colspan="4" style="background:#475569;color:#fff;${DIV}">นอกเวลา</th>
-      <th rowspan="2" style="${DIV}">รวมทั้งหมด</th>
+      <th colspan="4" style="background:#d1fae5;color:#065f46">ในเวลา</th>
+      <th colspan="4" style="${TOTAL_STYLE};${DIV}">นอกเวลา</th>
+      <th rowspan="2" style="${TOTAL_STYLE};${DIV}">รวมทั้งหมด</th>
     </tr>
     <tr>
       <th style="background:#d1fae5;color:#065f46">M1</th>
       <th style="background:#d1fae5;color:#065f46">M2</th>
       <th style="background:#d1fae5;color:#065f46">A</th>
+      <th style="${TOTAL_STYLE}">ในเวลารวม</th>
       <th style="background:#6ee7b7;color:#064e3b;${DIV}">M</th>
       <th style="background:#fed7aa;color:#7c2d12">E</th>
       <th style="background:#1e293b;color:#cbd5e1">N</th>
-      <th style="background:#475569;color:#fff">OT รวม</th>
+      <th style="${TOTAL_STYLE}">OT รวม</th>
     </tr>
   </thead><tbody>`;
   S.doctors.forEach(d=>{
@@ -1121,9 +1211,10 @@ function renderSchedSummary(){
     tbl+=`<tr>
       <td>${d.name}${d.chief?'<span class="badge badge-chief" style="margin-left:4px">หน.</span>':''}</td>
       <td>${c.M1}</td><td>${c.M2}</td><td>${c.A}</td>
+      <td style="font-weight:600;background:#f1f5f9">${c.workday}</td>
       <td style="${DIV}">${c.M}</td><td>${c.E}</td><td>${c.N}</td>
-      <td style="font-weight:600">${c.OT}</td>
-      <td style="font-weight:600;${DIV}">${c.total}</td>
+      <td style="font-weight:600;background:#f1f5f9">${c.OT}</td>
+      <td style="font-weight:600;background:#f1f5f9;${DIV}">${c.total}</td>
     </tr>`;
   });
   tbl+=`</tbody>`;
@@ -1266,6 +1357,7 @@ function openModal(did,day){
   document.getElementById('modal-bg').classList.add('open');
 }
 function pickShift(s){
+  if(!requireUnlocked())return;
   toggleShift(mDid,mDay,s);
   openModal(mDid,mDay); // re-render modal to show updated state
   renderSchedule();
@@ -1274,12 +1366,14 @@ function closeModal(){document.getElementById('modal-bg').classList.remove('open
 function bgClose(e){if(e.target===document.getElementById('modal-bg'))closeModal();}
 
 function clearSched(){
+  if(!requireUnlocked())return;
   if(!confirm('ล้างตารางเดือนนี้ทั้งหมด?'))return;
   delete S.schedule[mk()];save();renderSchedule();
 }
 
 // ========== AUTO-GENERATE ==========
 function autoGenerate(){
+  if(!requireUnlocked())return;
   if(!confirm(`Auto-generate ตาราง ${MONTHS_TH[S.currentMonth]} ${S.currentYear+543}?\n\nจะเขียนทับตารางปัจจุบัน`))return;
   const mKey=mk();
   S.schedule[mKey]={};
@@ -1682,6 +1776,52 @@ function showToast(msg){
   setTimeout(()=>t.style.opacity='0',2500);
 }
 
+// ========== EDIT LOCK (deters accidental clicks — NOT real security, client-side only) ==========
+async function hashPw(pw){
+  const buf=await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pw));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function renderLockUI(){
+  const btn=document.getElementById('lock-toggle');
+  if(btn){
+    btn.textContent=S.locked?'🔒':'🔓';
+    btn.style.background=S.locked?'rgba(220,38,38,.35)':'rgba(255,255,255,.12)';
+  }
+  const status=document.getElementById('lock-pw-status');
+  if(status) status.textContent=S.lockPasswordHash?'ตั้งรหัสผ่านไว้แล้ว':'ยังไม่ได้ตั้งรหัสผ่าน — ล็อกไม่ได้จนกว่าจะตั้งก่อน';
+}
+async function saveLockPassword(){
+  const input=document.getElementById('lock-pw-input');
+  const pw=input.value;
+  if(!pw){ showToast('กรุณากรอกรหัสผ่าน'); return; }
+  S.lockPasswordHash=await hashPw(pw);
+  input.value='';
+  save(); renderLockUI();
+  showToast('ตั้งรหัสผ่านแล้ว ✓');
+}
+async function toggleLock(){
+  if(!S.locked){
+    if(!S.lockPasswordHash){ showToast('⚠️ ตั้งรหัสผ่านที่หน้าตั้งค่าก่อนถึงจะล็อกได้'); return; }
+    S.locked=true; save(); renderLockUI();
+    showToast('🔒 ล็อกแล้ว');
+  } else {
+    const pw=prompt('ใส่รหัสผ่านเพื่อปลดล็อก:');
+    if(pw==null) return;
+    const h=await hashPw(pw);
+    if(h===S.lockPasswordHash){
+      S.locked=false; save(); renderLockUI();
+      showToast('🔓 ปลดล็อกแล้ว');
+    } else {
+      showToast('❌ รหัสผ่านผิด');
+    }
+  }
+}
+// Call at the top of any action that edits the schedule/TOW/setup pages — returns false (and warns) if locked
+function requireUnlocked(){
+  if(S.locked){ showToast('🔒 หน้านี้ล็อกอยู่ ปลดล็อกก่อนถึงจะแก้ไขได้'); return false; }
+  return true;
+}
+
 // ========== CONDITION PAGE ==========
 let activeStamp = 'off';
 let condDocId = null;
@@ -1893,10 +2033,11 @@ Object.assign(window, {
   addDoc,removeDoc,renameDoc,moveDoc,editInitials,saveDocSettings,loadDocSettings,
   addOff,delOff,delWant,addHol,delHol,
   addTowRow,delTowRow,updateTow,autoFillEnd,
-  copySheet,exportJSON,importJSON,resetAll,
+  copySheet,exportJSON,importJSON,resetAll,exportSchedulePNG,exportSchedulePDF,
   setReqMode,initOffShifts,toggleOffShift,
   renderOffList,setBalanceStartMonth,
   selectStamp,stampSlot,saveCondPrefs,renderCondition,toggleChief,setChiefLimit,
+  toggleLock,saveLockPassword,
 });
 // inline onchange handlers use save() directly
 window.save=save;
