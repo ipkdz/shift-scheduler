@@ -66,19 +66,19 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-
 
 /* Schedule table */
 .sched-wrap{overflow-x:auto;border-radius:var(--r);border:0.5px solid var(--border)}
-table.sched{border-collapse:collapse;width:100%;font-size:12px;min-width:600px}
-table.sched thead th{background:var(--accent);color:#fff;padding:5px 4px;text-align:center;white-space:nowrap;font-weight:500;position:sticky;top:0;z-index:4}
-table.sched thead th.name-col{text-align:left;min-width:100px;position:sticky;left:0;z-index:5;padding-left:10px}
-table.sched td{border-right:0.5px solid var(--border);border-bottom:0.5px solid var(--border);padding:2px;text-align:center;vertical-align:middle;min-width:46px;background:var(--surface)}
-table.sched td.name-col{text-align:left;padding:4px 8px;font-weight:500;background:var(--surface);position:sticky;left:0;z-index:2;border-right:1px solid var(--border)}
+table.sched{border-collapse:collapse;width:100%;font-size:11px;min-width:600px}
+table.sched thead th{background:var(--accent);color:#fff;padding:3px 2px;text-align:center;white-space:nowrap;font-weight:500;position:sticky;top:0;z-index:4}
+table.sched thead th.name-col{text-align:center;min-width:40px;position:sticky;left:0;z-index:5}
+table.sched td{border-right:0.5px solid var(--border);border-bottom:0.5px solid var(--border);padding:1px;text-align:center;vertical-align:middle;min-width:52px;background:var(--surface)}
+table.sched td.name-col{text-align:center;padding:2px 2px;font-weight:500;background:var(--surface);position:sticky;left:0;z-index:2;border-right:1px solid var(--border);min-width:40px}
 table.sched td.we{background:#f0f9ff}
-table.sched td.hol{background:#fff7ed}
+table.sched td.hol{background:#fdba74}
 table.sched td.tow-day{background:#ede9fe}
 table.sched tr:hover td{filter:brightness(.97)}
 table.sched tr:hover td.name-col{filter:brightness(.97)}
 
 /* Shift pills */
-.pill{border-radius:4px;padding:2px 3px;font-size:11px;font-weight:600;cursor:pointer;border:none;width:100%;display:block;text-align:center;transition:.1s;line-height:1.4}
+.pill{border-radius:4px;padding:1px 2px;font-size:10px;font-weight:600;cursor:pointer;border:none;width:100%;display:block;text-align:center;transition:.1s;line-height:1.3}
 .pill:hover{filter:brightness(.88);transform:scale(1.05)}
 .pill-M1{background:#d1fae5;color:#065f46}
 .pill-M2{background:#d1fae5;color:#065f46}
@@ -93,17 +93,17 @@ table.sched tr:hover td.name-col{filter:brightness(.97)}
 .pill.warn-pill{box-shadow:0 0 0 2px #f59e0b !important;background:#fef9c3 !important;color:#713f12 !important}
 
 /* Day header */
-.dh{display:flex;flex-direction:column;align-items:center;line-height:1.3}
-.dh-num{font-weight:600;font-size:12px}
-.dh-day{font-size:9px;opacity:.75}
+.dh{display:flex;flex-direction:column;align-items:center;line-height:1.15}
+.dh-num{font-weight:600;font-size:11px}
+.dh-day{font-size:8px;opacity:.75}
 .hol-dot{width:4px;height:4px;border-radius:50%;background:#f59e0b;margin:1px auto 0}
 
 /* Summary table */
 table.sum{width:100%;border-collapse:collapse;font-size:13px}
 table.sum th{background:var(--accent);color:#fff;padding:7px 10px;text-align:center;font-weight:500;white-space:nowrap}
-table.sum th:first-child{text-align:left;min-width:110px}
+table.sum thead tr:first-child>th:first-child{text-align:center;min-width:110px}
 table.sum td{border:0.5px solid var(--border);padding:5px 10px;text-align:center}
-table.sum td:first-child{text-align:left;font-weight:500}
+table.sum td:first-child{text-align:center;font-weight:500}
 table.sum tr:nth-child(even) td{background:var(--bg)}
 .bar{height:5px;border-radius:3px;background:#e2e8f0;margin-top:3px;overflow:hidden}
 .bar-fill{height:100%;border-radius:3px;background:var(--accent)}
@@ -157,6 +157,7 @@ table.sum tr:nth-child(even) td{background:var(--bg)}
 .cond-slot:hover{filter:brightness(.9)}
 .cond-slot.s-off     {background:#fee2e2;border-color:#fca5a5;color:#991b1b}
 .cond-slot.s-notpref {background:#fef9c3;border-color:#fde68a;color:#92400e}
+.cond-slot.s-avail   {background:#cffafe;border-color:#67e8f9;color:#155e75}
 .cond-slot.s-prefer  {background:#dcfce7;border-color:#86efac;color:#166534}
 .cond-slot.s-lock    {background:#e0e7ff;border-color:#a5b4fc;color:#3730a3}
 .cond-tow-bg{background:#ede9fe !important;border-color:#c4b5fd !important}
@@ -246,8 +247,8 @@ table.sum tr:nth-child(even) td{background:var(--bg)}
 <div class="card" style="max-width:900px">
   <div class="card-title">📅 ตาราง TOW / OFF รายสัปดาห์</div>
   <p style="font-size:12px;color:var(--muted);margin-bottom:14px">
-    <b>TOW</b> = สัปดาห์สอน + standby ฉุกเฉิน (ไม่มีเวรเลย) &nbsp;|&nbsp;
-    <b>OFF</b> = หยุดพัก (ไม่มีเวรเลย แต่ขอมีเวรได้)
+    <b>TOW</b> = สัปดาห์สอน + standby ฉุกเฉิน (ไม่มีเวรเลย เว้นแต่แปะ 📌 ต้องอยู่ ที่หน้า Condition) &nbsp;|&nbsp;
+    <b>OFF</b> = หยุดพัก (ไม่มีเวรเลย แต่ขอมีเวรได้ — ไปแปะ ✅ อยู่ได้ / ⭐ อยากอยู่ / 📌 ต้องอยู่ ที่หน้า Condition เพื่อให้ auto-generate เลือกลงเวรวันนั้นให้ได้)
   </p>
 
   <!-- Add week row -->
@@ -329,6 +330,12 @@ table.sum tr:nth-child(even) td{background:var(--bg)}
   <div class="sched-wrap">
     <table class="sched" id="sched-tbl"></table>
   </div>
+
+  <!-- Per-doctor shift-count summary -->
+  <div class="card" style="margin-top:14px">
+    <div class="card-title">⚖️ สรุปเวรรายคน (เดือนนี้)</div>
+    <div style="overflow-x:auto"><table class="sum" id="sched-sum-tbl" style="table-layout:fixed"></table></div>
+  </div>
 </div>
 
 <!-- ===== SUMMARY ===== -->
@@ -364,6 +371,7 @@ table.sum tr:nth-child(even) td{background:var(--bg)}
     <span style="font-size:12px;color:var(--muted);font-weight:500">แปะ:</span>
     <button id="stamp-off"      class="stamp-btn" onclick="selectStamp('off')"      style="background:#fee2e2;color:#991b1b;border-color:#fca5a5">🚫 อยู่ไม่ได้</button>
     <button id="stamp-notpref"  class="stamp-btn" onclick="selectStamp('notpref')"  style="background:#fef9c3;color:#713f12;border-color:#fde68a">🟡 ไม่อยากอยู่</button>
+    <button id="stamp-avail"    class="stamp-btn" onclick="selectStamp('avail')"    style="background:#cffafe;color:#155e75;border-color:#67e8f9">✅ อยู่ได้</button>
     <button id="stamp-prefer"   class="stamp-btn" onclick="selectStamp('prefer')"   style="background:#dcfce7;color:#14532d;border-color:#86efac">⭐ อยากอยู่</button>
     <button id="stamp-lock"     class="stamp-btn" onclick="selectStamp('lock')"     style="background:#e0e7ff;color:#3730a3;border-color:#a5b4fc">📌 ต้องอยู่</button>
     <button id="stamp-clear"    class="stamp-btn" onclick="selectStamp('clear')"    style="background:var(--bg);color:var(--muted);border-color:var(--border)">✕ ลบ</button>
@@ -438,8 +446,8 @@ const DAYS_TH = ['อา','จ','อ','พ','พฤ','ศ','ส'];
 const MONTHS_TH = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
 const MONTHS_SHORT = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
 const ALL_SHIFTS = ['M1','M2','A','E','N','M','OFF','TOW'];
-const WORKDAY_SHIFTS = ['M1','M2','A','E','N','OFF','TOW'];
-const HOLIDAY_SHIFTS = ['M','E','N','OFF','TOW'];
+const WORKDAY_SHIFTS = ['M1','M2','A','E','N'];
+const HOLIDAY_SHIFTS = ['M','E','N'];
 const OT_SHIFTS = ['E','N','M'];
 const BAL_COLS = ['OT','N','M','E','M1','M2','A'];
 const PREFS_LABEL = {
@@ -574,6 +582,9 @@ function getCell(did, d) { // legacy: returns first or '-'
   return arr.length ? arr[0] : '-';
 }
 function hasShift(did, d, shift) { return getCells(did, d).includes(shift); }
+// Display order for shifts within the same day, by actual clock time: night → morning group → evening
+const SHIFT_TIME_ORDER = {N:0, M:1, M1:1, M2:1, A:1, E:2};
+function sortShifts(arr) { return [...arr].sort((a,b)=>(SHIFT_TIME_ORDER[a]??9)-(SHIFT_TIME_ORDER[b]??9)); }
 function setDayShifts(did, d, arr) {
   if(!S.schedule[mk()]) S.schedule[mk()]={};
   if(!S.schedule[mk()][did]) S.schedule[mk()][did]={};
@@ -643,7 +654,7 @@ function renderDocList() {
       <div class="avatar${d.chief?' chief':''}" onclick="editInitials('${d.id}')" title="คลิกเพื่อแก้ตัวย่อ" style="cursor:pointer">${avatarInitials(d)}</div>
       <div style="flex:1">
         <div style="font-weight:500;font-size:13px">${d.name}
-          ${d.chief?`<span class="badge badge-chief">หัวหน้า A≤${d.chiefLimit}</span>`:''}
+          ${d.chief?`<span class="badge badge-chief">หัวหน้า A=${d.chiefLimit}</span>`:''}
         </div>
         ${d.prefs.length?`<div class="pref-chip">${d.prefs.map(p=>PREFS_LABEL[p]||p).join(' · ')}</div>`:''}
       </div>
@@ -818,24 +829,34 @@ function renderCarry() {
       }
     });
   });
-  // Find average per type
+  // Only N and total OT are carried between months (not M/E individually) — that's enough to
+  // keep things fair. Chief is excluded from the M1/M2/A average (blocked from M1/M2 and
+  // A-capped by design, so her near-zero workday count shouldn't drag everyone else's average down).
+  S.doctors.forEach(d=>{ totals[d.id].OT = totals[d.id].N+totals[d.id].M+totals[d.id].E; });
   const n=S.doctors.length||1;
+  const nonChief=S.doctors.filter(d=>!d.chief);
+  const nNonChief=nonChief.length||1;
   const avgs={};
-  ['N','M','E','M1','M2','A'].forEach(t=>{
+  ['N','OT'].forEach(t=>{
     avgs[t]=S.doctors.reduce((s,d)=>s+totals[d.id][t],0)/n;
   });
+  ['M1','M2','A'].forEach(t=>{
+    avgs[t]=nonChief.reduce((s,d)=>s+totals[d.id][t],0)/nNonChief;
+  });
 
+  const LABELS={N:'N',OT:'OT รวม',M1:'M1',M2:'M2',A:'A'};
   document.getElementById('carry-list').innerHTML = S.doctors.map(d=>{
     const co=S.carryOver[d.id]||{};
     return `<div style="margin-bottom:12px;padding-bottom:12px;border-bottom:0.5px solid var(--border)">
       <div style="font-size:14px;font-weight:600;margin-bottom:6px">${d.name}</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
-      ${['N','M','E','M1','M2','A'].map(t=>{
+      ${['N','OT','M1','M2','A'].map(t=>{
+        const skipDiff = d.chief && ['M1','M2','A'].includes(t);
         const diff=totals[d.id][t]-avgs[t];
         const diffColor=diff>1?'#dc2626':diff<-1?'#2563eb':'#059669';
         return `<div style="text-align:center">
-          <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:2px">${t}</div>
-          <div style="font-size:10px;color:${diffColor};margin-bottom:2px">${diff>=0?'+':''}${diff.toFixed(1)}</div>
+          <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:2px">${LABELS[t]}</div>
+          <div style="font-size:10px;color:${skipDiff?'var(--faint)':diffColor};margin-bottom:2px">${skipDiff?'—':(diff>=0?'+':'')+diff.toFixed(1)}</div>
           <input type="number" value="${co[t]||0}" min="-20" max="20"
             style="width:52px;font-size:16px;text-align:center;padding:4px 2px;border-radius:6px;border:0.5px solid var(--border)"
             onchange="setCarry('${d.id}','${t}',this.value)">
@@ -956,41 +977,50 @@ function renderSchedule() {
   const mLabel=`${MONTHS_TH[S.currentMonth]} ${S.currentYear+543}`;
   document.getElementById('sched-month').textContent=mLabel;
 
-  // Build header
-  let h=`<thead><tr><th class="name-col">แพทย์</th>`;
+  // Build header — one column per doctor, corner cell labels the date column
+  let h=`<thead><tr><th class="name-col">วันที่</th>`;
+  S.doctors.forEach(dr=>{
+    h+=`<th style="min-width:52px;vertical-align:top" title="${dr.prefs.length?dr.prefs.map(p=>PREFS_LABEL[p]).join(', '):''}">
+      <div style="font-size:10px;font-weight:600;line-height:1.25">${dr.name}</div>
+      ${dr.chief?'<div style="font-size:8px;opacity:.85">หัวหน้า</div>':''}
+    </th>`;
+  });
+  h+=`<th style="min-width:64px;border-left:4px solid #1a1a18">ครบ?</th></tr></thead>`;
+
+  // Build body — one row per date
+  let b=`<tbody>`;
   for(let d=1;d<=days;d++){
-    const we=isWeekend(d), hol=isHoliday(d), tow=false;
-    h+=`<th style="min-width:46px${we?' background:#dbeafe':''} ${hol?' background:#ffedd5':''}">
+    const isHol=isHoliday(d),isWe=isWeekend(d);
+    // Day-completeness: does every required shift slot have exactly one doctor assigned?
+    const required=(isHol||isWe)?HOLIDAY_SHIFTS:WORKDAY_SHIFTS;
+    const slotCounts={};
+    required.forEach(s=>slotCounts[s]=0);
+    S.doctors.forEach(dr2=>{
+      getCells(dr2.id,d).forEach(v=>{ if(slotCounts[v]!==undefined) slotCounts[v]++; });
+    });
+    const missingSlots=required.filter(s=>slotCounts[s]===0);
+    const dupSlots=required.filter(s=>slotCounts[s]>=2);
+    const dayOk=!missingSlots.length&&!dupSlots.length;
+
+    b+=`<tr><td class="name-col${isHol?' hol':isWe?' we':''}">
       <div class="dh">
         <div class="dh-num">${d}</div>
         <div class="dh-day">${DAYS_TH[weekday(d)]}</div>
-        ${hol?`<div class="hol-dot" title="${S.holidays[dk(d)]}"></div>`:''}
-      </div></th>`;
-  }
-  h+=`</tr></thead>`;
-
-  // Build body
-  let b=`<tbody>`;
-  S.doctors.forEach(dr=>{
-    b+=`<tr><td class="name-col">
-      <div style="font-size:12px;font-weight:500">${dr.name}</div>
-      ${dr.chief?'<div style="font-size:10px;color:#92400e">หัวหน้า</div>':''}
-      ${dr.prefs.length?`<div style="font-size:9px;color:var(--muted)" title="${dr.prefs.map(p=>PREFS_LABEL[p]).join(', ')}">${dr.prefs.length} preference</div>`:''}
+        ${isHol?`<div class="hol-dot" title="${S.holidays[dk(d)]}"></div>`:''}
+      </div>
     </td>`;
-    for(let d=1;d<=days;d++){
+    S.doctors.forEach(dr=>{
       const shifts=getCells(dr.id,d);
-      const isHol=isHoliday(d),isWe=isWeekend(d);
-      const isTow=isTowDay(dr.id,d);
       const isOffW=isOffWeekDay(dr.id,d);
       const hasTOW=shifts.includes('TOW');
       const hasOFF=shifts.includes('OFF');
       // Cell background priority: TOW > OFF > weekend/holiday
       let cellBg='';
       if(hasTOW) cellBg='background:#ede9fe';
-      else if(hasOFF) cellBg='background:#fef9c3';
-      else if(isHol) cellBg='background:#fff7ed';
+      else if(hasOFF||isOffW) cellBg='background:#fef9c3';
+      else if(isHol) cellBg='background:#fdba74';
       else if(isWe) cellBg='background:#f0f9ff';
-      const realShifts=shifts.filter(v=>v!=='TOW'&&v!=='OFF'&&v!=='-');
+      const realShifts=sortShifts(shifts.filter(v=>v!=='TOW'&&v!=='OFF'&&v!=='-'));
       // collect conflicts
       const allErrors=[],allWarns=[];
       shifts.forEach(v=>{
@@ -999,20 +1029,31 @@ function renderSchedule() {
       });
       if(shifts.includes('N')&&shifts.some(v=>['M','M1','M2','A'].includes(v))) allErrors.push('ดึกต่อเช้า ❌');
       const icon=allErrors.length?'🔴':allWarns.length?'🟡':'';
+      // One shift fills the whole cell; two shifts split left/right, each in its own color
       const pillsHtml = realShifts.length===0
-        ? `<button class="pill pill-empty" onclick="openModal('${dr.id}',${d})" style="background:transparent;color:var(--faint);width:100%">·</button>`
+        ? `<button class="pill pill-empty" onclick="openModal('${dr.id}',${d})" style="background:transparent;color:var(--faint);width:100%;height:100%;flex:1">·</button>`
         : realShifts.map(v=>{
             const ps=PILL_STYLE[v]||PILL_STYLE['-'];
-            return `<button class="pill pill-${v}${allErrors.length?' conflict':allWarns.length?' warn-pill':''}" onclick="openModal('${dr.id}',${d})" style="background:${ps.bg};color:${ps.col}" title="${[...allErrors,...allWarns].join(' / ')||v}">${v}</button>`;
-          }).join('')+
-          (icon?`<span style="font-size:9px;line-height:1">${icon}</span>`:'');
+            return `<button class="pill pill-${v}${allErrors.length?' conflict':allWarns.length?' warn-pill':''}" onclick="openModal('${dr.id}',${d})" style="background:${ps.bg};color:${ps.col};flex:1;height:100%;border-radius:0;margin:0" title="${[...allErrors,...allWarns].join(' / ')||v}">${v}</button>`;
+          }).join('');
+      const iconBadge = icon
+        ? `<span style="position:absolute;bottom:0;left:0;font-size:9px;line-height:1;pointer-events:none">${icon}</span>` : '';
       // Invisible click target for TOW/OFF-only cells
       const clickTarget = (hasTOW||hasOFF) && realShifts.length===0
         ? `<button onclick="openModal('${dr.id}',${d})" style="position:absolute;inset:0;background:transparent;border:none;cursor:pointer;width:100%;height:100%"></button>` : '';
-      b+=`<td style="vertical-align:top;${cellBg};position:relative"><div style="display:flex;flex-direction:column;gap:1px">${pillsHtml}</div>${clickTarget}</td>`;
-    }
+      // "!" marker — manual edit clashes with a Condition-page stamp (informational, not blocking)
+      const condMismatch=conditionMismatchMsgs(dr.id,d);
+      const mismatchBadge = condMismatch.length
+        ? `<span title="${condMismatch.join(' / ')}" style="position:absolute;top:0;right:0;background:#dc2626;color:#fff;border-radius:0 0 0 4px;width:11px;height:11px;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;line-height:1;pointer-events:none">!</span>`
+        : '';
+      b+=`<td style="vertical-align:top;${cellBg};position:relative;padding:0"><div style="display:flex;flex-direction:row;height:26px">${pillsHtml}</div>${clickTarget}${mismatchBadge}${iconBadge}</td>`;
+    });
+    const statusParts=[];
+    if(missingSlots.length) statusParts.push(`ขาด ${missingSlots.join(',')}`);
+    if(dupSlots.length) statusParts.push(`ซ้ำ ${dupSlots.map(s=>s+'×'+slotCounts[s]).join(',')}`);
+    b+=`<td style="background:${dayOk?'#dcfce7':'#fee2e2'};font-size:10px;padding:2px 4px;white-space:normal;line-height:1.3;text-align:center;font-weight:600;color:${dayOk?'#166534':'#991b1b'};border-left:4px solid #1a1a18">${dayOk?'✅ ครบ':'🔴 '+statusParts.join(' / ')}</td>`;
     b+=`</tr>`;
-  });
+  }
   b+=`</tbody>`;
   document.getElementById('sched-tbl').innerHTML=h+b;
 
@@ -1040,6 +1081,61 @@ function renderSchedule() {
   } else {
     cb.style.display='none'; ok.style.display='inline';
   }
+
+  renderSchedSummary();
+}
+
+function renderSchedSummary(){
+  const days=daysIn();
+  const counts={};
+  S.doctors.forEach(d=>counts[d.id]={N:0,M:0,E:0,M1:0,M2:0,A:0,OT:0,total:0});
+  for(let day=1;day<=days;day++){
+    S.doctors.forEach(d=>{
+      getCells(d.id,day).forEach(v=>{
+        if(!v||v==='-'||v==='OFF'||v==='TOW') return;
+        if(['N','M','E','M1','M2','A'].includes(v)) counts[d.id][v]++;
+        if(OT_SHIFTS.includes(v)) counts[d.id].OT++;
+        counts[d.id].total++;
+      });
+    });
+  }
+  const DIV='border-left:4px solid #1a1a18'; // thick divider between ในเวลา / นอกเวลา / รวม
+  let tbl=`<colgroup>
+    <col style="width:22%">
+    <col style="width:8%"><col style="width:8%"><col style="width:8%">
+    <col style="width:8%"><col style="width:8%"><col style="width:8%"><col style="width:8%">
+    <col style="width:10%">
+  </colgroup>
+  <thead>
+    <tr>
+      <th rowspan="2">แพทย์</th>
+      <th colspan="3" style="background:#d1fae5;color:#065f46">ในเวลา</th>
+      <th colspan="4" style="background:#475569;color:#fff;${DIV}">นอกเวลา</th>
+      <th rowspan="2" style="${DIV}">รวมทั้งหมด</th>
+    </tr>
+    <tr>
+      <th style="background:#d1fae5;color:#065f46">M1</th>
+      <th style="background:#d1fae5;color:#065f46">M2</th>
+      <th style="background:#d1fae5;color:#065f46">A</th>
+      <th style="background:#6ee7b7;color:#064e3b;${DIV}">M</th>
+      <th style="background:#fed7aa;color:#7c2d12">E</th>
+      <th style="background:#1e293b;color:#cbd5e1">N</th>
+      <th style="background:#475569;color:#fff">OT รวม</th>
+    </tr>
+  </thead><tbody>`;
+  S.doctors.forEach(d=>{
+    const c=counts[d.id];
+    tbl+=`<tr>
+      <td>${d.name}${d.chief?'<span class="badge badge-chief" style="margin-left:4px">หน.</span>':''}</td>
+      <td>${c.M1}</td><td>${c.M2}</td><td>${c.A}</td>
+      <td style="${DIV}">${c.M}</td><td>${c.E}</td><td>${c.N}</td>
+      <td style="font-weight:600">${c.OT}</td>
+      <td style="font-weight:600;${DIV}">${c.total}</td>
+    </tr>`;
+  });
+  tbl+=`</tbody>`;
+  const el=document.getElementById('sched-sum-tbl');
+  if(el) el.innerHTML=tbl;
 }
 
 // ========== CONFLICT CHECKING ==========
@@ -1057,20 +1153,31 @@ function checkConflicts(did, day, val) {
     const cur=getCells(did,day).filter(v=>v!==val);
     if(cur.some(v=>MORNING.includes(v))) errors.push('M1/M2/A อยู่ด้วยกันไม่ได้');
   }
-  if(['M1','M2','M','A'].includes(val)) {
-    const prev=getCell(did,day-1);
-    if(prev==='N') errors.push('ดึกต่อเช้า ❌');
-  }
   // HARD: ผิดประเภทวัน
   if(isOffDay(day)&&['M1','M2','A'].includes(val)) errors.push('M1/M2/A ไม่มีในวันหยุด');
   if(!isOffDay(day)&&val==='M') errors.push('M เฉพาะวันหยุด');
 
+  // HARD: night shift can't follow a DOUBLE shift (morning AND evening together) the day before —
+  // a single morning-only or evening-only shift the day before is fine.
+  if(val==='N'){
+    const prevCells=day>1?getCells(did,day-1):[];
+    const hadMorning=prevCells.some(v=>['M','M1','M2','A'].includes(v));
+    const hadEvening=prevCells.includes('E');
+    if(hadMorning&&hadEvening) errors.push('เมื่อวานอยู่เช้า+บ่ายเต็มวัน ต่อดึกวันนี้ไม่ได้');
+  }
+
+  // HARD: shift slot already covered by someone else today (manual edit collision)
+  if(['M1','M2','A','E','N','M'].includes(val)){
+    const others=S.doctors.filter(o=>o.id!==did && getCells(o.id,day).includes(val));
+    if(others.length) errors.push(`เวรซ้ำกับ ${others.map(o=>o.name).join(', ')} (${val})`);
+  }
+
   // WARN: หัวหน้า M1/M2 (ทำได้ถ้าแก้เอง แต่ขึ้นเตือน)
   if(d.chief&&(val==='M1'||val==='M2')) warnings.push('หัวหน้าไม่ควรอยู่ M1/M2');
-  // WARN: หัวหน้า A เกิน limit
+  // WARN: หัวหน้า A เกินจำนวนที่กำหนดไว้ (A ควรเท่ากับ chiefLimit พอดี)
   if(d.chief&&val==='A') {
     const cnt=Object.values(S.schedule[mKey]?.[did]||{}).filter(v=>v==='A').length;
-    if(cnt>d.chiefLimit) warnings.push(`A เกิน ${d.chiefLimit} เวร/เดือน`);
+    if(cnt>d.chiefLimit) warnings.push(`A เกิน ${d.chiefLimit} เวร/เดือนที่กำหนดไว้`);
   }
   // WARN: Want request — got a different shift than requested
   const wantDay=d.wantRequests?.[dk(day)];
@@ -1085,10 +1192,18 @@ function checkConflicts(did, day, val) {
     const shiftGroup=(['M','M1','M2','A'].includes(val))?'M':val; // M1/M2/A all map to 'M' group
     if(arr.includes(shiftGroup)||arr.length===3) warnings.push(`ขอหยุดเวร ${arr.length===3?'ทั้งวัน':arr.join('+')} (${val})`);
   }
-  // WARN: TOW week (ฉุกเฉินทำได้)
-  if(isTowDay(did,day)&&!['TOW','OFF','-'].includes(val)) warnings.push('สัปดาห์ TOW');
-  // WARN: OFF week
-  if(isOffWeekDay(did,day)&&!['TOW','OFF','-'].includes(val)) warnings.push('สัปดาห์ OFF');
+  // WARN: TOW week (ฉุกเฉินทำได้ — skip warning if explicitly locked via 📌 ต้องอยู่)
+  if(isTowDay(did,day)&&!['TOW','OFF','-'].includes(val)){
+    const cond=getCondition(did,day,val);
+    if(cond!=='lock') warnings.push('สัปดาห์ TOW');
+  }
+  // WARN: OFF week (skip warning if the doctor explicitly opted in via ✅/⭐/📌 on the Condition page)
+  if(isOffWeekDay(did,day)&&!['TOW','OFF','-'].includes(val)){
+    const cond=getCondition(did,day,val);
+    if(cond!=='avail'&&cond!=='prefer'&&cond!=='lock') warnings.push('สัปดาห์ OFF');
+  }
+  // WARN: manually assigned a shift the doctor stamped 🚫 "อยู่ไม่ได้" for on the Condition page
+  if(getCondition(did,day,val)==='off') warnings.push(`⚠️ แปะ 🚫 อยู่ไม่ได้ไว้ แต่ลง ${val}`);
 
   return {errors,warnings};
 }
@@ -1133,13 +1248,12 @@ function openModal(did,day){
       (['M','M1','M2','A'].includes(s) && currentShifts.includes('N'))
     );
     const wouldCauseMorningConflict = MORNING.includes(s) && currentShifts.some(v=>MORNING.includes(v)&&v!==s);
-    const allErr=[...errors,...(wouldCauseNM?['ดึก+เช้า ❌']:[]),(wouldCauseMorningConflict?['M1/M2/A อยู่ด้วยกันไม่ได้']:[])];
-    const icon=allErr.length?'🔴':warnings.length?'🟡':'';
+    const allErr=[...errors,...(wouldCauseNM?['ดึก+เช้า ❌']:[]),...(wouldCauseMorningConflict?['M1/M2/A อยู่ด้วยกันไม่ได้']:[])];
     return `<button
       class="shift-btn${isOn?' selected':''}${allErr.length?' has-conflict':warnings.length?' has-warning':''}"
       style="background:${ps.bg};color:${ps.col};${isOn?`box-shadow:0 0 0 2.5px ${ps.col};font-weight:700`:''}"
       onclick="pickShift('${s}')"
-      title="${[...allErr,...warnings].join(', ')||s}">${s}${icon}</button>`;
+      title="${[...allErr,...warnings].join(', ')||s}">${s}</button>`;
   }).join('');
 
   // Show current combo conflicts
@@ -1153,7 +1267,7 @@ function openModal(did,day){
   let html='';
   if(allErrors.length) html+=`<div style="background:var(--err-bg);border-radius:6px;padding:7px 10px;font-size:12px;color:var(--err-text);margin-bottom:4px">🔴 ${[...new Set(allErrors)].join(' / ')}</div>`;
   if(allWarns.length) html+=`<div style="background:#fef9c3;border:0.5px solid #f59e0b;border-radius:6px;padding:7px 10px;font-size:12px;color:#713f12">🟡 ${[...new Set(allWarns)].join(' / ')}</div>`;
-  if(currentShifts.length) html+=`<div style="font-size:12px;color:var(--muted);margin-top:6px">เวรปัจจุบัน: <b>${currentShifts.join(' + ')}</b> — กดปุ่มเพื่อเพิ่ม/ลบ</div>`;
+  if(currentShifts.length) html+=`<div style="font-size:12px;color:var(--muted);margin-top:6px">เวรปัจจุบัน: <b>${sortShifts(currentShifts).join(' + ')}</b> — กดปุ่มเพื่อเพิ่ม/ลบ</div>`;
   mc.innerHTML=html;
 
   document.getElementById('modal-bg').classList.add('open');
@@ -1179,22 +1293,22 @@ function autoGenerate(){
   S.doctors.forEach(d=>S.schedule[mKey][d.id]={});
   const days=daysIn();
 
-  // Tally: start from carry-over
+  // Tally: start from carry-over — only N and total OT are carried between months (M/E individually
+  // aren't tracked; M1/M2/A carry over as before)
   const tally={};
   S.doctors.forEach(d=>{
-    tally[d.id]={N:0,M:0,E:0,M1:0,M2:0,A:0,OT:0,total:0};
+    tally[d.id]={N:0,M:0,E:0,M1:0,M2:0,A:0,OT:0,workday:0,total:0};
     const co=S.carryOver[d.id]||{};
-    ['N','M','E','M1','M2','A'].forEach(t=>tally[d.id][t]=co[t]||0);
+    ['M1','M2','A'].forEach(t=>tally[d.id][t]=co[t]||0);
+    tally[d.id].N = co.N||0;
+    tally[d.id].OT = co.OT||0;
+    tally[d.id].workday = tally[d.id].M1+tally[d.id].M2+tally[d.id].A;
   });
 
-  const lastShift={};
-  S.doctors.forEach(d=>lastShift[d.id]='-');
-
-  // First pass: mark TOW, OFF, and pre-assign LOCK conditions
+  // First pass: pre-assign LOCK conditions, then mark TOW for whatever's left
+  // (a 📌 lock stamp overrides TOW/OFF week defaults — the doctor explicitly said they can work that shift)
   for(let day=1;day<=days;day++){
     S.doctors.forEach(d=>{
-      if(isTowDay(d.id,day)){ S.schedule[mKey][d.id][day]='TOW'; return; }
-      if(isOffWeekDay(d.id,day)){ S.schedule[mKey][d.id][day]='OFF'; return; }
       if(S.conditions&&S.conditions[d.id]){
         const dk_=dk(day);
         const locked=Object.entries(S.conditions[d.id][dk_]||{})
@@ -1204,89 +1318,134 @@ function autoGenerate(){
           locked.forEach(sh=>{
             if(['N','M','E','M1','M2','A'].includes(sh))tally[d.id][sh]++;
             if(OT_SHIFTS.includes(sh))tally[d.id].OT++;
+            if(['M1','M2','A'].includes(sh))tally[d.id].workday++;
             tally[d.id].total++;
           });
+          return;
         }
+      }
+      if(isTowDay(d.id,day)){ S.schedule[mKey][d.id][day]='TOW'; return; }
+    });
+  }
+
+  // Second pass: assign shifts (OFF-week doctors are only eligible for a slot if marked ⭐ "prefer" — see available())
+  for(let day=1;day<=days;day++){
+    if(isOffDay(day)) genHolidayDay(day,tally,mKey);
+    else genWorkday(day,tally,mKey);
+  }
+
+  // Third pass: any OFF-week day still empty (no lock, no prefer pick) defaults back to rest
+  for(let day=1;day<=days;day++){
+    S.doctors.forEach(d=>{
+      if(isOffWeekDay(d.id,day) && !getCells(d.id,day).length){
+        S.schedule[mKey][d.id][day]='OFF';
       }
     });
   }
 
-  // Second pass: assign shifts
-  for(let day=1;day<=days;day++){
-    if(isOffDay(day)) genHolidayDay(day,tally,lastShift,mKey);
-    else genWorkday(day,tally,lastShift,mKey);
-  }
+  // Fourth pass: actively swap OT shifts from the most-loaded doctor to the least-loaded one
+  // until everyone is within ±1, or no legal swap remains (a genuine hard-constraint limit)
+  rebalanceOT(tally, mKey, days);
+
+  // Fifth pass: record whatever imbalance remains (e.g. someone had fewer available days due to
+  // TOW/OFF) into carry-over, so next month's generation starts by compensating for it automatically.
+  // Only N and total OT are tracked here — that's enough to keep things fair between months.
+  const avgN=S.doctors.reduce((s,d)=>s+tally[d.id].N,0)/S.doctors.length;
+  const avgOT=S.doctors.reduce((s,d)=>s+tally[d.id].OT,0)/S.doctors.length;
+  S.doctors.forEach(d=>{
+    if(!S.carryOver[d.id]) S.carryOver[d.id]={};
+    S.carryOver[d.id].N=Math.round(tally[d.id].N-avgN);
+    S.carryOver[d.id].OT=Math.round(tally[d.id].OT-avgOT);
+  });
 
   save();renderSchedule();
-  showToast('Auto-generate เสร็จแล้ว ✓');
+  showToast('Auto-generate เสร็จแล้ว ✓ (ปรับยอดชดเชย OT ให้เดือนหน้าแล้ว)');
 }
 
-function available(day, shiftType, lastShift, mKey){
+function canTakeShift(d, day, shiftType, mKey){
   const dk_=dk(day);
-  return S.doctors.filter(d=>{
-    const cur=getCells(d.id,day);
-    // TOW/OFF days blocked
-    if(isTowDay(d.id,day)||isOffWeekDay(d.id,day)) return false;
-    // Already has TOW or OFF
-    if(cur.includes('TOW')||cur.includes('OFF')) return false;
-    // Already has this shift
-    if(cur.includes(shiftType)) return false;
-    // HARD: M1/M2/A mutual exclusive
-    const MORNING=['M1','M2','A'];
-    if(MORNING.includes(shiftType) && cur.some(v=>MORNING.includes(v))) return false;
-    // HARD: no N+morning same day
-    if(shiftType==='N' && cur.some(v=>['M','M1','M2','A'].includes(v))) return false;
-    if(['M','M1','M2','A'].includes(shiftType) && cur.includes('N')) return false;
-    // No night → morning across days
-    const prev=lastShift[d.id]||'-';
-    if(['M1','M2','M','A'].includes(shiftType)&&prev==='N') return false;
-    if(['M1','M2','M','A'].includes(shiftType)&&prev==='E'&&(d.prefs||[]).includes('no-m-after-e')) return false;
-    if(shiftType==='N'&&prev==='E'&&(d.prefs||[]).includes('no-n-after-e')) return false;
-    // Condition (new system) — check all slots of this shift group
-    const shiftSlots = shiftType==='M'?['M']:
-                       shiftType==='M1'?['M1']:
-                       shiftType==='M2'?['M2']:
-                       shiftType==='A'?['A']:
-                       shiftType==='E'?['E']:
-                       shiftType==='N'?['N']:[];
-    for(const sl of shiftSlots){
-      const cond=getCondition(d.id,day,sl);
-      if(cond==='off') return false; // hard block
-    }
-    // Legacy off request
-    const or=d.offRequests?.[dk_];
-    if(or){const arr=Array.isArray(or)?or:(or==='all'?['N','M','E']:[or]);const grp=(['M','M1','M2','A'].includes(shiftType))?'M':shiftType;if(arr.includes(grp))return false;}
-    // Chief: block M1/M2, limit A
-    if(d.chief&&(shiftType==='M1'||shiftType==='M2')) return false;
-    if(d.chief&&shiftType==='A'){
-      const cnt=Object.values(S.schedule[mKey]?.[d.id]||{}).filter(v=>Array.isArray(v)?v.includes('A'):v==='A').length;
-      if(cnt>=d.chiefLimit) return false;
-    }
-    return true;
-  });
+  const cur=getCells(d.id,day);
+  const prevCells = day>1 ? getCells(d.id,day-1) : [];
+  // TOW week: teaching + emergency standby — zero availability, unless explicitly locked (📌 ต้องอยู่)
+  if(isTowDay(d.id,day) && getCondition(d.id,day,shiftType)!=='lock') return false;
+  // OFF week: resting by default, only eligible for a slot if marked ✅ "avail" or ⭐ "prefer" on the Condition page
+  if(isOffWeekDay(d.id,day)){
+    const c=getCondition(d.id,day,shiftType);
+    if(c!=='avail'&&c!=='prefer') return false;
+  }
+  // Already has TOW or OFF
+  if(cur.includes('TOW')||cur.includes('OFF')) return false;
+  // Already has this shift
+  if(cur.includes(shiftType)) return false;
+  // HARD: M1/M2/A mutual exclusive
+  const MORNING=['M1','M2','A'];
+  if(MORNING.includes(shiftType) && cur.some(v=>MORNING.includes(v))) return false;
+  // HARD: no N+morning same day
+  if(shiftType==='N' && cur.some(v=>['M','M1','M2','A'].includes(v))) return false;
+  if(['M','M1','M2','A'].includes(shiftType) && cur.includes('N')) return false;
+  // HARD: a night shift can't follow a DOUBLE shift (morning AND evening together) the day before
+  // (looks at what was actually committed to day-1, not a running tracker). A single morning-only
+  // or evening-only shift the day before is fine, and night→morning is only a same-day conflict
+  // (already covered above) — a night shift on day D followed by a morning shift on day D+1 is fine.
+  if(shiftType==='N'&&prevCells.some(v=>['M','M1','M2','A'].includes(v))&&prevCells.includes('E')) return false;
+  if(['M1','M2','M','A'].includes(shiftType)&&prevCells.includes('E')&&(d.prefs||[]).includes('no-m-after-e')) return false;
+  // Condition (new system) — check all slots of this shift group
+  const shiftSlots = shiftType==='M'?['M']:
+                     shiftType==='M1'?['M1']:
+                     shiftType==='M2'?['M2']:
+                     shiftType==='A'?['A']:
+                     shiftType==='E'?['E']:
+                     shiftType==='N'?['N']:[];
+  for(const sl of shiftSlots){
+    const cond=getCondition(d.id,day,sl);
+    if(cond==='off') return false; // hard block
+  }
+  // Legacy off request
+  const or=d.offRequests?.[dk_];
+  if(or){const arr=Array.isArray(or)?or:(or==='all'?['N','M','E']:[or]);const grp=(['M','M1','M2','A'].includes(shiftType))?'M':shiftType;if(arr.includes(grp))return false;}
+  // Chief: block M1/M2, limit A
+  if(d.chief&&(shiftType==='M1'||shiftType==='M2')) return false;
+  if(d.chief&&shiftType==='A'){
+    const cnt=Object.values(S.schedule[mKey]?.[d.id]||{}).filter(v=>Array.isArray(v)?v.includes('A'):v==='A').length;
+    if(cnt>=d.chiefLimit) return false;
+  }
+  return true;
+}
+
+function available(day, shiftType, mKey){
+  return S.doctors.filter(d=>canTakeShift(d,day,shiftType,mKey));
 }
 
 function score(d, shiftType, tally, day){
   const t=tally[d.id];
   const prefs=d.prefs||[];
   let s=0;
-  // Primary: balance by type
-  s += t[shiftType]*10;
-  // Secondary: total OT balance
-  s += t.OT*3;
+  // Primary balance term — weight depends on how tightly this type needs to be equalized:
+  // Total OT (M+E+N) is the tightest — must land within ±1 across everyone, including the chief,
+  // so it dominates every other scoring factor below (preferences, want-requests, etc.)
+  // A is kept fairly tight on its own. M1/M2 ride on the overall workday total.
+  if(OT_SHIFTS.includes(shiftType)) s += t.OT*50;
+  else if(shiftType==='A') s += t.A*20;
+  else if(shiftType==='M1'||shiftType==='M2') s += t.workday*15;
+  // Light tie-breaker within the specific shift type, so N/M/E still spread individually too
+  s += t[shiftType]*4;
 
-  // Condition system boost/penalty
+  // Chief's A count is a fixed target (A = chiefLimit), not just a ceiling — strongly prioritize
+  // her for A until she reaches it, so she reliably lands on exactly that number every month
+  if(shiftType==='A'&&d.chief&&t.A<d.chiefLimit) s-=200;
+
+  // Condition system boost/penalty — kept small so real balance need always wins over a soft preference
   const cond=getCondition(d.id,day,shiftType==='M1'||shiftType==='M2'||shiftType==='A'?shiftType:shiftType);
   if(cond==='lock')   s-=100; // highest priority
-  if(cond==='prefer') s-=50;
-  if(cond==='notpref')s+=20;
+  if(cond==='prefer') s-=5;
+  if(cond==='notpref')s+=5;
 
   // Legacy want request
-  const want=d.wantRequests?.[dk_];
+  const want=d.wantRequests?.[dk(day)];
   if(want){
     const wArr=Array.isArray(want)?want:[want];
     const grp=(['M','M1','M2','A'].includes(shiftType))?'M':shiftType;
-    if(wArr.includes(grp)) s-=50; // strong pull
+    if(wArr.includes(grp)) s-=8; // gentle pull — must not outweigh OT/workday balance
   }
 
   // Preference bonuses/penalties
@@ -1296,8 +1455,11 @@ function score(d, shiftType, tally, day){
     if(yd==='N') s+=6;
   }
   if(shiftType==='N'&&prefs.includes('consec-night')) {
+    // Strong pull — bigger than one OT-balance step, so extending an existing night streak wins
+    // even though it temporarily pulls this doctor's OT count ahead. The separate rebalancing
+    // pass (rebalanceOT) fixes the month's final ±1 balance afterward regardless of how it got there.
     const yd=getCell(d.id,day-1);
-    if(yd==='N') s-=8;
+    if(yd==='N') s-=60;
   }
   if((shiftType==='M1'||shiftType==='M2')&&prefs.includes('like-morning')) s-=5;
   if(shiftType==='E'&&prefs.includes('like-eve')) s-=5;
@@ -1315,46 +1477,102 @@ function pick(avail, shiftType, tally, day){
   return avail.slice().sort((a,b)=>score(a,shiftType,tally,day)-score(b,shiftType,tally,day))[0];
 }
 
-function assign(did, day, shiftType, tally, lastShift, mKey){
+function assign(did, day, shiftType, tally, mKey){
   // Append to existing shifts array
   const cur=getCells(did,day).filter(x=>x!=='-');
   const newShifts=[...cur, shiftType];
   S.schedule[mKey][did][day] = newShifts.length===1 ? newShifts[0] : newShifts;
-  lastShift[did]=shiftType;
   const t=tally[did];
   if(['N','M','E','M1','M2','A'].includes(shiftType)) t[shiftType]++;
   if(OT_SHIFTS.includes(shiftType)) t.OT++;
+  if(['M1','M2','A'].includes(shiftType)) t.workday++;
   t.total++;
 }
 
-function genHolidayDay(day,tally,lastShift,mKey){
-  const avM=available(day,'M',lastShift,mKey);
-  const pM=pick(avM,'M',tally,day);
-  if(pM) assign(pM.id,day,'M',tally,lastShift,mKey);
-  const avE=available(day,'E',lastShift,mKey);
-  const pE=pick(avE,'E',tally,day);
-  if(pE) assign(pE.id,day,'E',tally,lastShift,mKey);
-  const avN=available(day,'N',lastShift,mKey);
-  const pN=pick(avN,'N',tally,day);
-  if(pN) assign(pN.id,day,'N',tally,lastShift,mKey);
+// Used by the OT-rebalancing pass to hand a shift from one doctor to another
+function removeShift(did, day, shiftType, tally, mKey){
+  const remaining=getCells(did,day).filter(x=>x!==shiftType);
+  S.schedule[mKey][did][day] = remaining.length===0 ? '-' : remaining.length===1 ? remaining[0] : remaining;
+  const t=tally[did];
+  if(['N','M','E','M1','M2','A'].includes(shiftType)) t[shiftType]--;
+  if(OT_SHIFTS.includes(shiftType)) t.OT--;
+  if(['M1','M2','A'].includes(shiftType)) t.workday--;
+  t.total--;
 }
 
-function genWorkday(day,tally,lastShift,mKey){
-  const avM1=available(day,'M1',lastShift,mKey);
-  const p1=pick(avM1,'M1',tally,day);
-  if(p1) assign(p1.id,day,'M1',tally,lastShift,mKey);
-  const avM2=available(day,'M2',lastShift,mKey);
-  const p2=pick(avM2,'M2',tally,day);
-  if(p2) assign(p2.id,day,'M2',tally,lastShift,mKey);
-  const avA=available(day,'A',lastShift,mKey);
-  const pA=pick(avA,'A',tally,day);
-  if(pA) assign(pA.id,day,'A',tally,lastShift,mKey);
-  const avE=available(day,'E',lastShift,mKey);
-  const pE=pick(avE,'E',tally,day);
-  if(pE) assign(pE.id,day,'E',tally,lastShift,mKey);
-  const avN=available(day,'N',lastShift,mKey);
-  const pN=pick(avN,'N',tally,day);
-  if(pN) assign(pN.id,day,'N',tally,lastShift,mKey);
+// Actively hand OT shifts (N/E/M) from whoever has the most to whoever has the least,
+// until the gap is ≤1 or no legal swap is left (never touches a 📌 locked shift)
+// Counts THIS MONTH's real OT shifts only (unlike tally.OT, which is seeded from carry-over —
+// balancing that would hide a real gap in the numbers the admin is actually looking at)
+function monthlyOT(did, days){
+  let c=0;
+  for(let day=1;day<=days;day++){ getCells(did,day).forEach(v=>{ if(OT_SHIFTS.includes(v)) c++; }); }
+  return c;
+}
+
+// True if taking this N shift away from `did` would break a consecutive-night streak they wanted
+function breaksNightStreak(did, day, shiftType){
+  if(shiftType!=='N') return false;
+  const d=doc(did);
+  if(!(d.prefs||[]).includes('consec-night')) return false;
+  return getCell(did,day-1)==='N' || getCell(did,day+1)==='N';
+}
+
+function rebalanceOT(tally, mKey, days){
+  let guard=0;
+  while(guard++<300){
+    let maxDoc=S.doctors[0], minDoc=S.doctors[0], maxOT=monthlyOT(maxDoc.id,days), minOT=monthlyOT(minDoc.id,days);
+    S.doctors.forEach(d=>{
+      const c=monthlyOT(d.id,days);
+      if(c>maxOT){maxOT=c;maxDoc=d;}
+      if(c<minOT){minOT=c;minDoc=d;}
+    });
+    if(maxOT-minOT<=1) break;
+    let swapped=false;
+    // Two passes: first avoid breaking a consecutive-night streak, only allow it if truly no other option
+    for(const avoidStreaks of [true,false]){
+      if(swapped) break;
+      for(let day=1;day<=days&&!swapped;day++){
+        const donorShifts=getCells(maxDoc.id,day);
+        for(const st of ['N','E','M']){
+          if(!donorShifts.includes(st)) continue;
+          if(getCondition(maxDoc.id,day,st)==='lock') continue; // never undo an explicit lock
+          if(avoidStreaks && breaksNightStreak(maxDoc.id,day,st)) continue;
+          if(!canTakeShift(minDoc,day,st,mKey)) continue;
+          removeShift(maxDoc.id,day,st,tally,mKey);
+          assign(minDoc.id,day,st,tally,mKey);
+          swapped=true;
+          break;
+        }
+      }
+    }
+    if(!swapped) break; // no legal swap exists — remaining gap is a genuine hard-constraint limit
+  }
+}
+
+// A slot can already be filled by a 📌 lock assignment from the first pass — never double-fill it
+function slotAlreadyFilled(day, shiftType){
+  return S.doctors.some(d=>getCells(d.id,day).includes(shiftType));
+}
+function genPick(day,shiftType,tally,mKey){
+  if(slotAlreadyFilled(day,shiftType)) return;
+  const av=available(day,shiftType,mKey);
+  const p=pick(av,shiftType,tally,day);
+  if(p) assign(p.id,day,shiftType,tally,mKey);
+}
+
+function genHolidayDay(day,tally,mKey){
+  genPick(day,'M',tally,mKey);
+  genPick(day,'E',tally,mKey);
+  genPick(day,'N',tally,mKey);
+}
+
+function genWorkday(day,tally,mKey){
+  genPick(day,'M1',tally,mKey);
+  genPick(day,'M2',tally,mKey);
+  genPick(day,'A',tally,mKey);
+  genPick(day,'E',tally,mKey);
+  genPick(day,'N',tally,mKey);
 }
 
 // ========== SUMMARY PAGE ==========
@@ -1466,7 +1684,7 @@ function copySheet(){
     return `${d}(${DAYS_TH[weekday(d)]})${isHoliday(d)?'*':isWeekend(d)?'#':''}`;
   }).join('\t')];
   S.doctors.forEach(d=>{
-    lines.push(d.name+'\t'+Array.from({length:days},(_,i)=>getCells(d.id,i+1).join('+')||'-').join('\t'));
+    lines.push(d.name+'\t'+Array.from({length:days},(_,i)=>sortShifts(getCells(d.id,i+1)).join('+')||'-').join('\t'));
   });
   navigator.clipboard.writeText(lines.join('\n')).then(()=>showToast('Copied! พร้อม Paste ใน Google Sheet ✓'));
 }
@@ -1501,7 +1719,7 @@ function selectStamp(s){
   activeStamp=s;
   document.querySelectorAll('.stamp-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('stamp-'+s).classList.add('active');
-  const labels={off:'🚫 อยู่ไม่ได้',notpref:'🟡 ไม่อยากอยู่',prefer:'⭐ อยากอยู่',lock:'📌 ต้องอยู่',clear:'✕ ลบ'};
+  const labels={off:'🚫 อยู่ไม่ได้',notpref:'🟡 ไม่อยากอยู่',avail:'✅ อยู่ได้',prefer:'⭐ อยากอยู่',lock:'📌 ต้องอยู่',clear:'✕ ลบ'};
   document.getElementById('stamp-indicator').textContent='กำลังแปะ: '+labels[s];
 }
 
@@ -1527,7 +1745,7 @@ function applySlotStyle(el, state){
   el.className='cond-slot'+(state?' s-'+state:'');
   // Keep TOW/OFF bg class
   if(el.dataset.toworoff) el.classList.add(el.dataset.toworoff);
-  const icons={off:'🚫',notpref:'🟡',prefer:'⭐',lock:'📌'};
+  const icons={off:'🚫',notpref:'🟡',avail:'✅',prefer:'⭐',lock:'📌'};
   el.textContent=state?icons[state]:'';
 }
 
@@ -1558,7 +1776,7 @@ function renderCondition(){
       <input type="checkbox" id="cond-is-chief" ${d.chief?'checked':''} onchange="toggleChief('${condDocId}',this.checked)">
       <span>หัวหน้า</span>
     </label>
-    <span style="color:var(--muted)">| จำกัด A ≤</span>
+    <span style="color:var(--muted)">| กำหนด A =</span>
     <input type="number" id="cond-chief-lim" value="${d.chiefLimit||4}" min="0" max="15"
       style="width:46px;font-size:13px;text-align:center" onchange="setChiefLimit('${condDocId}',this.value)">
     <span style="color:var(--muted)">เวร/เดือน</span>
@@ -1568,12 +1786,12 @@ function renderCondition(){
   const SW=36; // slot width px
   const SH=36; // slot height px
   const GAP=2;
-  const ICON={off:'🚫',notpref:'🟡',prefer:'⭐',lock:'📌'};
+  const ICON={off:'🚫',notpref:'🟡',avail:'✅',prefer:'⭐',lock:'📌'};
   const SCOL={
-    off:'#fee2e2',notpref:'#fef9c3',prefer:'#dcfce7',lock:'#e0e7ff',
+    off:'#fee2e2',notpref:'#fef9c3',avail:'#cffafe',prefer:'#dcfce7',lock:'#e0e7ff',
   };
-  const SBORDER={off:'#fca5a5',notpref:'#fde68a',prefer:'#86efac',lock:'#a5b4fc'};
-  const STXT={off:'#991b1b',notpref:'#92400e',prefer:'#166534',lock:'#3730a3'};
+  const SBORDER={off:'#fca5a5',notpref:'#fde68a',avail:'#67e8f9',prefer:'#86efac',lock:'#a5b4fc'};
+  const STXT={off:'#991b1b',notpref:'#92400e',avail:'#155e75',prefer:'#166534',lock:'#3730a3'};
 
   // Build as table for alignment
   // Rows: N, M1, M2, A, E (workday) — on holiday rows M1/M2/A collapse into M
@@ -1672,6 +1890,19 @@ function getCondition(docId, day, slot){
   if(!S.conditions) return null;
   const dk_=dk(day);
   return S.conditions[docId]?.[dk_]?.[slot]||null;
+}
+
+// For the "!" marker on manually-edited cells that clash with a Condition-page stamp
+function conditionMismatchMsgs(did, day){
+  const shifts=getCells(did,day).filter(v=>v!=='TOW'&&v!=='OFF'&&v!=='-');
+  const msgs=[];
+  shifts.forEach(v=>{ if(getCondition(did,day,v)==='off') msgs.push(`ลง ${v} ทั้งที่แปะ 🚫 อยู่ไม่ได้`); });
+  if(S.conditions&&S.conditions[did]){
+    const dk_=dk(day);
+    const locked=Object.entries(S.conditions[did][dk_]||{}).filter(([,v])=>v==='lock').map(([k])=>k);
+    locked.forEach(slot=>{ if(!shifts.includes(slot)) msgs.push(`แปะ 📌 ต้องอยู่ ${slot} แต่ไม่ได้ลง`); });
+  }
+  return msgs;
 }
 Object.assign(window, {
   goPage,changeMonth,clearSched,autoGenerate,
