@@ -171,6 +171,18 @@ table.sum tr:nth-child(even) td{background:var(--bg)}
 .off-shift-btn{flex:1;padding:8px 4px;border-radius:6px;font-size:12px;font-family:inherit;cursor:pointer;font-weight:600;border:1.5px solid var(--border);transition:.15s;text-align:center}
 .off-shift-btn.on{border-color:var(--accent);background:var(--accent);color:#fff}
 .off-shift-btn.off{border-color:var(--border);background:var(--bg);color:var(--muted);text-decoration:line-through}
+
+/* Mobile / small screens — nav and top bar were overflowing off-screen, and the
+   two-column setup layout was crushing both columns down to unusable widths */
+@media (max-width:768px){
+  .topbar{flex-wrap:wrap;padding:10px 14px;gap:8px}
+  .topbar h1{font-size:13px;line-height:1.35;width:100%}
+  .nav{margin-left:0;flex-wrap:wrap}
+  .nav button{padding:6px 10px;font-size:12px}
+  #lock-toggle{margin-left:0}
+  .content{padding:12px 10px}
+  .grid2{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
