@@ -34,6 +34,7 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);fon
 /* Buttons */
 .btn{border:0.5px solid var(--border);background:var(--surface);color:var(--text);padding:6px 14px;border-radius:6px;font-size:13px;font-family:inherit;cursor:pointer;transition:.15s;white-space:nowrap}
 .btn:hover{background:var(--bg)}
+.btn:disabled{opacity:.45;cursor:not-allowed;pointer-events:none}
 .btn-primary{background:var(--accent);color:#fff;border-color:var(--accent)}
 .btn-primary:hover{background:var(--accent2);border-color:var(--accent2)}
 .btn-danger{background:var(--err-bg);color:var(--err-text);border-color:var(--err-border)}
@@ -257,10 +258,10 @@ table.sum tr:nth-child(even) td{background:var(--bg)}
     </div>
   </div>
 
-  <!-- Cumulative shift totals (for balancing) -->
+  <!-- Cumulative shift totals (reference only — auto-generate balances within each month, not across months) -->
   <div class="card" style="margin-top:14px">
-    <div class="card-title">📊 ยอดสะสมเวร (ไว้เกลี่ยเดือนถัดไป)</div>
-    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">นับจริงจากตารางที่จัดไว้ ไม่ต้องกรอกเอง — auto-generate เดือนถัดไปจะพยายามเกลี่ยให้ทุกคนมายอดใกล้เคียงกัน</p>
+    <div class="card-title">📊 ยอดสะสมเวร (ไว้ดูอ้างอิง)</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">นับจริงจากตารางที่จัดไว้ ไม่ต้องกรอกเอง — เอาไว้ดูเทียบเฉยๆ auto-generate จะเกลี่ยให้ใกล้กันที่สุดเฉพาะภายในเดือนนั้นๆ ไม่ได้ปรับตามยอดสะสมนี้</p>
     <div class="row" style="gap:8px;margin-bottom:10px;align-items:center">
       <label style="font-size:12px;color:var(--muted)">เริ่มนับจาก</label>
       <input type="month" id="balance-start-month" onchange="setBalanceStartMonth(this.value)" style="width:150px">
@@ -336,8 +337,10 @@ table.sum tr:nth-child(even) td{background:var(--bg)}
       <div style="font-size:16px;font-weight:600;min-width:130px;text-align:center" id="sched-month"></div>
       <button class="btn" onclick="changeMonth(1)">›</button>
     </div>
-    <button class="btn btn-primary" onclick="autoGenerate()">⚡ Auto-generate</button>
-    <button class="btn" onclick="clearSched()">🗑️ ล้างเดือนนี้</button>
+    <button class="btn btn-primary" id="autogen-btn" onclick="autoGenerate()">⚡ Auto-generate</button>
+    <button class="btn" id="clearsched-btn" onclick="clearSched()">🗑️ ล้างเดือนนี้</button>
+    <button class="btn" id="finalize-btn" onclick="toggleFinalize()" title="ล็อกตารางเดือนนี้ไม่ให้แก้ไข กันเผลอแก้แล้วกระทบยอดสะสมเวร">🏁 Finalize เดือนนี้</button>
+    <button class="btn" id="cond-mode-btn" onclick="toggleCondMode()" title="ซ้อนไอคอน Condition (ต้องอยู่/อยากอยู่/อยู่ได้/ไม่อยากอยู่/อยู่ไม่ได้) เป็นพื้นหลังแต่ละช่อง เพื่อช่วยดูตอนสลับเวร">🙋 See Condition</button>
     <button class="btn" id="export-png-btn" onclick="exportSchedulePNG()">🖼️ Export PNG</button>
     <button class="btn" id="export-pdf-btn" onclick="exportSchedulePDF()">📄 Export PDF</button>
     <div id="conflict-badge" style="display:none;background:var(--err-bg);color:var(--err-text);border:0.5px solid var(--err-border);border-radius:12px;padding:3px 12px;font-size:12px;font-weight:500"></div>
@@ -356,6 +359,16 @@ table.sum tr:nth-child(even) td{background:var(--bg)}
     <span style="display:inline-block;padding:2px 7px;background:#ede9fe;border-radius:4px;font-size:11px;font-weight:500;color:#6d28d9">TOW</span>
     <span style="display:inline-block;padding:2px 7px;background:#fef9c3;border-radius:4px;font-size:11px;font-weight:500;color:#92400e">OFF</span>
     <span style="color:var(--muted);font-size:11px;margin-left:4px">🔷=วันหยุดราชการ 🟦=เสาร์-อาทิตย์ 🟣=TOW week</span>
+  </div>
+
+  <!-- Condition legend — only shown while "See Condition" mode is on -->
+  <div id="cond-legend" style="display:none;gap:8px;flex-wrap:wrap;margin-bottom:10px;font-size:12px;align-items:center">
+    <span style="color:var(--muted);font-size:11px">Condition:</span>
+    <span style="font-size:11px">📌 ต้องอยู่</span>
+    <span style="font-size:11px">⭐ อยากอยู่</span>
+    <span style="font-size:11px">✅ อยู่ได้</span>
+    <span style="font-size:11px">🟡 ไม่อยากอยู่</span>
+    <span style="font-size:11px">🚫 อยู่ไม่ได้</span>
   </div>
 
   <div id="export-capture">
@@ -455,6 +468,10 @@ table.sum tr:nth-child(even) td{background:var(--bg)}
   <div id="m-off-warn" style="display:none;background:var(--warn-bg);border:0.5px solid var(--warn-border);border-radius:6px;padding:6px 10px;font-size:12px;color:var(--warn-text);margin-bottom:8px"></div>
   <div class="shift-grid" id="m-shifts"></div>
   <div id="m-conflicts" style="margin-bottom:8px"></div>
+  <div class="form-group">
+    <label for="m-note">📝 หมายเหตุ (เช่น วันนี้อนุโลม, ก. แทน ข.)</label>
+    <textarea id="m-note" rows="2" style="resize:vertical" placeholder="ไม่บังคับ" onchange="saveNoteFromModal(this.value)"></textarea>
+  </div>
   <button class="btn" style="width:100%" onclick="closeModal()">ปิด</button>
 </div>
 </div>
@@ -496,10 +513,12 @@ const PILL_STYLE = {
   OFF:{bg:'transparent',col:'transparent'},TOW:{bg:'transparent',col:'transparent'},
   '-':{bg:'#f5f4f0',col:'#9b9b97'}
 };
+// Condition stamp icons — shared between the Condition page and the schedule's "see condition" overlay
+const COND_ICON = {off:'🚫',notpref:'🟡',avail:'✅',prefer:'⭐',lock:'📌'};
 
 // ========== STATE ==========
 let S = {
-  doctors:[],holidays:{},schedule:{},carryOver:{},towWeeks:[],
+  doctors:[],holidays:{},schedule:{},carryOver:{},towWeeks:[],notes:{},finalizedMonths:{},
   currentYear:new Date().getFullYear(),currentMonth:new Date().getMonth(),lastSaved:null,
   locked:false,lockPasswordHash:null
 };
@@ -1060,6 +1079,33 @@ function updateTow(idx,field,val){
 }
 
 // ========== SCHEDULE PAGE ==========
+let condModeOn = false;
+function toggleCondMode(){
+  condModeOn = !condModeOn;
+  const btn = document.getElementById('cond-mode-btn');
+  if(btn){
+    btn.classList.toggle('btn-primary', condModeOn);
+    btn.textContent = condModeOn ? '🙋 กำลังดู Condition (กดเพื่อออก)' : '🙋 See Condition';
+  }
+  const legend = document.getElementById('cond-legend');
+  if(legend) legend.style.display = condModeOn ? 'flex' : 'none';
+  renderSchedule();
+}
+// Condition to show as the cell watermark: the assigned shift's own stamp if any,
+// otherwise the strongest signal across that day's slots (so an empty cell still hints at availability)
+function getCellCondition(did, day){
+  const shifts=getCells(did,day).filter(v=>v!=='TOW'&&v!=='OFF'&&v!=='-');
+  if(shifts.length){
+    for(const v of shifts){ const c=getCondition(did,day,v); if(c) return c; }
+    return null;
+  }
+  const slots = isOffDay(day) ? ['N','M','E'] : ['N','M1','M2','A','E'];
+  const PRIORITY=['lock','off','prefer','avail','notpref'];
+  for(const p of PRIORITY){
+    if(slots.some(s=>getCondition(did,day,s)===p)) return p;
+  }
+  return null;
+}
 function changeMonth(d) {
   S.currentMonth+=d;
   if(S.currentMonth<0){S.currentMonth=11;S.currentYear--;}
@@ -1071,6 +1117,18 @@ function renderSchedule() {
   const days=daysIn();
   const mLabel=`${MONTHS_TH[S.currentMonth]} ${S.currentYear+543}`;
   document.getElementById('sched-month').textContent=mLabel;
+
+  // Finalize state — freeze the toolbar/edit affordances when this month is locked
+  const finalized=isMonthFinalized();
+  const finBtn=document.getElementById('finalize-btn');
+  if(finBtn){
+    finBtn.textContent = finalized ? '🔓 ปลดล็อก (Un-finalize)' : '🏁 Finalize เดือนนี้';
+    finBtn.classList.toggle('btn-danger', finalized);
+  }
+  const autogenBtn=document.getElementById('autogen-btn');
+  if(autogenBtn) autogenBtn.disabled = finalized;
+  const clearBtn=document.getElementById('clearsched-btn');
+  if(clearBtn) clearBtn.disabled = finalized;
 
   // Build header — one column per doctor, corner cell labels the date column
   let h=`<thead><tr><th class="name-col" style="font-size:13px">วันที่</th>`;
@@ -1122,12 +1180,19 @@ function renderSchedule() {
       if(shifts.includes('N')&&shifts.some(v=>['M','M1','M2','A'].includes(v))) allErrors.push('ดึกต่อเช้า ❌');
       const icon=allErrors.length?'🔴':allWarns.length?'🟡':'';
       // One shift fills the whole cell; two shifts split left/right, each in its own color
+      // In "see condition" mode, pills go semi-transparent so the condition watermark shows through
+      const pillFade = condModeOn ? 'opacity:.55;' : '';
       const pillsHtml = realShifts.length===0
         ? `<button class="pill pill-empty" onclick="openModal('${dr.id}',${d})" style="background:transparent;color:var(--faint);width:100%;height:100%;flex:1">·</button>`
         : realShifts.map(v=>{
             const ps=PILL_STYLE[v]||PILL_STYLE['-'];
-            return `<button class="pill pill-${v}${allErrors.length?' conflict':allWarns.length?' warn-pill':''}" onclick="openModal('${dr.id}',${d})" style="background:${ps.bg};color:${ps.col};flex:1;height:100%;border-radius:0;margin:0" title="${[...allErrors,...allWarns].join(' / ')||v}">${v}</button>`;
+            return `<button class="pill pill-${v}${allErrors.length?' conflict':allWarns.length?' warn-pill':''}" onclick="openModal('${dr.id}',${d})" style="background:${ps.bg};color:${ps.col};flex:1;height:100%;border-radius:0;margin:0;${pillFade}" title="${[...allErrors,...allWarns].join(' / ')||v}">${v}</button>`;
           }).join('');
+      // "See Condition" mode watermark — the doctor's stamped condition for this day, shown
+      // behind the shift pill(s) so it's easier to judge who could swap into/out of this cell
+      const condState = condModeOn ? getCellCondition(dr.id,d) : null;
+      const condWatermark = condState
+        ? `<span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:20px;line-height:1;pointer-events:none">${COND_ICON[condState]}</span>` : '';
       const iconBadge = icon
         ? `<span style="position:absolute;bottom:0;left:0;font-size:9px;line-height:1;pointer-events:none">${icon}</span>` : '';
       // Invisible click target for TOW/OFF-only cells
@@ -1138,7 +1203,12 @@ function renderSchedule() {
       const mismatchBadge = condMismatch.length
         ? `<span title="${condMismatch.join(' / ')}" style="position:absolute;top:0;right:0;background:#dc2626;color:#fff;border-radius:0 0 0 4px;width:11px;height:11px;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;line-height:1;pointer-events:none">!</span>`
         : '';
-      b+=`<td style="vertical-align:top;${cellBg};position:relative;padding:0"><div style="display:flex;flex-direction:row;height:26px">${pillsHtml}</div>${clickTarget}${mismatchBadge}${iconBadge}</td>`;
+      // 📝 marker — a free-text note was left on this cell (e.g. "อนุโลม", "ก. แทน ข.")
+      const note=getNote(dr.id,d);
+      const noteBadge = note
+        ? `<span title="${note.replace(/"/g,'&quot;')}" style="position:absolute;bottom:0;right:0;font-size:9px;line-height:1;pointer-events:none">📝</span>`
+        : '';
+      b+=`<td style="vertical-align:top;${cellBg};position:relative;padding:0">${condWatermark}<div style="display:flex;flex-direction:row;height:26px;position:relative">${pillsHtml}</div>${clickTarget}${mismatchBadge}${iconBadge}${noteBadge}</td>`;
     });
     const statusParts=[];
     if(missingSlots.length) statusParts.push(`ขาด ${missingSlots.join(',')}`);
@@ -1327,6 +1397,7 @@ function openModal(did,day){
   const orDay=d.offRequests?.[dk(day)];
   const wtDay=d.wantRequests?.[dk(day)];
   let owHtml='';
+  if(isMonthFinalized()) owHtml+=`🏁 เดือนนี้ finalize แล้ว — แก้ไขไม่ได้จนกว่าจะปลดล็อก `;
   if(orDay){const arr=Array.isArray(orDay)?orDay:(orDay==='all'?['N','M','E']:[orDay]);owHtml+=`🚫 ขอหยุด: ${arr.length===3?'ทั้งวัน':arr.join('+')} `;}
   if(wtDay){const arr=Array.isArray(wtDay)?wtDay:[wtDay];owHtml+=`⭐ ขออยู่: ${arr.join('+')} `;}
   if(owHtml){ow.style.display='block';ow.innerHTML=owHtml;}
@@ -1366,19 +1437,24 @@ function openModal(did,day){
   if(currentShifts.length) html+=`<div style="font-size:12px;color:var(--muted);margin-top:6px">เวรปัจจุบัน: <b>${sortShifts(currentShifts).join(' + ')}</b> — กดปุ่มเพื่อเพิ่ม/ลบ</div>`;
   mc.innerHTML=html;
 
+  document.getElementById('m-note').value=getNote(did,day);
+
   document.getElementById('modal-bg').classList.add('open');
 }
 function pickShift(s){
   if(!requireUnlocked())return;
+  if(!requireNotFinalized())return;
   toggleShift(mDid,mDay,s);
   openModal(mDid,mDay); // re-render modal to show updated state
   renderSchedule();
 }
+function saveNoteFromModal(text){ saveNote(mDid,mDay,text); }
 function closeModal(){document.getElementById('modal-bg').classList.remove('open');}
 function bgClose(e){if(e.target===document.getElementById('modal-bg'))closeModal();}
 
 function clearSched(){
   if(!requireUnlocked())return;
+  if(!requireNotFinalized())return;
   if(!confirm('ล้างตารางเดือนนี้ทั้งหมด?'))return;
   delete S.schedule[mk()];save();renderSchedule();
 }
@@ -1386,24 +1462,18 @@ function clearSched(){
 // ========== AUTO-GENERATE ==========
 function autoGenerate(){
   if(!requireUnlocked())return;
+  if(!requireNotFinalized())return;
   if(!confirm(`Auto-generate ตาราง ${MONTHS_TH[S.currentMonth]} ${S.currentYear+543}?\n\nจะเขียนทับตารางปัจจุบัน`))return;
   const mKey=mk();
   S.schedule[mKey]={};
   S.doctors.forEach(d=>S.schedule[mKey][d.id]={});
   const days=daysIn();
 
-  // Tally: seed N/OT/A from real cumulative history (S.balanceStartMonth → the month before this
-  // one) so the balance target reflects everyone's actual track record, not a manually-typed number
-  const cumBefore=cumulativeTotals(mKey);
+  // Tally starts fresh at 0 every month — balance target is THIS month only, not cumulative
+  // history (ยอดสะสมเวร is shown separately on the Setup page for manual reference only)
   const tally={};
   S.doctors.forEach(d=>{
     tally[d.id]={N:0,M:0,E:0,M1:0,M2:0,A:0,OT:0,workday:0,total:0};
-    tally[d.id].N = cumBefore[d.id].N;
-    tally[d.id].OT = cumBefore[d.id].OT;
-    // Chief's A is a fixed per-month target (A = chiefLimit), not a cumulative balance — always
-    // starts at 0 so she reliably gets exactly chiefLimit A's this month regardless of past months
-    tally[d.id].A = d.chief ? 0 : cumBefore[d.id].A;
-    tally[d.id].workday = tally[d.id].A; // M1/M2 start fresh each month, only A carries history
   });
 
   // First pass: pre-assign LOCK conditions, then mark TOW for whatever's left
@@ -1444,9 +1514,15 @@ function autoGenerate(){
     });
   }
 
-  // Fourth pass: actively swap OT shifts from the most-loaded doctor to the least-loaded one
-  // until everyone is within ±1, or no legal swap remains (a genuine hard-constraint limit)
-  rebalanceOT(tally, mKey, days);
+  // Fourth pass: actively swap shifts from the most-loaded doctor to the least-loaded one until
+  // everyone is within ±1 (or no legal swap remains — a genuine hard-constraint limit). Narrow
+  // buckets (A, N) run first so the broader totals that contain them (in-hours, OT) don't need to
+  // touch them again except as a last resort — see the type order inside rebalanceTotal.
+  const nonChief=S.doctors.filter(d=>!d.chief);
+  rebalanceType(tally, mKey, days, 'A', nonChief);
+  rebalanceTotal(tally, mKey, days, ['M1','M2','A'], nonChief);
+  rebalanceType(tally, mKey, days, 'N', S.doctors);
+  rebalanceTotal(tally, mKey, days, ['E','M','N'], S.doctors);
 
   save();renderSchedule();renderCumulative();
   showToast('Auto-generate เสร็จแล้ว ✓');
@@ -1546,8 +1622,8 @@ function score(d, shiftType, tally, day){
   }
   if(shiftType==='N'&&prefs.includes('consec-night')) {
     // Strong pull — bigger than one OT-balance step, so extending an existing night streak wins
-    // even though it temporarily pulls this doctor's OT count ahead. The separate rebalancing
-    // pass (rebalanceOT) fixes the month's final ±1 balance afterward regardless of how it got there.
+    // even though it temporarily pulls this doctor's OT count ahead. The rebalancing passes
+    // (rebalanceType/rebalanceTotal) fix the month's final ±1 balance afterward regardless.
     const yd=getCell(d.id,day-1);
     if(yd==='N') s-=60;
   }
@@ -1590,16 +1666,6 @@ function removeShift(did, day, shiftType, tally, mKey){
   t.total--;
 }
 
-// Actively hand OT shifts (N/E/M) from whoever has the most to whoever has the least,
-// until the gap is ≤1 or no legal swap is left (never touches a 📌 locked shift)
-// Counts THIS MONTH's real OT shifts only (unlike tally.OT, which is seeded from carry-over —
-// balancing that would hide a real gap in the numbers the admin is actually looking at)
-function monthlyOT(did, days){
-  let c=0;
-  for(let day=1;day<=days;day++){ getCells(did,day).forEach(v=>{ if(OT_SHIFTS.includes(v)) c++; }); }
-  return c;
-}
-
 // True if taking this N shift away from `did` would break a consecutive-night streak they wanted
 function breaksNightStreak(did, day, shiftType){
   if(shiftType!=='N') return false;
@@ -1608,25 +1674,71 @@ function breaksNightStreak(did, day, shiftType){
   return getCell(did,day-1)==='N' || getCell(did,day+1)==='N';
 }
 
-function rebalanceOT(tally, mKey, days){
+// Count how many shifts of `shiftType` (or, if given an array, any of those types combined)
+// `did` actually has scheduled this month — always the real on-calendar count, never the tally
+// (which can be mid-swap or seeded), so the balance check reflects what the admin is looking at
+function monthlyCount(did, days, typeOrTypes){
+  const types=Array.isArray(typeOrTypes)?typeOrTypes:[typeOrTypes];
+  let c=0;
+  for(let day=1;day<=days;day++){ getCells(did,day).forEach(v=>{ if(types.includes(v)) c++; }); }
+  return c;
+}
+
+// Hand ONE shift of `shiftType` at a time from whoever in `pool` has the most to whoever has the
+// least, until the gap is ≤1 or no legal swap is left (never touches a 📌 locked shift)
+function rebalanceType(tally, mKey, days, shiftType, pool){
+  if(pool.length<2) return;
   let guard=0;
   while(guard++<300){
-    let maxDoc=S.doctors[0], minDoc=S.doctors[0], maxOT=monthlyOT(maxDoc.id,days), minOT=monthlyOT(minDoc.id,days);
-    S.doctors.forEach(d=>{
-      const c=monthlyOT(d.id,days);
-      if(c>maxOT){maxOT=c;maxDoc=d;}
-      if(c<minOT){minOT=c;minDoc=d;}
+    let maxDoc=pool[0], minDoc=pool[0], maxC=monthlyCount(maxDoc.id,days,shiftType), minC=monthlyCount(minDoc.id,days,shiftType);
+    pool.forEach(d=>{
+      const c=monthlyCount(d.id,days,shiftType);
+      if(c>maxC){maxC=c;maxDoc=d;}
+      if(c<minC){minC=c;minDoc=d;}
     });
-    if(maxOT-minOT<=1) break;
+    if(maxC-minC<=1) break;
     let swapped=false;
     // Two passes: first avoid breaking a consecutive-night streak, only allow it if truly no other option
     for(const avoidStreaks of [true,false]){
       if(swapped) break;
       for(let day=1;day<=days&&!swapped;day++){
+        if(!getCells(maxDoc.id,day).includes(shiftType)) continue;
+        if(getCondition(maxDoc.id,day,shiftType)==='lock') continue; // never undo an explicit lock
+        if(avoidStreaks && breaksNightStreak(maxDoc.id,day,shiftType)) continue;
+        if(!canTakeShift(minDoc,day,shiftType,mKey)) continue;
+        removeShift(maxDoc.id,day,shiftType,tally,mKey);
+        assign(minDoc.id,day,shiftType,tally,mKey);
+        swapped=true;
+        break;
+      }
+    }
+    if(!swapped) break; // no legal swap exists — remaining gap is a genuine hard-constraint limit
+  }
+}
+
+// Same idea as rebalanceType, but balances the COMBINED total of several shift types at once
+// (e.g. total OT = E+M+N). `types` order is a preference order for which shift to give up first —
+// putting the type(s) already narrow-balanced by rebalanceType last means this pass only touches
+// them as a last resort, so it doesn't undo that earlier, tighter balancing.
+function rebalanceTotal(tally, mKey, days, types, pool){
+  if(pool.length<2) return;
+  let guard=0;
+  while(guard++<300){
+    let maxDoc=pool[0], minDoc=pool[0], maxC=monthlyCount(maxDoc.id,days,types), minC=monthlyCount(minDoc.id,days,types);
+    pool.forEach(d=>{
+      const c=monthlyCount(d.id,days,types);
+      if(c>maxC){maxC=c;maxDoc=d;}
+      if(c<minC){minC=c;minDoc=d;}
+    });
+    if(maxC-minC<=1) break;
+    let swapped=false;
+    for(const avoidStreaks of [true,false]){
+      if(swapped) break;
+      for(let day=1;day<=days&&!swapped;day++){
         const donorShifts=getCells(maxDoc.id,day);
-        for(const st of ['N','E','M']){
+        for(const st of types){
           if(!donorShifts.includes(st)) continue;
-          if(getCondition(maxDoc.id,day,st)==='lock') continue; // never undo an explicit lock
+          if(getCondition(maxDoc.id,day,st)==='lock') continue;
           if(avoidStreaks && breaksNightStreak(maxDoc.id,day,st)) continue;
           if(!canTakeShift(minDoc,day,st,mKey)) continue;
           removeShift(maxDoc.id,day,st,tally,mKey);
@@ -1634,9 +1746,10 @@ function rebalanceOT(tally, mKey, days){
           swapped=true;
           break;
         }
+        if(swapped) break;
       }
     }
-    if(!swapped) break; // no legal swap exists — remaining gap is a genuine hard-constraint limit
+    if(!swapped) break;
   }
 }
 
@@ -1834,6 +1947,32 @@ function requireUnlocked(){
   return true;
 }
 
+// ========== PER-MONTH FINALIZE ==========
+// S.finalizedMonths[monthKey] = true — freezes that month's shift assignments (and notes) so
+// nobody accidentally edits a schedule that's already been used to tally cumulative shift totals.
+// Independent of the password lock above: no password needed, but un-finalizing warns first.
+function isMonthFinalized(mKey){ return !!(S.finalizedMonths && S.finalizedMonths[mKey||mk()]); }
+function requireNotFinalized(){
+  if(isMonthFinalized()){ showToast('🏁 เดือนนี้ finalize แล้ว — ปลดล็อกก่อนถึงจะแก้ไขได้'); return false; }
+  return true;
+}
+function toggleFinalize(){
+  if(!S.finalizedMonths) S.finalizedMonths={};
+  const mKey=mk();
+  const mLabel=`${MONTHS_TH[S.currentMonth]} ${S.currentYear+543}`;
+  if(!S.finalizedMonths[mKey]){
+    if(!confirm(`🏁 Finalize ตาราง ${mLabel}?\n\nหลัง finalize จะแก้ไขเวร/หมายเหตุในเดือนนี้ไม่ได้ (Auto-generate และล้างเดือนนี้ก็จะถูกปิดด้วย) จนกว่าจะปลดล็อก`)) return;
+    S.finalizedMonths[mKey]=true;
+    save(); renderSchedule();
+    showToast('🏁 Finalize เดือนนี้แล้ว');
+  } else {
+    if(!confirm(`⚠️ ปลดล็อก (Un-finalize) ตาราง ${mLabel}?\n\nเดือนนี้ finalize ไว้แล้ว การแก้ไขตอนนี้อาจกระทบยอดสะสมเวรที่นับรวมไปแล้ว — แน่ใจนะว่าจะปลดล็อก?`)) return;
+    delete S.finalizedMonths[mKey];
+    save(); renderSchedule();
+    showToast('🔓 ปลดล็อก (un-finalize) แล้ว');
+  }
+}
+
 // ========== CONDITION PAGE ==========
 let activeStamp = 'off';
 let condDocId = null;
@@ -2027,6 +2166,22 @@ function getCondition(docId, day, slot){
   return S.conditions[docId]?.[dk_]?.[slot]||null;
 }
 
+// Free-text note on a specific doctor/day — e.g. "วันนี้อนุโลม" or "วันนี้ ก. แทน ข." — purely
+// informational, doesn't affect the schedule or any conflict/warning logic
+function getNote(did, day){
+  return S.notes?.[did]?.[dk(day)] || '';
+}
+function saveNote(did, day, text){
+  if(!requireUnlocked())return;
+  if(!requireNotFinalized())return;
+  const dk_=dk(day);
+  text=(text||'').trim();
+  if(!S.notes[did]) S.notes[did]={};
+  if(text) S.notes[did][dk_]=text;
+  else delete S.notes[did][dk_];
+  save();renderSchedule();
+}
+
 // For the "!" marker on manually-edited cells that clash with a Condition-page stamp
 function conditionMismatchMsgs(did, day){
   const shifts=getCells(did,day).filter(v=>v!=='TOW'&&v!=='OFF'&&v!=='-');
@@ -2040,8 +2195,8 @@ function conditionMismatchMsgs(did, day){
   return msgs;
 }
 Object.assign(window, {
-  goPage,changeMonth,clearSched,autoGenerate,
-  openModal,pickShift,closeModal,bgClose,
+  goPage,changeMonth,clearSched,autoGenerate,toggleCondMode,toggleFinalize,
+  openModal,pickShift,closeModal,bgClose,saveNoteFromModal,
   addDoc,removeDoc,renameDoc,moveDoc,editInitials,saveDocSettings,loadDocSettings,
   addOff,delOff,delWant,addHol,delHol,
   addTowRow,delTowRow,updateTow,autoFillEnd,
