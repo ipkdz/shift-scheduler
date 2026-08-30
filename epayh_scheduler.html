@@ -318,8 +318,8 @@ table.sum tr:nth-child(even) td{background:var(--bg)}
           <th style="background:var(--accent);color:#fff;padding:7px 10px;text-align:center;font-weight:500;min-width:60px">Week</th>
           <th style="background:var(--accent);color:#fff;padding:7px 10px;text-align:center;font-weight:500">Start</th>
           <th style="background:var(--accent);color:#fff;padding:7px 10px;text-align:center;font-weight:500">End</th>
-          <th style="background:#fbbf24;color:#78350f;padding:7px 10px;text-align:center;font-weight:600">TOW</th>
-          <th style="background:#4ade80;color:#14532d;padding:7px 10px;text-align:center;font-weight:600">OFF</th>
+          <th style="background:#c4b5fd;color:#4c1d95;padding:7px 10px;text-align:center;font-weight:600">TOW</th>
+          <th style="background:#fbbf24;color:#78350f;padding:7px 10px;text-align:center;font-weight:600">OFF</th>
           <th style="background:var(--accent);color:#fff;padding:7px 10px;text-align:center;font-weight:500;width:60px"></th>
         </tr>
       </thead>
@@ -338,7 +338,9 @@ table.sum tr:nth-child(even) td{background:var(--bg)}
       <button class="btn" onclick="changeMonth(1)">›</button>
     </div>
     <button class="btn btn-primary" id="autogen-btn" onclick="autoGenerate()">⚡ Auto-generate</button>
-    <button class="btn" id="clearsched-btn" onclick="clearSched()">🗑️ ล้างเดือนนี้</button>
+    <button class="btn" id="randomgen-btn" onclick="autoGenerate(true)" title="สุ่มจัดใหม่เฉพาะช่องที่ไม่ได้ล็อก — กดซ้ำได้ผลต่างกันทุกครั้ง">🎲 สุ่มอีกแบบ</button>
+    <button class="btn" id="clearsched-btn" onclick="clearSched()" title="ล้างทุกช่อง รวมถึงช่องที่ล็อกไว้ด้วย">🗑️ ล้างทั้งหมด</button>
+    <button class="btn" id="clearrand-btn" onclick="clearUnlockedSched()" title="ล้างเฉพาะช่องที่ไม่ได้ล็อก — เก็บช่องที่ล็อกไว้">🗑️ ล้างช่องสุ่ม</button>
     <button class="btn" id="finalize-btn" onclick="toggleFinalize()" title="ล็อกตารางเดือนนี้ไม่ให้แก้ไข กันเผลอแก้แล้วกระทบยอดสะสมเวร">🏁 Finalize เดือนนี้</button>
     <button class="btn" id="cond-mode-btn" onclick="toggleCondMode()" title="ซ้อนไอคอน Condition (ต้องอยู่/อยากอยู่/อยู่ได้/ไม่อยากอยู่/อยู่ไม่ได้) เป็นพื้นหลังแต่ละช่อง เพื่อช่วยดูตอนสลับเวร">🙋 See Condition</button>
     <button class="btn" id="export-png-btn" onclick="exportSchedulePNG()">🖼️ Export PNG</button>
@@ -468,6 +470,7 @@ table.sum tr:nth-child(even) td{background:var(--bg)}
   <div id="m-off-warn" style="display:none;background:var(--warn-bg);border:0.5px solid var(--warn-border);border-radius:6px;padding:6px 10px;font-size:12px;color:var(--warn-text);margin-bottom:8px"></div>
   <div class="shift-grid" id="m-shifts"></div>
   <div id="m-conflicts" style="margin-bottom:8px"></div>
+  <div id="m-lock-wrap" style="margin-bottom:8px"></div>
   <div class="form-group">
     <label for="m-note">📝 หมายเหตุ (เช่น วันนี้อนุโลม, ก. แทน ข.)</label>
     <textarea id="m-note" rows="2" style="resize:vertical" placeholder="ไม่บังคับ" onchange="saveNoteFromModal(this.value)"></textarea>
@@ -626,6 +629,14 @@ function isOffWeekDay(did, d) {
   const dateStr = dk(d);
   return S.towWeeks.some(t=>t.offDocId===did && t.start && dateStr>=t.start && dateStr<=t.end);
 }
+// Admin-set "lock this cell" from the Schedule page — separate from the Condition page's 📌
+// stamp (which is the doctor's own availability). Presence = locked; content is always read
+// live from S.schedule, never snapshotted here, so editing a locked cell just updates what
+// gets preserved.
+function isCellLocked(did, d, mKey) {
+  mKey = mKey || mk();
+  return !!(S.lockedShifts?.[mKey]?.[did]?.[d]);
+}
 function getCells(did, d) {
   const v = S.schedule[mk()]?.[did]?.[d];
   if(!v || v==='-') return [];
@@ -660,6 +671,21 @@ function toggleShift(did, d, shift) {
     arr = [...arr, shift];
   }
   setDayShifts(did, d, arr);
+}
+function toggleCellLock(did, d) {
+  if(!requireUnlocked())return;
+  if(!requireNotFinalized())return;
+  const hasRealShift = getCells(did, d).some(v=>v!=='TOW'&&v!=='OFF'&&v!=='-');
+  if(!hasRealShift) return; // nothing to lock
+  const mKey=mk();
+  if(!S.lockedShifts) S.lockedShifts={};
+  if(!S.lockedShifts[mKey]) S.lockedShifts[mKey]={};
+  if(!S.lockedShifts[mKey][did]) S.lockedShifts[mKey][did]={};
+  if(S.lockedShifts[mKey][did][d]) delete S.lockedShifts[mKey][did][d];
+  else S.lockedShifts[mKey][did][d]=true;
+  save();
+  openModal(did,d); // re-render modal to show updated lock state
+  renderSchedule(); // refresh the 🔒 badge on the grid
 }
 function setCell(did, d, v) { // legacy compat
   if(!S.schedule[mk()]) S.schedule[mk()]={};
@@ -1038,13 +1064,13 @@ function renderTow() {
       <td style="text-align:center;padding:6px 10px;border:0.5px solid var(--border);font-weight:600">${t.week||i+1}</td>
       <td style="text-align:center;padding:6px 10px;border:0.5px solid var(--border)">${show(t.start)}</td>
       <td style="text-align:center;padding:6px 10px;border:0.5px solid var(--border)">${show(t.end)}</td>
-      <td style="text-align:center;padding:6px 10px;border:0.5px solid var(--border);background:${t.towDocId?'#fef9c3':'inherit'}">
+      <td style="text-align:center;padding:6px 10px;border:0.5px solid var(--border);background:${t.towDocId?'#ede9fe':'inherit'}">
         <select onchange="updateTow(${ti},'towDocId',this.value)" style="font-size:12px;padding:3px 6px;background:transparent;border:none;cursor:pointer;font-family:inherit;max-width:120px">
           <option value="">—</option>
           ${S.doctors.map(d=>`<option value="${d.id}"${t.towDocId===d.id?' selected':''}>${d.name}</option>`).join('')}
         </select>
       </td>
-      <td style="text-align:center;padding:6px 10px;border:0.5px solid var(--border);background:${t.offDocId?'#dcfce7':'inherit'}">
+      <td style="text-align:center;padding:6px 10px;border:0.5px solid var(--border);background:${t.offDocId?'#fef9c3':'inherit'}">
         <select onchange="updateTow(${ti},'offDocId',this.value)" style="font-size:12px;padding:3px 6px;background:transparent;border:none;cursor:pointer;font-family:inherit;max-width:120px">
           <option value="">—</option>
           ${S.doctors.map(d=>`<option value="${d.id}"${t.offDocId===d.id?' selected':''}>${d.name}</option>`).join('')}
@@ -1075,11 +1101,13 @@ function addTowRow(){
 function delTowRow(i){if(!requireUnlocked())return;S.towWeeks.splice(i,1);save();renderTow();}
 function updateTow(idx,field,val){
   if(!requireUnlocked()){renderTow();return;}
-  if(S.towWeeks[idx]){S.towWeeks[idx][field]=val||null;save();}
+  if(S.towWeeks[idx]){S.towWeeks[idx][field]=val||null;save();renderTow();}
 }
 
 // ========== SCHEDULE PAGE ==========
 let condModeOn = false;
+// True only while autoGenerate(true) ("🎲 สุ่มอีกแบบ") is running — read by score()/pick() to jitter results
+let randomGenActive = false;
 function toggleCondMode(){
   condModeOn = !condModeOn;
   const btn = document.getElementById('cond-mode-btn');
@@ -1127,8 +1155,12 @@ function renderSchedule() {
   }
   const autogenBtn=document.getElementById('autogen-btn');
   if(autogenBtn) autogenBtn.disabled = finalized;
+  const randomBtn=document.getElementById('randomgen-btn');
+  if(randomBtn) randomBtn.disabled = finalized;
   const clearBtn=document.getElementById('clearsched-btn');
   if(clearBtn) clearBtn.disabled = finalized;
+  const clearRandBtn=document.getElementById('clearrand-btn');
+  if(clearRandBtn) clearRandBtn.disabled = finalized;
 
   // Build header — one column per doctor, corner cell labels the date column
   let h=`<thead><tr><th class="name-col" style="font-size:13px">วันที่</th>`;
@@ -1203,12 +1235,16 @@ function renderSchedule() {
       const mismatchBadge = condMismatch.length
         ? `<span title="${condMismatch.join(' / ')}" style="position:absolute;top:0;right:0;background:#dc2626;color:#fff;border-radius:0 0 0 4px;width:11px;height:11px;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;line-height:1;pointer-events:none">!</span>`
         : '';
+      // 🔒 marker — this cell is locked (admin pinned it, auto-generate/สุ่มอีกแบบ won't touch it)
+      const lockBadge = isCellLocked(dr.id,d)
+        ? `<span title="ล็อกไว้ — auto-generate จะไม่แตะช่องนี้" style="position:absolute;top:0;left:0;font-size:9px;line-height:1;pointer-events:none">🔒</span>`
+        : '';
       // 📝 marker — a free-text note was left on this cell (e.g. "อนุโลม", "ก. แทน ข.")
       const note=getNote(dr.id,d);
       const noteBadge = note
         ? `<span title="${note.replace(/"/g,'&quot;')}" style="position:absolute;bottom:0;right:0;font-size:9px;line-height:1;pointer-events:none">📝</span>`
         : '';
-      b+=`<td style="vertical-align:top;${cellBg};position:relative;padding:0">${condWatermark}<div style="display:flex;flex-direction:row;height:26px;position:relative">${pillsHtml}</div>${clickTarget}${mismatchBadge}${iconBadge}${noteBadge}</td>`;
+      b+=`<td style="vertical-align:top;${cellBg};position:relative;padding:0">${condWatermark}<div style="display:flex;flex-direction:row;height:26px;position:relative">${pillsHtml}</div>${clickTarget}${mismatchBadge}${lockBadge}${iconBadge}${noteBadge}</td>`;
     });
     const statusParts=[];
     if(missingSlots.length) statusParts.push(`ขาด ${missingSlots.join(',')}`);
@@ -1437,6 +1473,19 @@ function openModal(did,day){
   if(currentShifts.length) html+=`<div style="font-size:12px;color:var(--muted);margin-top:6px">เวรปัจจุบัน: <b>${sortShifts(currentShifts).join(' + ')}</b> — กดปุ่มเพื่อเพิ่ม/ลบ</div>`;
   mc.innerHTML=html;
 
+  // Lock toggle — pins whatever shift(s) are currently assigned so auto-generate / สุ่มอีกแบบ
+  // never touches this cell. Only meaningful once a real shift is assigned.
+  const lw=document.getElementById('m-lock-wrap');
+  const hasRealShift=currentShifts.some(v=>v!=='TOW'&&v!=='OFF'&&v!=='-');
+  if(hasRealShift){
+    const locked=isCellLocked(did,day);
+    lw.innerHTML=`<button class="btn${locked?' btn-primary':''}" style="width:100%" onclick="toggleCellLock('${did}',${day})">
+      ${locked?'🔒 ล็อกเวรนี้อยู่ (กดเพื่อปลดล็อก)':'🔓 ล็อกเวรนี้ (auto-generate จะไม่แตะ)'}
+    </button>`;
+  } else {
+    lw.innerHTML='';
+  }
+
   document.getElementById('m-note').value=getNote(did,day);
 
   document.getElementById('modal-bg').classList.add('open');
@@ -1455,19 +1504,54 @@ function bgClose(e){if(e.target===document.getElementById('modal-bg'))closeModal
 function clearSched(){
   if(!requireUnlocked())return;
   if(!requireNotFinalized())return;
-  if(!confirm('ล้างตารางเดือนนี้ทั้งหมด?'))return;
-  delete S.schedule[mk()];save();renderSchedule();
+  if(!confirm('ล้างตารางเดือนนี้ทั้งหมด? (รวมถึงช่องที่ล็อกไว้ด้วย)'))return;
+  const mKey=mk();
+  delete S.schedule[mKey];
+  if(S.lockedShifts) delete S.lockedShifts[mKey]; // no schedule left to lock
+  save();renderSchedule();
+}
+function clearUnlockedSched(){
+  if(!requireUnlocked())return;
+  if(!requireNotFinalized())return;
+  if(!confirm('ล้างเฉพาะช่องที่ไม่ได้ล็อก? (ช่องที่ล็อก 🔒 ไว้จะยังอยู่)'))return;
+  const mKey=mk();
+  const days=daysIn();
+  S.doctors.forEach(d=>{
+    for(let day=1;day<=days;day++){
+      if(isCellLocked(d.id,day,mKey)) continue;
+      if(S.schedule[mKey]?.[d.id]) delete S.schedule[mKey][d.id][day];
+    }
+  });
+  save();renderSchedule();
 }
 
 // ========== AUTO-GENERATE ==========
-function autoGenerate(){
+function autoGenerate(randomize){
+  randomize=!!randomize;
   if(!requireUnlocked())return;
   if(!requireNotFinalized())return;
-  if(!confirm(`Auto-generate ตาราง ${MONTHS_TH[S.currentMonth]} ${S.currentYear+543}?\n\nจะเขียนทับตารางปัจจุบัน`))return;
+  const confirmMsg = randomize
+    ? `สุ่มจัดตาราง ${MONTHS_TH[S.currentMonth]} ${S.currentYear+543} อีกแบบ?\n\nจะเขียนทับตารางปัจจุบัน (ยกเว้นช่องที่ล็อก 🔒 ไว้) ด้วยผลสุ่มใหม่`
+    : `Auto-generate ตาราง ${MONTHS_TH[S.currentMonth]} ${S.currentYear+543}?\n\nจะเขียนทับตารางปัจจุบัน (ยกเว้นช่องที่ล็อก 🔒 ไว้)`;
+  if(!confirm(confirmMsg))return;
   const mKey=mk();
+  const days=daysIn();
+
+  // Snapshot every 🔒-locked cell's current content before wiping — these are restored below and
+  // never touched again by this run (genPick/rebalance both skip a filled/locked slot)
+  const lockedSnapshot=[];
+  S.doctors.forEach(d=>{
+    for(let day=1;day<=days;day++){
+      if(!isCellLocked(d.id,day,mKey)) continue;
+      const v=S.schedule[mKey]?.[d.id]?.[day];
+      if(v==null||v==='-') continue;
+      const realArr=(Array.isArray(v)?v:[v]).filter(x=>x!=='TOW'&&x!=='OFF'&&x!=='-');
+      if(realArr.length) lockedSnapshot.push({did:d.id, day, value:v});
+    }
+  });
+
   S.schedule[mKey]={};
   S.doctors.forEach(d=>S.schedule[mKey][d.id]={});
-  const days=daysIn();
 
   // Tally starts fresh at 0 every month — balance target is THIS month only, not cumulative
   // history (ยอดสะสมเวร is shown separately on the Setup page for manual reference only)
@@ -1476,56 +1560,73 @@ function autoGenerate(){
     tally[d.id]={N:0,M:0,E:0,M1:0,M2:0,A:0,OT:0,workday:0,total:0};
   });
 
-  // First pass: pre-assign LOCK conditions, then mark TOW for whatever's left
-  // (a 📌 lock stamp overrides TOW/OFF week defaults — the doctor explicitly said they can work that shift)
-  for(let day=1;day<=days;day++){
-    S.doctors.forEach(d=>{
-      if(S.conditions&&S.conditions[d.id]){
-        const dk_=dk(day);
-        const locked=Object.entries(S.conditions[d.id][dk_]||{})
-          .filter(([,v])=>v==='lock').map(([k])=>k);
-        if(locked.length){
-          S.schedule[mKey][d.id][day]=locked.length===1?locked[0]:locked;
-          locked.forEach(sh=>{
-            if(['N','M','E','M1','M2','A'].includes(sh))tally[d.id][sh]++;
-            if(OT_SHIFTS.includes(sh))tally[d.id].OT++;
-            if(['M1','M2','A'].includes(sh))tally[d.id].workday++;
-            tally[d.id].total++;
-          });
-          return;
+  // Restore 🔒-locked cells first, before any auto-fill pass runs
+  lockedSnapshot.forEach(({did,day,value})=>{
+    S.schedule[mKey][did][day]=value;
+    (Array.isArray(value)?value:[value]).forEach(sh=>{
+      if(['N','M','E','M1','M2','A'].includes(sh))tally[did][sh]++;
+      if(OT_SHIFTS.includes(sh))tally[did].OT++;
+      if(['M1','M2','A'].includes(sh))tally[did].workday++;
+      tally[did].total++;
+    });
+  });
+
+  randomGenActive=randomize;
+  try{
+    // First pass: pre-assign LOCK conditions, then mark TOW for whatever's left
+    // (a 📌 lock stamp overrides TOW/OFF week defaults — the doctor explicitly said they can work that shift)
+    for(let day=1;day<=days;day++){
+      S.doctors.forEach(d=>{
+        if(getCells(d.id,day).length) return; // already filled by a 🔒 schedule-lock restore above
+        if(S.conditions&&S.conditions[d.id]){
+          const dk_=dk(day);
+          const locked=Object.entries(S.conditions[d.id][dk_]||{})
+            .filter(([,v])=>v==='lock').map(([k])=>k);
+          if(locked.length){
+            S.schedule[mKey][d.id][day]=locked.length===1?locked[0]:locked;
+            locked.forEach(sh=>{
+              if(['N','M','E','M1','M2','A'].includes(sh))tally[d.id][sh]++;
+              if(OT_SHIFTS.includes(sh))tally[d.id].OT++;
+              if(['M1','M2','A'].includes(sh))tally[d.id].workday++;
+              tally[d.id].total++;
+            });
+            return;
+          }
         }
-      }
-      if(isTowDay(d.id,day)){ S.schedule[mKey][d.id][day]='TOW'; return; }
-    });
-  }
+        if(isTowDay(d.id,day)){ S.schedule[mKey][d.id][day]='TOW'; return; }
+      });
+    }
 
-  // Second pass: assign shifts (OFF-week doctors are only eligible for a slot if marked ⭐ "prefer" — see available())
-  for(let day=1;day<=days;day++){
-    if(isOffDay(day)) genHolidayDay(day,tally,mKey);
-    else genWorkday(day,tally,mKey);
-  }
+    // Second pass: assign shifts (OFF-week doctors are only eligible for a slot if marked ⭐ "prefer" — see available())
+    for(let day=1;day<=days;day++){
+      if(isOffDay(day)) genHolidayDay(day,tally,mKey);
+      else genWorkday(day,tally,mKey);
+    }
 
-  // Third pass: any OFF-week day still empty (no lock, no prefer pick) defaults back to rest
-  for(let day=1;day<=days;day++){
-    S.doctors.forEach(d=>{
-      if(isOffWeekDay(d.id,day) && !getCells(d.id,day).length){
-        S.schedule[mKey][d.id][day]='OFF';
-      }
-    });
-  }
+    // Third pass: any OFF-week day still empty (no lock, no prefer pick) defaults back to rest
+    for(let day=1;day<=days;day++){
+      S.doctors.forEach(d=>{
+        if(isOffWeekDay(d.id,day) && !getCells(d.id,day).length){
+          S.schedule[mKey][d.id][day]='OFF';
+        }
+      });
+    }
 
-  // Fourth pass: actively swap shifts from the most-loaded doctor to the least-loaded one until
-  // everyone is within ±1 (or no legal swap remains — a genuine hard-constraint limit). Narrow
-  // buckets (A, N) run first so the broader totals that contain them (in-hours, OT) don't need to
-  // touch them again except as a last resort — see the type order inside rebalanceTotal.
-  const nonChief=S.doctors.filter(d=>!d.chief);
-  rebalanceType(tally, mKey, days, 'A', nonChief);
-  rebalanceTotal(tally, mKey, days, ['M1','M2','A'], nonChief);
-  rebalanceType(tally, mKey, days, 'N', S.doctors);
-  rebalanceTotal(tally, mKey, days, ['E','M','N'], S.doctors);
+    // Fourth pass: actively swap shifts from the most-loaded doctor to the least-loaded one until
+    // everyone is within ±1 (or no legal swap remains — a genuine hard-constraint limit). Narrow
+    // buckets (A, N) run first so the broader totals that contain them (in-hours, OT) don't need to
+    // touch them again except as a last resort — see the type order inside rebalanceTotal.
+    const nonChief=S.doctors.filter(d=>!d.chief);
+    rebalanceType(tally, mKey, days, 'A', nonChief);
+    rebalanceTotal(tally, mKey, days, ['M1','M2','A'], nonChief);
+    rebalanceType(tally, mKey, days, 'N', S.doctors);
+    rebalanceTotal(tally, mKey, days, ['E','M','N'], S.doctors);
+  } finally {
+    randomGenActive=false;
+  }
 
   save();renderSchedule();renderCumulative();
-  showToast('Auto-generate เสร็จแล้ว ✓');
+  showToast(randomize?'สุ่มตารางแบบใหม่แล้ว ✓':'Auto-generate เสร็จแล้ว ✓');
 }
 
 function canTakeShift(d, day, shiftType, mKey){
@@ -1635,12 +1736,24 @@ function score(d, shiftType, tally, day){
     const yd=getCell(d.id,day-1);
     if(yd&&yd!=='-'&&yd!=='OFF') s-=5;
   }
+  // "🎲 สุ่มอีกแบบ" — small jitter, same order of magnitude as the light tie-breaker above, so it
+  // only reshuffles genuinely close candidates and never overrides the real balance weights (×50/×20/×15/-100/-200)
+  if(randomGenActive) s += (Math.random()-0.5)*6;
   return s;
 }
 
 function pick(avail, shiftType, tally, day){
   if(!avail.length) return null;
-  return avail.slice().sort((a,b)=>score(a,shiftType,tally,day)-score(b,shiftType,tally,day))[0];
+  const pool = randomGenActive ? shuffleArr(avail.slice()) : avail;
+  return pool.slice().sort((a,b)=>score(a,shiftType,tally,day)-score(b,shiftType,tally,day))[0];
+}
+// Fisher–Yates — used only when "🎲 สุ่มอีกแบบ" is active, to vary the pick order among exact score ties
+function shuffleArr(arr){
+  for(let i=arr.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]]=[arr[j],arr[i]];
+  }
+  return arr;
 }
 
 function assign(did, day, shiftType, tally, mKey){
@@ -1703,7 +1816,8 @@ function rebalanceType(tally, mKey, days, shiftType, pool){
       if(swapped) break;
       for(let day=1;day<=days&&!swapped;day++){
         if(!getCells(maxDoc.id,day).includes(shiftType)) continue;
-        if(getCondition(maxDoc.id,day,shiftType)==='lock') continue; // never undo an explicit lock
+        if(getCondition(maxDoc.id,day,shiftType)==='lock') continue; // never undo an explicit 📌 condition lock
+        if(isCellLocked(maxDoc.id,day,mKey)) continue; // never undo an explicit 🔒 schedule-page lock
         if(avoidStreaks && breaksNightStreak(maxDoc.id,day,shiftType)) continue;
         if(!canTakeShift(minDoc,day,shiftType,mKey)) continue;
         removeShift(maxDoc.id,day,shiftType,tally,mKey);
@@ -1739,6 +1853,7 @@ function rebalanceTotal(tally, mKey, days, types, pool){
         for(const st of types){
           if(!donorShifts.includes(st)) continue;
           if(getCondition(maxDoc.id,day,st)==='lock') continue;
+          if(isCellLocked(maxDoc.id,day,mKey)) continue;
           if(avoidStreaks && breaksNightStreak(maxDoc.id,day,st)) continue;
           if(!canTakeShift(minDoc,day,st,mKey)) continue;
           removeShift(maxDoc.id,day,st,tally,mKey);
@@ -2195,8 +2310,8 @@ function conditionMismatchMsgs(did, day){
   return msgs;
 }
 Object.assign(window, {
-  goPage,changeMonth,clearSched,autoGenerate,toggleCondMode,toggleFinalize,
-  openModal,pickShift,closeModal,bgClose,saveNoteFromModal,
+  goPage,changeMonth,clearSched,clearUnlockedSched,autoGenerate,toggleCondMode,toggleFinalize,
+  openModal,pickShift,closeModal,bgClose,saveNoteFromModal,toggleCellLock,
   addDoc,removeDoc,renameDoc,moveDoc,editInitials,saveDocSettings,loadDocSettings,
   addOff,delOff,delWant,addHol,delHol,
   addTowRow,delTowRow,updateTow,autoFillEnd,
