@@ -908,15 +908,23 @@ function delHol(d){if(!requireUnlocked())return;delete S.holidays[d];save();rend
 // up to (but not including) beforeMonthKey — pass null/undefined for "all the way to present"
 function cumulativeTotals(beforeMonthKey){
   const totals={};
-  S.doctors.forEach(d=>totals[d.id]={N:0,OT:0,A:0,M1M2:0});
+  S.doctors.forEach(d=>totals[d.id]={N:0,OT:0,A:0,M1M2:0,holiday:0});
   const start=S.balanceStartMonth||null;
   Object.keys(S.schedule).forEach(monthKey=>{
     if(start && monthKey<start) return;
     if(beforeMonthKey && monthKey>=beforeMonthKey) return;
     const [yr,mo]=monthKey.split('-').map(Number);
     const daysInMo=new Date(yr,mo,0).getDate();
+    // isOffDay() reads the app's currently-selected month — monthKey here can be any past month,
+    // so weekend/holiday needs to be worked out against THIS month, not whatever's on screen
+    const isOffDayIn=(day)=>{
+      const wd=new Date(yr,mo-1,day).getDay();
+      const dkStr=`${monthKey}-${String(day).padStart(2,'0')}`;
+      return wd===0||wd===6||!!S.holidays[dkStr];
+    };
     S.doctors.forEach(d=>{
       for(let day=1;day<=daysInMo;day++){
+        const off=isOffDayIn(day);
         const v=S.schedule[monthKey]?.[d.id]?.[day];
         const arr=Array.isArray(v)?v:(v&&v!=='-'&&v!=='OFF'&&v!=='TOW'?[v]:[]);
         arr.forEach(sh=>{
@@ -924,6 +932,7 @@ function cumulativeTotals(beforeMonthKey){
           if(OT_SHIFTS.includes(sh)) totals[d.id].OT++;
           if(sh==='A') totals[d.id].A++;
           if(sh==='M1'||sh==='M2') totals[d.id].M1M2++;
+          if(off) totals[d.id].holiday++;
         });
       }
     });
@@ -935,16 +944,17 @@ function renderCumulative(){
   if(startInput) startInput.value=S.balanceStartMonth||mk();
   const totals=cumulativeTotals(null);
   let html=`<table class="sum" style="table-layout:fixed;width:100%">
-    <colgroup><col style="width:40%"><col style="width:15%"><col style="width:15%"><col style="width:15%"><col style="width:15%"></colgroup>
-    <thead><tr><th>แพทย์</th><th>N</th><th>OT รวม</th><th>M1+M2</th><th>A</th></tr></thead><tbody>`;
+    <colgroup><col style="width:35%"><col style="width:13%"><col style="width:13%"><col style="width:13%"><col style="width:13%"><col style="width:13%"></colgroup>
+    <thead><tr><th>แพทย์</th><th>M1+M2</th><th>A</th><th>N</th><th>OT</th><th>เวรH</th></tr></thead><tbody>`;
   S.doctors.forEach(d=>{
     const t=totals[d.id];
     html+=`<tr>
       <td>${d.name}${d.chief?'<span class="badge badge-chief" style="margin-left:4px">หน.</span>':''}</td>
-      <td>${t.N}</td>
-      <td style="font-weight:600">${t.OT}</td>
       <td>${t.M1M2}</td>
       <td>${t.A}</td>
+      <td>${t.N}</td>
+      <td style="font-weight:600">${t.OT}</td>
+      <td style="font-weight:600">${t.holiday}</td>
     </tr>`;
   });
   html+=`</tbody>`;
@@ -1000,9 +1010,33 @@ async function exportSchedulePNG(){
 // Full Thai weekday names (Sun→Sat), for the Excel export — the on-screen table uses the
 // abbreviated DAYS_TH, but the hospital's posted template spells them out in full
 const DAYS_TH_FULL = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
-// Matches the hospital's existing template exactly: A1/B1 month+Buddhist year, A2/B2 month#+year,
-// row 3 = N/M1/M2/A/E headers, then one row per day. A holiday's M shift has no column of its own
-// in this template, so it's written into the M1 column (per the admin's instruction).
+
+// On every workday, pick the non-chief doctors who have NO shift at all that day for Teaching
+// (col H) and Research (col I) — different person each day where possible — keeping everyone's
+// total Teaching+Research count as even as possible over the month (lowest tally goes first)
+function assignTeachingResearch(days){
+  const pool=S.doctors.filter(d=>!d.chief);
+  const tally={}; pool.forEach(d=>tally[d.id]=0);
+  const result={};
+  for(let day=1;day<=days;day++){
+    if(isOffDay(day)) continue; // workdays only
+    // Empty cells covers most cases already (a TOW week is normally stamped 'TOW' by auto-generate),
+    // but also check isTowDay directly in case TOW weeks were edited after the schedule was generated
+    // and the cell was never re-stamped — never pick someone who's on TOW that day either way
+    const free=pool.filter(d=>getCells(d.id,day).length===0 && !isTowDay(d.id,day))
+      .sort((a,b)=>tally[a.id]-tally[b.id]);
+    const [teaching,research]=free;
+    result[day]={teaching:teaching?.name||'', research:research?.name||''};
+    if(teaching) tally[teaching.id]++;
+    if(research) tally[research.id]++;
+  }
+  return result;
+}
+
+// Matches the hospital's actual posted template exactly (columns A–K, 4 header rows, one row
+// per day): Service=N, Admin=chief (workdays only), Service1=M1 (holiday M also lands here —
+// it has no column of its own), Service2=M2, AOC/EMS=A, Teaching/Research=computed above,
+// Service=E, Conference=left blank (no matching data in the app).
 async function exportScheduleExcel(){
   const btn=document.getElementById('export-excel-btn');
   if(btn){btn.disabled=true;btn.textContent='⏳ กำลังสร้างไฟล์...';}
@@ -1010,7 +1044,7 @@ async function exportScheduleExcel(){
     await loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js');
     const wb=new ExcelJS.Workbook();
     const ws=wb.addWorksheet(`${MONTHS_TH[S.currentMonth]} ${S.currentYear+543}`);
-    ws.columns=[{width:8.83},{width:10.66},{width:14},{width:14},{width:14},{width:14},{width:14}];
+    ws.columns=[{width:8.83},{width:10.66},{width:14},{width:12},{width:14},{width:14},{width:12},{width:14},{width:14},{width:14},{width:16}];
 
     const thin={style:'thin'};
     const border={top:thin,bottom:thin,left:thin,right:thin};
@@ -1030,23 +1064,45 @@ async function exportScheduleExcel(){
     styleCell(ws.getCell('B2'));
     ws.getCell('B2').value=S.currentYear;
 
-    ['C3','D3','E3','F3','G3'].forEach((ref,i)=>{
+    // Row 2/3: time-block category headers — ดึก (night), เช้า (morning, merged over
+    // Admin/Service1/Service2/AOC-EMS/Teaching/Research), บ่าย (afternoon)
+    styleCell(ws.getCell('C2'),{bold:true,fill:'FF8EA9DB'}); ws.getCell('C2').value='ดึก';
+    styleCell(ws.getCell('C3'),{fill:'FF8EA9DB'}); ws.getCell('C3').value='00.00-08.00';
+    ws.mergeCells('D2:I2');
+    ['D2','E2','F2','G2','H2','I2'].forEach(ref=>styleCell(ws.getCell(ref),{bold:true,fill:'FFFFF2CC'}));
+    ws.getCell('D2').value='เช้า';
+    ws.mergeCells('D3:I3');
+    styleCell(ws.getCell('D3'),{fill:'FFFFF2CC'}); ws.getCell('D3').value='08.00-16.00';
+    ['E3','F3','G3','H3','I3'].forEach(ref=>styleCell(ws.getCell(ref),{fill:'FFFFF2CC'}));
+    styleCell(ws.getCell('J2'),{bold:true,fill:'FFB4C6E7'}); ws.getCell('J2').value='บ่าย';
+    styleCell(ws.getCell('J3'),{fill:'FFB4C6E7'}); ws.getCell('J3').value='16.00-24.00';
+    styleCell(ws.getCell('K2')); styleCell(ws.getCell('K3'));
+
+    ['C4','D4','E4','F4','G4','H4','I4','J4','K4'].forEach((ref,i)=>{
       styleCell(ws.getCell(ref),{bold:true});
-      ws.getCell(ref).value=['N','M1','M2','A','E'][i];
+      ws.getCell(ref).value=['Service','Admin','Service1','Service2','AOC/EMS','Teaching','Research','Service','Conference'][i];
     });
 
-    const COL={N:'C',M1:'D',M2:'E',A:'F',E:'G'};
+    const COL={N:'C',M1:'E',M2:'F',A:'G',E:'J'};
     const days=daysIn();
+    const tr=assignTeachingResearch(days);
+    const chief=S.doctors.find(d=>d.chief);
     for(let day=1;day<=days;day++){
-      const row=3+day;
-      styleCell(ws.getCell(`A${row}`)); ws.getCell(`A${row}`).value=day;
-      styleCell(ws.getCell(`B${row}`)); ws.getCell(`B${row}`).value=DAYS_TH_FULL[weekday(day)];
-      ['C','D','E','F','G'].forEach(col=>styleCell(ws.getCell(`${col}${row}`)));
+      const row=4+day;
+      const workday=!isOffDay(day);
+      ['A','B','C','D','E','F','G','H','I','J','K'].forEach(col=>styleCell(ws.getCell(`${col}${row}`)));
+      ws.getCell(`A${row}`).value=day;
+      ws.getCell(`B${row}`).value=DAYS_TH_FULL[weekday(day)];
+      if(workday && chief) ws.getCell(`D${row}`).value=chief.name;
+      if(workday){
+        ws.getCell(`H${row}`).value=tr[day]?.teaching||'';
+        ws.getCell(`I${row}`).value=tr[day]?.research||'';
+      }
 
       const namesByCol={};
       S.doctors.forEach(d=>{
         getCells(d.id,day).forEach(shift=>{
-          const col = shift==='M' ? COL.M1 : COL[shift]; // holiday M → M1 column
+          const col = shift==='M' ? COL.M1 : COL[shift]; // holiday M → Service1 column
           if(!col) return;
           const ref=`${col}${row}`;
           namesByCol[ref] = namesByCol[ref] ? `${namesByCol[ref]}, ${d.name}` : d.name;
@@ -1350,8 +1406,9 @@ function renderSchedule() {
 function renderSchedSummary(){
   const days=daysIn();
   const counts={};
-  S.doctors.forEach(d=>counts[d.id]={N:0,M:0,E:0,M1:0,M2:0,A:0,OT:0,workday:0,total:0});
+  S.doctors.forEach(d=>counts[d.id]={N:0,M:0,E:0,M1:0,M2:0,A:0,OT:0,workday:0,total:0,holiday:0});
   for(let day=1;day<=days;day++){
+    const off=isOffDay(day);
     S.doctors.forEach(d=>{
       getCells(d.id,day).forEach(v=>{
         if(!v||v==='-'||v==='OFF'||v==='TOW') return;
@@ -1359,16 +1416,17 @@ function renderSchedSummary(){
         if(OT_SHIFTS.includes(v)) counts[d.id].OT++;
         if(['M1','M2','A'].includes(v)) counts[d.id].workday++;
         counts[d.id].total++;
+        if(off) counts[d.id].holiday++;
       });
     });
   }
   const DIV='border-left:4px solid #1a1a18'; // thick divider between ในเวลา / นอกเวลา / รวม
   const TOTAL_STYLE='background:#475569;color:#fff'; // shared "this is a total column" color
   let tbl=`<colgroup>
-    <col style="width:19%">
-    <col style="width:9%"><col style="width:9%"><col style="width:9%"><col style="width:9%">
-    <col style="width:9%"><col style="width:9%"><col style="width:9%"><col style="width:9%">
-    <col style="width:9%">
+    <col style="width:17%">
+    <col style="width:8.3%"><col style="width:8.3%"><col style="width:8.3%"><col style="width:8.3%">
+    <col style="width:8.3%"><col style="width:8.3%"><col style="width:8.3%"><col style="width:8.3%">
+    <col style="width:8.3%"><col style="width:8.3%">
   </colgroup>
   <thead>
     <tr>
@@ -1376,6 +1434,7 @@ function renderSchedSummary(){
       <th colspan="4" style="background:#d1fae5;color:#065f46">ในเวลา</th>
       <th colspan="4" style="${TOTAL_STYLE};${DIV}">นอกเวลา</th>
       <th rowspan="2" style="${TOTAL_STYLE};${DIV}">รวมทั้งหมด</th>
+      <th rowspan="2" style="background:#bfd0db;color:#1a1a18;${DIV}">เวรวันหยุด</th>
     </tr>
     <tr>
       <th style="background:#d1fae5;color:#065f46">M1</th>
@@ -1397,6 +1456,7 @@ function renderSchedSummary(){
       <td style="${DIV}">${c.M}</td><td>${c.E}</td><td>${c.N}</td>
       <td style="font-weight:600;background:#f1f5f9">${c.OT}</td>
       <td style="font-weight:600;background:#f1f5f9;${DIV}">${c.total}</td>
+      <td style="font-weight:600;background:#eaf1f5;${DIV}">${c.holiday}</td>
     </tr>`;
   });
   tbl+=`</tbody>`;
