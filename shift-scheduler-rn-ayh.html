@@ -644,6 +644,8 @@ function showToast(msg){var t=document.getElementById('toast');t.textContent=msg
 // ===== SAVE / LOAD =====
 var _skipNextSnapshot=false;
 var _skipNextAssignSnapshot=false;
+var _syncDebounce=null;
+var _syncAssignDebounce=null;
 
 function saveShift(){
   try{localStorage.setItem('erShift',JSON.stringify(shiftState));}catch(e){}
@@ -733,10 +735,13 @@ function loadFromFirebase(cb){
 }
 function listenFirebase(){
   if(!window.db)return;
-  // schedules: ตารางเวร/วันหยุด/special — ไม่แตะ persons
+  // schedules: ตารางเวร/วันหยุด/special — debounce 3 วิ ไม่ให้ทับ stamp
   window.db.collection('schedules').doc('main').onSnapshot(function(doc){
     if(_skipNextSnapshot){_skipNextSnapshot=false;return;}
-    if(doc.exists){var p=doc.data();
+    if(!doc.exists)return;
+    if(_syncDebounce)clearTimeout(_syncDebounce);
+    _syncDebounce=setTimeout(function(){
+      var p=doc.data();
       if(p.data)shiftState.data=p.data;
       if(p.holidays)shiftState.holidays=p.holidays;
       if(p.special)shiftState.special=p.special;
@@ -747,12 +752,15 @@ function listenFirebase(){
       var si=document.getElementById('syncInd');
       si.textContent='🔄 ซิงค์แล้ว';si.style.opacity='1';
       setTimeout(function(){si.style.opacity='0';},2000);
-    }
+    },3000);
   });
-  // assigns: staff/assignments/rosters — persons ตาม staff
+  // assigns: staff/assignments/rosters — debounce 3 วิ
   window.db.collection('assigns').doc('main').onSnapshot(function(doc){
     if(_skipNextAssignSnapshot){_skipNextAssignSnapshot=false;return;}
-    if(doc.exists){var q=doc.data();
+    if(!doc.exists)return;
+    if(_syncAssignDebounce)clearTimeout(_syncAssignDebounce);
+    _syncAssignDebounce=setTimeout(function(){
+      var q=doc.data();
       if(q.staff)assignState.staff=q.staff;
       if(q.assignments)assignState.assignments=q.assignments;
       if(q.rosters)assignState.rosters=q.rosters;
@@ -766,7 +774,7 @@ function listenFirebase(){
       var si=document.getElementById('syncInd');
       si.textContent='🔄 ซิงค์แล้ว';si.style.opacity='1';
       setTimeout(function(){si.style.opacity='0';},2000);
-    }
+    },3000);
   });
 }
 
