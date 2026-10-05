@@ -226,6 +226,18 @@ td.col-total{background:#e8eaf6;font-size:12px;font-weight:700;padding:2px 3px;t
 .assign-name{flex:1;font-size:12px;font-weight:600;}
 .assign-name.empty{color:var(--text-dim);font-style:italic;font-weight:400;}
 .assign-break{font-size:10px;color:var(--text-dim);font-family:'IBM Plex Mono',monospace;white-space:nowrap;}
+/* STAMP ชื่อในหัวคอลัมน์ */
+.stamp-chips{display:flex;flex-wrap:wrap;gap:4px;padding:6px 8px;border-bottom:1px solid var(--border);}
+.stamp-chip{font-size:11px;font-weight:600;padding:3px 8px;border-radius:12px;border:1px solid var(--border);background:var(--surface);cursor:pointer;user-select:none;font-family:Sarabun,sans-serif;}
+.stamp-chip:hover{border-color:var(--accent);}
+.stamp-chip.used{opacity:.45;}
+.stamp-chip.used .stamp-chip-role{font-size:9px;font-weight:700;margin-left:3px;}
+.stamp-chip.sel{background:var(--accent);border-color:var(--accent);color:white;opacity:1;}
+.stamp-chip.off-roster{border-style:dashed;}
+.assign-row.stamp-ok{box-shadow:inset 3px 0 0 #16a34a;}
+.assign-row.stamp-warn{box-shadow:inset 3px 0 0 #f59e0b;}
+.assign-row.stamp-block{opacity:.4;cursor:not-allowed;}
+.assign-row.stamp-mine{box-shadow:inset 3px 0 0 var(--accent);background:#eef2ff;}
 
 /* IMPORT ROSTER */
 .import-section{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px;}
@@ -390,6 +402,7 @@ td.col-total{background:#e8eaf6;font-size:12px;font-weight:700;padding:2px 3px;t
       <button class="cal-nav" id="btnCalNext">›</button>
       <button onclick="importRosterFromSchedule()" style="margin-left:auto;background:var(--ok);border:none;border-radius:8px;color:white;padding:7px 14px;cursor:pointer;font-size:12px;font-family:Sarabun,sans-serif;font-weight:600;">📥 Import เวรจากตาราง</button>
       <button onclick="autoAssign()" style="background:var(--accent);border:none;border-radius:8px;color:white;padding:7px 14px;cursor:pointer;font-size:12px;font-family:Sarabun,sans-serif;font-weight:600;">✨ AI จัดทั้งเดือน</button>
+      <button onclick="exportAssignMonthXlsx()" style="background:#16a34a;border:none;border-radius:8px;color:white;padding:7px 14px;cursor:pointer;font-size:12px;font-family:Sarabun,sans-serif;font-weight:600;">📅 Export เดือน</button>
       <button onclick="clearAssignMonth()" style="background:#ef4444;border:none;border-radius:8px;color:white;padding:7px 14px;cursor:pointer;font-size:12px;font-family:Sarabun,sans-serif;font-weight:600;">🗑 ล้าง Assignment</button>
     </div>
     <div class="cal-grid-a" id="calGrid"></div>
@@ -530,7 +543,9 @@ td.col-total{background:#e8eaf6;font-size:12px;font-weight:700;padding:2px 3px;t
   <div class="exmodal">
     <div class="exmodal-title">📤 Export</div>
     <button class="ex-btn" id="btnExPrint"><span class="ex-icon">🖨️</span>พิมพ์ / บันทึก PDF</button>
-    <button class="ex-btn" id="btnExCSV"><span class="ex-icon">📊</span>Export Excel (CSV)</button>
+    <button class="ex-btn" id="btnExXlsxDay"><span class="ex-icon">📊</span>Export Excel (วันนี้)</button>
+    <button class="ex-btn" id="btnExXlsxMonth"><span class="ex-icon">📅</span>Export Excel (ทั้งเดือน — 1 sheet/วัน)</button>
+    <button class="ex-btn" id="btnExCSV"><span class="ex-icon">📄</span>Export CSV</button>
     <div class="modal-actions" style="margin-top:4px;">
       <button class="btn btn-ghost" id="btnExClose">ปิด</button>
     </div>
@@ -1386,10 +1401,26 @@ function importRosterFromSchedule(){
   showToast('📥 Import roster '+MONTHS_TH[m]+' '+(y+543)+' เรียบร้อย');
 }
 
+// ดึงชื่อจากตารางเวรตาม color ของวัน/เวรนั้น
+// EMD ดึก = โย้หลัง: "ด" ของวันที่ D ในตาราง = 00.30-08.30 ของวัน D+1
+// ดังนั้นดึกของ dateStr ต้องดึง EMD จาก "ด" ของวันก่อนหน้า (ข้ามเดือนได้)
+function getScheduleNames(dateStr,shiftKey,colorNum){
+  var p=dateStr.split('-'),shiftChar={night:'ด',morning:'ช',afternoon:'บ'}[shiftKey],names=[];
+  var srcDate=new Date(parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2]));
+  if(shiftKey==='night'&&colorNum===4)srcDate.setDate(srcDate.getDate()-1);
+  var srcKey=mk(srcDate.getFullYear(),srcDate.getMonth()),srcDay=srcDate.getDate();
+  for(var pi=0;pi<shiftState.persons.length;pi++){
+    var pname=shiftState.persons[pi];
+    var cell=(shiftState.data[srcKey]&&shiftState.data[srcKey][pname]&&shiftState.data[srcKey][pname][srcDay])||{shifts:[],colors:{}};
+    if(cell.shifts.indexOf(shiftChar)>=0&&(cell.colors[shiftChar]||0)===colorNum)names.push(pname);
+  }
+  return names;
+}
+
 // ===== DAY VIEW =====
 var curDate=null;
 function openDayView(dateStr){
-  curDate=dateStr;
+  curDate=dateStr;aStamp=null;
   var parts=dateStr.split('-'),d=parseInt(parts[2]),m=parseInt(parts[1])-1,y=parseInt(parts[0]);
   var dow=new Date(y,m,d).getDay();
   document.getElementById('dayTitle').textContent=d+' '+MONTHS_TH[m]+' '+(y+543)+' ('+DAYS_TH[dow]+')';
@@ -1407,26 +1438,13 @@ function closeDayView(){
 function renderDayView(){
   if(!curDate)return;
   var roster=assignState.rosters[curDate]||{};
-  var rpHtml='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px;">';
-  var shiftInfo=[{key:'night',lbl:'ดึก',bg:'#e0f2fe',col:'#0c4a6e'},{key:'morning',lbl:'เช้า',bg:'#fef3c7',col:'#92400e'},{key:'afternoon',lbl:'บ่าย',bg:'#ede9fe',col:'#4c1d95'}];
-  shiftInfo.forEach(function(sh){var r=roster[sh.key]||[];
-    rpHtml+='<div style="background:'+sh.bg+';border-radius:8px;padding:5px 10px;font-size:11px;"><b style="color:'+sh.col+'">'+sh.lbl+' ('+r.length+'คน)</b><br><span style="color:var(--text-dim);">'+(r.length>0?r.join(', '):'—')+'</span></div>';
-  });
-  rpHtml+='</div>';
-  document.getElementById('rosterPreview').innerHTML=rpHtml;
+  document.getElementById('rosterPreview').innerHTML='<div style="font-size:11px;color:var(--text-dim);">💡 คลิกชื่อบนหัวคอลัมน์เพื่อเลือก → คลิกตำแหน่งเพื่อใส่ / คลิกตำแหน่งที่เป็นชื่อเดิมซ้ำเพื่อเอาออก · คลิกชื่อซ้ำหรือกด Esc เพื่อยกเลิก · ไม่ได้เลือกชื่อ = เปิดหน้าต่างเลือกแบบเดิม</div>';
 
   var parts=curDate.split('-'),dd=parseInt(parts[2]);
   var SHIFT_CHAR_MAP={night:'ด',morning:'ช',afternoon:'บ'};
 
   // ดึงชื่อจากตารางเวรตาม color
-  function getNamesFromSchedule(shiftKey,colorNum){
-    var shiftChar=SHIFT_CHAR_MAP[shiftKey],names=[];
-    for(var pi=0;pi<shiftState.persons.length;pi++){
-      var cell=getCell(pi,dd);
-      if(cell.shifts.indexOf(shiftChar)>=0&&(cell.colors[shiftChar]||0)===colorNum)names.push(shiftState.persons[pi]);
-    }
-    return names;
-  }
+  function getNamesFromSchedule(shiftKey,colorNum){return getScheduleNames(curDate,shiftKey,colorNum);}
 
   // section definitions — label, bg color, roles ที่อยู่ในกลุ่มนี้
   var SECTIONS=[
@@ -1452,6 +1470,16 @@ function renderDayView(){
 
     html+='<div class="shift-card">';
     html+='<div class="shift-hdr '+sh.cls+'"><div class="shift-hdr-title '+sh.cls+'">'+sh.lbl+'</div><div class="shift-badge '+sh.cls+'">'+r.length+' คน</div></div>';
+    // ชื่อคนในเวรนี้ (roster + คนที่ถูก assign แต่ไม่อยู่ใน roster)
+    var chipNames=r.slice(),usedRole={};
+    for(var rk in assigns){if(!assigns[rk])continue;usedRole[assigns[rk]]=(roleMap[rk]?roleMap[rk].label:rk);if(chipNames.indexOf(assigns[rk])<0)chipNames.push(assigns[rk]);}
+    html+='<div class="stamp-chips">';
+    chipNames.forEach(function(n){
+      var isSel=aStamp&&aStamp.shift===sh.key&&aStamp.name===n;
+      html+='<span class="stamp-chip'+(usedRole[n]?' used':'')+(isSel?' sel':'')+(r.indexOf(n)<0?' off-roster':'')+'" data-shift="'+sh.key+'" data-name="'+n.replace(/"/g,'&quot;')+'">'+n+(usedRole[n]?'<span class="stamp-chip-role">· '+usedRole[n]+'</span>':'')+'</span>';
+    });
+    if(!chipNames.length)html+='<span style="font-size:11px;color:var(--text-dim);">— ไม่มีรายชื่อ (Import เวรจากตารางก่อน) —</span>';
+    html+='</div>';
     html+='<div style="padding:4px 0;">';
 
     // render sections
@@ -1504,10 +1532,56 @@ function renderDayView(){
   });
 
   document.getElementById('shiftCols').innerHTML=html;
-  document.getElementById('shiftCols').querySelectorAll('.assign-row:not([data-no-click])').forEach(function(row){
-    row.addEventListener('click',function(){openAssignModal(this.getAttribute('data-shift'),this.getAttribute('data-role'));});
+  var cols=document.getElementById('shiftCols');
+  cols.querySelectorAll('.assign-row:not([data-no-click])').forEach(function(row){
+    row.addEventListener('click',function(){onAssignRowClick(this.getAttribute('data-shift'),this.getAttribute('data-role'));});
   });
+  cols.querySelectorAll('.stamp-chip').forEach(function(chip){
+    chip.addEventListener('click',function(){
+      var sk=this.getAttribute('data-shift'),n=this.getAttribute('data-name');
+      aStamp=(aStamp&&aStamp.shift===sk&&aStamp.name===n)?null:{shift:sk,name:n};
+      renderDayView();
+    });
+  });
+  // ไฮไลต์ตำแหน่งที่ลงได้ของชื่อที่เลือก
+  if(aStamp){
+    var st=getStaff(aStamp.name),sa=(assignState.assignments[curDate]&&assignState.assignments[curDate][aStamp.shift])||{};
+    cols.querySelectorAll('.assign-row[data-shift="'+aStamp.shift+'"]').forEach(function(row){
+      var rid=row.getAttribute('data-role'),role=getRole(aStamp.shift,rid);
+      if(sa[rid]===aStamp.name){row.classList.add('stamp-mine');return;}
+      if(!st||!role){row.classList.add('stamp-block');return;}
+      var chk=checkCandidate(st,role,aStamp.shift);
+      row.classList.add(chk.block?'stamp-block':chk.warn?'stamp-warn':'stamp-ok');
+    });
+  }
 }
+
+// ===== STAMP ASSIGN =====
+var aStamp=null; // {shift,name} ชื่อที่เลือกไว้
+function getRole(shiftKey,roleId){var r=null;(SHIFT_ROLES[shiftKey]||[]).forEach(function(x){if(x.id===roleId)r=x;});return r;}
+function onAssignRowClick(shiftKey,roleId){
+  if(!aStamp){openAssignModal(shiftKey,roleId);return;}
+  var sn={night:'ดึก',morning:'เช้า',afternoon:'บ่าย'};
+  if(aStamp.shift!==shiftKey){showToast('⚠️ '+aStamp.name+' อยู่เวร'+sn[aStamp.shift]+' — ลงเวร'+sn[shiftKey]+'ไม่ได้');return;}
+  if(!assignState.assignments[curDate])assignState.assignments[curDate]={};
+  if(!assignState.assignments[curDate][shiftKey])assignState.assignments[curDate][shiftKey]={};
+  var sa=assignState.assignments[curDate][shiftKey],name=aStamp.name,role=getRole(shiftKey,roleId);
+  // คลิกซ้ำตำแหน่งที่เป็นชื่อเดิม = เอาออก
+  if(sa[roleId]===name){delete sa[roleId];saveAssign();renderDayView();showToast('เอา '+name+' ออกจาก '+role.label);return;}
+  var st=getStaff(name);
+  if(!st){showToast('⚠️ ไม่พบ '+name+' ในหน้า Staff');return;}
+  var chk=checkCandidate(st,role,shiftKey);
+  if(chk.block){showToast('⛔ '+name+' ลง '+role.label+' ไม่ได้ ('+chk.block+')');return;}
+  // คนเดียวกันอยู่ตำแหน่งอื่นในเวรเดียวกัน → ย้าย
+  var movedFrom=null;
+  for(var k in sa)if(sa[k]===name){movedFrom=k;delete sa[k];}
+  sa[roleId]=name;
+  aStamp=null;
+  saveAssign();renderDayView();
+  var from=movedFrom&&getRole(shiftKey,movedFrom);
+  showToast((chk.warn?chk.warn+' · ':'✓ ')+name+(from?' ย้ายจาก '+from.label+' → ':' → ')+role.label);
+}
+document.addEventListener('keydown',function(e){if(e.key==='Escape'&&aStamp&&curDate){aStamp=null;renderDayView();}});
 
 // ===== AI AUTO ASSIGN =====
 function getStaff(name){return getStaffByName(name)||null;}
@@ -1713,6 +1787,28 @@ function openAssignModal(shiftKey,roleId){
   renderCandidates(role,shiftKey,'');
   document.getElementById('aModal').classList.add('open');
 }
+// ตรวจว่าคนนี้ลงตำแหน่งนี้ได้ไหม → {block:เหตุผล} | {warn:ข้อความ} | {} (+cnt)
+function checkCandidate(st,role,shiftKey){
+  var condBlock=(shiftKey==='night'&&(hasCond(st,'float_morning')||hasCond(st,'no_night')))||(shiftKey==='afternoon'&&hasCond(st,'float_morning'))||(hasCond(st,'pregnant')&&role.cap==='refer');
+  // refer บ่าย → ห้ามคนที่ refer ดึกวันเดียวกัน
+  if(!condBlock&&shiftKey==='afternoon'&&role.cap==='refer'){
+    var nightAssigns=(assignState.assignments[curDate]&&assignState.assignments[curDate]['night'])||{};
+    SHIFT_ROLES['night'].forEach(function(nr){if(nr.cap==='refer'&&nightAssigns[nr.id]===st.name)condBlock=true;});
+  }
+  // [NEW] incharge = สีดำเท่านั้น (hard block)
+  if(!condBlock&&role.cap==='incharge'&&!isBlackShift(st.name,curDate,shiftKey))condBlock=true;
+  // [NEW] IC/TL ใกล้กัน → warning เท่านั้น (ยังเลือกได้)
+  var heavyWarn=!condBlock&&(role.cap==='incharge'||role.cap==='teamlead')&&isHeavyRoleTooClose(st.name,curDate,shiftKey);
+  // [NEW] zone ซ้ำ → warning เท่านั้น (ยังเลือกได้)
+  var zoneWarn=!condBlock&&!heavyWarn&&isSameZoneNearby(st.name,curDate,shiftKey,role.cap);
+  var lim=getLimit(st,role.cap),cnt=capCountMonth(st.name,role.cap);
+  if(!hasCap(st,role.cap))return{block:'ไม่ capable',cnt:cnt};
+  if(condBlock)return{block:'เงื่อนไข',cnt:cnt};
+  if(lim>0&&cnt>=lim)return{block:'ครบ limit',cnt:cnt};
+  if(heavyWarn)return{warn:'⚠ IC/TL ซ้ำ',cnt:cnt};
+  if(zoneWarn)return{warn:'⚠ zone ซ้ำ',cnt:cnt};
+  return{cnt:cnt};
+}
 function renderCandidates(role,shiftKey,query){
   var roster=(assignState.rosters[curDate]&&assignState.rosters[curDate][shiftKey])||[];
   var assigns=(assignState.assignments[curDate]&&assignState.assignments[curDate][shiftKey])||{};
@@ -1722,22 +1818,11 @@ function renderCandidates(role,shiftKey,query){
   var combined=inR.concat(notR);
   var html='';
   combined.forEach(function(st){
-    var capable=hasCap(st,role.cap);
+    var chk=checkCandidate(st,role,shiftKey);
+    var capable=chk.block!=='ไม่ capable',condBlock=chk.block==='เงื่อนไข',limitBlock=chk.block==='ครบ limit';
+    var heavyWarn=chk.warn==='⚠ IC/TL ซ้ำ',zoneWarn=chk.warn==='⚠ zone ซ้ำ',cnt=chk.cnt;
     var usedInShift=false;for(var k in assigns)if(assigns[k]===st.name&&k!==role.id){usedInShift=true;break;}
-    var condBlock=(shiftKey==='night'&&(hasCond(st,'float_morning')||hasCond(st,'no_night')))||(shiftKey==='afternoon'&&hasCond(st,'float_morning'))||(hasCond(st,'pregnant')&&role.cap==='refer');
-    // refer บ่าย → ห้ามคนที่ refer ดึกวันเดียวกัน
-    if(!condBlock&&shiftKey==='afternoon'&&role.cap==='refer'){
-      var nightAssigns=(assignState.assignments[curDate]&&assignState.assignments[curDate]['night'])||{};
-      SHIFT_ROLES['night'].forEach(function(nr){if(nr.cap==='refer'&&nightAssigns[nr.id]===st.name)condBlock=true;});
-    }
-    // [NEW] incharge = สีดำเท่านั้น (hard block)
-    if(!condBlock&&role.cap==='incharge'&&!isBlackShift(st.name,curDate,shiftKey))condBlock=true;
-    // [NEW] IC/TL ใกล้กัน → warning เท่านั้น (ยังเลือกได้)
-    var heavyWarn=!condBlock&&(role.cap==='incharge'||role.cap==='teamlead')&&isHeavyRoleTooClose(st.name,curDate,shiftKey);
-    // [NEW] zone ซ้ำ → warning เท่านั้น (ยังเลือกได้)
-    var zoneWarn=!condBlock&&!heavyWarn&&isSameZoneNearby(st.name,curDate,shiftKey,role.cap);
-    var lim=getLimit(st,role.cap),cnt=capCountMonth(st.name,role.cap),limitBlock=lim>0&&cnt>=lim;
-    var disabled=!capable||usedInShift||condBlock||limitBlock,isSel=aCtx.sel===st.name,inRoster=roster.indexOf(st.name)>=0;
+    var disabled=!!chk.block||usedInShift,isSel=aCtx.sel===st.name,inRoster=roster.indexOf(st.name)>=0;
     html+='<div class="cand-item'+(isSel?' sel':'')+(disabled?' disabled':'')+(heavyWarn||zoneWarn?' zone-warn':'')+'" data-name="'+st.name+'">';
     html+='<span class="cand-name">'+(inRoster?'✓ ':'')+st.name+'</span>';
     if(!capable)html+='<span class="cand-warn">ไม่ capable</span>';
@@ -1777,6 +1862,161 @@ function exportCSV(){
   var url=URL.createObjectURL(blob);
   var a=document.createElement('a');a.href=url;a.download='assignment_'+curDate+'.csv';a.click();
   URL.revokeObjectURL(url);showToast('📊 Export CSV เรียบร้อย');
+}
+
+// ===== EXPORT EXCEL ตาม template (assign-example.xlsx) =====
+// แต่ละแถว: [label A, fill, map role id, ดึก, เช้า, บ่าย, พักดึก, พักเช้า, พักบ่าย, ตัวแดง]
+// ช่อง ดึก/เช้า/บ่าย: ถ้ามีคน assign → ใส่ชื่อ, ถ้าไม่มี → คงข้อความเดิมของ template ไว้
+// section: [label, fill]
+var ASSIGN_XLSX_TEMPLATE=[
+  {sec:'Incharge',fill:'FF9900'},
+  {a:'',fill:'F9CB9C',role:'IC',v:['Incharge','Incharge','Incharge'],b:['-','12.30-13.30','19.30-20.30']},
+  {sec:'Triage Area',fill:'6D9EEB'},
+  {a:'Triage Nurse',fill:'C9DAF8',role:'TR',v:['-','Triage Nurse','Triage Nurse'],b:['-','11.00-12.00','18.00-19.00']},
+  {a:'EMT-I',fill:'C9DAF8',v:['-','EMT-I','EMT-I'],b:['-','12.00-13.00','19.00-20.00']},
+  {a:'PN/NA',fill:'C9DAF8',v:['-','-','PN/NA'],b:['-','-','18.00-19.00']},
+  {sec:'Resusucitation Area',fill:'E06666'},
+  {a:'TeamLead',fill:'F4CCCC',role:'TL',v:['TeamLead','TeamLead','TeamLead'],b:['-','11.30-12.30','18.30-19.30']},
+  {a:'Resus(1)',fill:'F4CCCC',role:'R1',v:['Resus(1)','Resus(1)','Resus(1)'],b:['-','12.30-13.30','19.30-20.30']},
+  {a:'Resus(2)',fill:'F4CCCC',role:'R2',v:['Resus(2)','Resus(2)','Resus(2)'],b:['-','13.30-14.30','20.30-21.30']},
+  {a:'Refer1**',fill:'F4CCCC',role:'RF1',red:true,v:['Refer1**','Refer1**','Refer1**'],b:['-','11.30-12.30','18.30-19.30']},
+  {sec:'Treatment Area',fill:'FFFF00'},
+  {a:'Member(1)',fill:'FFF2CC',role:'M1',v:['Member(1)','Member(1)','Member(1)'],b:['-','11.30-12.30','18.30-19.30']},
+  {a:'Member(2)',fill:'FFF2CC',role:'M2',v:['Member(2)','Member(2)','Member(2)'],b:['-','12.30-13.30','19.30-20.30']},
+  {a:'Refer2**',fill:'FFF2CC',role:'RF2',red:true,v:['-','Refer2**','Refer2**'],b:['-','12.30-13.30','19.30-20.30']},
+  {sec:'Observation Area',fill:'93C47D'},
+  {a:'Obs Nurse',fill:'D9EAD3',role:'OB',v:['-','Obs Nurse','Obs Nurse'],b:['','13.30-14.30','20.30-21.30']},
+  {sec:'Dispacth Area',fill:'C27BA0'},
+  {a:'EMD',fill:'EAD1DC',role:'EMD',v:['EMD','EMD','EMD'],b:['-','-','-']},
+  {a:'C1',fill:'EAD1DC',v:['C1','C1','C1'],b:['-','-','-']},
+  {a:'C2',fill:'EAD1DC',role:'C2',v:['-','C2','C2'],b:['-','-','-']},
+  {sec:'EMS',fill:'8E7CC3'},
+  {a:'Nurse/Paramedic',fill:'D9D2E9',role:'EMS',v:['Nurse/Paramedic','Nurse/Paramedic','Nurse/Paramedic'],b:['02.00-07.30','-','-']},
+  {a:'EMT-I (1)',fill:'D9D2E9',v:['EMT-I (1)','EMT-I (1)','EMT-I (1)'],b:['02.00-07.30','-','-']},
+  {a:'EMT-I (2)',fill:'D9D2E9',v:['-','EMT-I (2)','-'],b:['-','-','-']},
+  {a:'EMT-B',fill:'D9D2E9',v:['EMT-B','EMT-B','EMT-B'],b:['-','-','-']},
+  {a:'พนักงานขับรถ',fill:'D9D2E9',v:['พนักงานขับรถ','พนักงานขับรถ','พนักงานขับรถ'],b:['-','-','-']},
+  {sec:'Tele-medicine',fill:'45818E'},
+  {a:'EMT-I',fill:'D0E0E3',v:['-','EMT-I','EMT-I'],b:['-','-','-']},
+  {sec:'PN/NA',fill:'F1C232'},
+  {a:'PN1+Refer1**',fill:'FFF2CC',red:true,v:['PN1+Refer1**','PN1+Refer1**','PN1+Refer1**'],b:['02.00-07.30','11.30-12.30','18.30-19.30']},
+  {a:'PN2/NA1+Refer2**',fill:'FFF2CC',red:true,v:['NA1','PN2/NA1+Refer2**','PN2/NA1+Refer2**'],b:['-','12.30-13.30','19.30-20.30']},
+  {a:'NA2',fill:'FFF2CC',v:['NA2','NA2','NA2'],b:['-','11.30-12.30','18.30-19.30']},
+  {a:'NA3',fill:'FFF2CC',v:['-','NA3','NA3'],b:['-','12.30-13.30','19.30-20.30']},
+  {a:'NA4',fill:'FFF2CC',v:['-','NA4','NA4'],b:['-','13.30-14.30','20.30-21.30']},
+  {sec:'พนักงานธุรการ',fill:'3C78D8'},
+  {a:'',fill:'C9DAF8',v:['พนักงานธุรการ','พนักงานธุรการ','พนักงานธุรการ'],b:['-','-','-']},
+  {sec:'คนงาน',fill:'999999'},
+  {a:'',fill:'D9D9D9',v:['คนงาน','คนงาน','คนงาน'],b:['-','-','-']}
+];
+
+// ชื่อที่ assign ของ role นั้น — EMD/C2/EMS fallback จากตารางเวรเหมือน Day View
+function getAssignName(dateStr,shiftKey,roleId){
+  var a=(assignState.assignments[dateStr]&&assignState.assignments[dateStr][shiftKey])||{};
+  if(a[roleId])return a[roleId];
+  var colorOf={EMD:4,C2:3,EMS:5}[roleId];
+  if(colorOf)return getScheduleNames(dateStr,shiftKey,colorOf).join(', ');
+  return '';
+}
+
+function loadExcelJS(){
+  if(window.ExcelJS)return Promise.resolve();
+  return new Promise(function(res,rej){
+    var sc=document.createElement('script');
+    sc.src='https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js';
+    sc.onload=res;sc.onerror=function(){rej(new Error('โหลด ExcelJS ไม่ได้'));};
+    document.head.appendChild(sc);
+  });
+}
+
+function buildAssignSheet(wb,dateStr,sheetName){
+  var p=dateStr.split('-'),y=parseInt(p[0]),m=parseInt(p[1])-1,d=parseInt(p[2]);
+  var ws=wb.addWorksheet(sheetName,{pageSetup:{paperSize:9,orientation:'portrait',fitToPage:true,fitToWidth:1,fitToHeight:1}});
+  ws.columns=[{width:25.13},{width:22},{width:24.25},{width:24.25},{width:15.5},{width:15.5},{width:15.5}];
+  var thin={style:'thin'};
+  function fill(hex){return{type:'pattern',pattern:'solid',fgColor:{argb:'FF'+hex}};}
+  function font(bold,red){var f={name:'Sarabun',size:12,bold:bold};if(red)f.color={argb:'FFFF0000'};return f;}
+  function style(cell,hex,bold,red,center){
+    cell.fill=fill(hex);cell.font=font(bold,red);
+    cell.alignment={horizontal:center?'center':undefined,vertical:'middle'};
+  }
+  // หัวตาราง
+  ws.mergeCells('A1:G2');
+  ws.getCell('A1').value='ตารางมอบหมายงาน งานอุบัติเหตุฉุกเฉิน  ('+MONTHS_TH[m]+' '+(y+543)+')';
+  style(ws.getCell('A1'),'999999',true,false,true);
+  ws.mergeCells('A3:G4');
+  ws.getCell('A3').value=d+'/'+(m+1)+'/'+(y+543);
+  style(ws.getCell('A3'),'F3F3F3',true,false,true);
+  ws.mergeCells('A5:A6');ws.mergeCells('B5:B6');ws.mergeCells('C5:C6');ws.mergeCells('D5:D6');ws.mergeCells('E5:G5');
+  [['A5','ตำแหน่ง'],['B5','ดึก'],['C5','เช้า'],['D5','บ่าย'],['E5','เวลาพัก'],['E6','ดึก'],['F6','เช้า'],['G6','บ่าย']].forEach(function(h){
+    ws.getCell(h[0]).value=h[1];
+  });
+  for(var r0=5;r0<=6;r0++)for(var c0=1;c0<=7;c0++)style(ws.getCell(r0,c0),'D9D9D9',true,false,true);
+  // แถวตำแหน่ง
+  var shiftKeys=['night','morning','afternoon'],row=7;
+  ASSIGN_XLSX_TEMPLATE.forEach(function(t){
+    if(t.sec){
+      ws.mergeCells(row,1,row,7);
+      ws.getCell(row,1).value=t.sec;
+      style(ws.getCell(row,1),t.fill,true,false,false);
+    }else{
+      var ca=ws.getCell(row,1);ca.value=t.a||null;style(ca,t.fill,!!t.a,t.red,false);
+      for(var i=0;i<3;i++){
+        var val=t.v[i];
+        if(t.role&&val!=='-'){var nm=getAssignName(dateStr,shiftKeys[i],t.role);if(nm)val=nm;}
+        var c=ws.getCell(row,2+i);c.value=val;style(c,t.fill,true,t.red&&val===t.v[i],true);
+      }
+      for(var j=0;j<3;j++){var cb=ws.getCell(row,5+j);cb.value=t.b[j]||null;style(cb,t.fill,!!t.b[j],false,true);}
+    }
+    row++;
+  });
+  // กรอบนอกเหมือน template
+  var last=row-1;
+  for(var rr=1;rr<=last;rr++){
+    for(var cc=1;cc<=7;cc++){
+      var b={};
+      if(cc===1)b.left=thin;
+      if(cc===7)b.right=thin;
+      if(rr===1)b.top=thin;
+      if(rr===last)b.bottom=thin;
+      if(cc===1&&ws.getCell(rr,1).isMerged&&rr>=7)b.right=thin;
+      if(Object.keys(b).length)ws.getCell(rr,cc).border=b;
+    }
+    ws.getRow(rr).height=15.75;
+  }
+}
+
+function downloadWorkbook(wb,filename){
+  return wb.xlsx.writeBuffer().then(function(buf){
+    var blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    var url=URL.createObjectURL(blob),a=document.createElement('a');
+    a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();
+    setTimeout(function(){URL.revokeObjectURL(url);},1000);
+  });
+}
+
+function exportAssignDayXlsx(){
+  if(!curDate)return;
+  var dateStr=curDate;
+  loadExcelJS().then(function(){
+    var wb=new ExcelJS.Workbook(),d=parseInt(dateStr.split('-')[2]);
+    buildAssignSheet(wb,dateStr,String(d));
+    return downloadWorkbook(wb,'assignment_'+dateStr+'.xlsx');
+  }).then(function(){showToast('📊 Export Excel เรียบร้อย');})
+    .catch(function(e){console.error(e);showToast('⚠️ Export ไม่สำเร็จ: '+e.message);});
+}
+
+// ทั้งเดือน = 1 ไฟล์, 1 sheet ต่อวัน
+function exportAssignMonthXlsx(){
+  var y,m;
+  if(curDate){var p=curDate.split('-');y=parseInt(p[0]);m=parseInt(p[1])-1;}
+  else{y=shiftState.year;m=shiftState.month;}
+  loadExcelJS().then(function(){
+    var wb=new ExcelJS.Workbook(),days=daysIn(y,m);
+    for(var d=1;d<=days;d++)buildAssignSheet(wb,ds(y,m,d),String(d));
+    return downloadWorkbook(wb,'assignment_'+MONTHS_TH[m]+'_'+(y+543)+'.xlsx');
+  }).then(function(){showToast('📊 Export Excel ทั้งเดือนเรียบร้อย');})
+    .catch(function(e){console.error(e);showToast('⚠️ Export ไม่สำเร็จ: '+e.message);});
 }
 
 function exportScheduleExcel(){
@@ -2131,6 +2371,8 @@ document.getElementById('aModal').addEventListener('click',function(e){if(e.targ
 // Export modal
 document.getElementById('btnExPrint').addEventListener('click',function(){document.getElementById('exModal').classList.remove('open');window.print();});
 document.getElementById('btnExCSV').addEventListener('click',function(){document.getElementById('exModal').classList.remove('open');exportCSV();});
+document.getElementById('btnExXlsxDay').addEventListener('click',function(){document.getElementById('exModal').classList.remove('open');exportAssignDayXlsx();});
+document.getElementById('btnExXlsxMonth').addEventListener('click',function(){document.getElementById('exModal').classList.remove('open');exportAssignMonthXlsx();});
 document.getElementById('btnExClose').addEventListener('click',function(){document.getElementById('exModal').classList.remove('open');});
 document.getElementById('exModal').addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});
 
