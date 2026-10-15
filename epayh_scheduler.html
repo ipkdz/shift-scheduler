@@ -502,6 +502,41 @@ const ALL_SHIFTS = ['M1','M2','A','E','N','M','OFF','TOW'];
 const WORKDAY_SHIFTS = ['M1','M2','A','E','N'];
 const HOLIDAY_SHIFTS = ['M','E','N'];
 const OT_SHIFTS = ['E','N','M'];
+// Per-person monthly max (d.maxShifts[k], set on the Condition page). Missing key = auto (balanced
+// with everyone else); a number = hard ceiling for auto-generate (0 = never assigned that shift).
+const MAX_KEYS = [
+  {k:'A',label:'A',types:['A']},
+  {k:'M12',label:'M1+M2',types:['M1','M2']},
+  {k:'M',label:'M',types:['M']},
+  {k:'E',label:'E',types:['E']},
+  {k:'N',label:'N',types:['N']},
+];
+function maxKeyOf(shiftType){ return MAX_KEYS.find(m=>m.types.includes(shiftType)); }
+// When balancing a combined total (OT = M+E+N, in-hours = M1+M2+A), a doctor capped below their
+// fair share of one type is credited the difference — so the cap lowers their load instead of being
+// "made up" with extra shifts of the other (auto) types, which stay equal to everyone else's.
+function capCredit(d, groupTypes){
+  let credit=0;
+  MAX_KEYS.forEach(m=>{
+    const cap=d.maxShifts?.[m.k];
+    if(cap==null||!m.types.some(t=>groupTypes.includes(t))) return;
+    const share=fairShare(m);
+    if(share>cap) credit+=share-cap;
+  });
+  return credit;
+}
+function fairShare(m){
+  const days=daysIn();
+  let slots=0;
+  for(let day=1;day<=days;day++) (isOffDay(day)?HOLIDAY_SHIFTS:WORKDAY_SHIFTS).forEach(sh=>{ if(m.types.includes(sh)) slots++; });
+  // Chief never takes M1/M2, and her A is a fixed quota taken off the top
+  if(m.k==='A'||m.k==='M12'){
+    const chiefs=S.doctors.filter(d=>d.chief);
+    if(m.k==='A') slots-=chiefs.reduce((a,d)=>a+(d.chiefLimit||0),0);
+    return Math.max(0,slots)/Math.max(1,S.doctors.length-chiefs.length);
+  }
+  return slots/Math.max(1,S.doctors.length);
+}
 const BAL_COLS = ['OT','N','M','E','M1','M2','A'];
 const PREFS_LABEL = {
   'consec-night':'ดึกติดกัน','consec-we':'เสาร์-อาทิตย์ติดกัน',
@@ -737,6 +772,7 @@ function renderDocList() {
       <div style="flex:1">
         <div style="font-weight:500;font-size:13px">${d.name}
           ${d.chief?`<span class="badge badge-chief">หัวหน้า A=${d.chiefLimit}</span>`:''}
+          ${MAX_KEYS.filter(m=>d.maxShifts?.[m.k]!=null).map(m=>`<span class="badge badge-chief" title="เวรสูงสุด/เดือน">${m.label}≤${d.maxShifts[m.k]}</span>`).join('')}
         </div>
         ${d.prefs.length?`<div class="pref-chip">${d.prefs.map(p=>PREFS_LABEL[p]||p).join(' · ')}</div>`:''}
       </div>
@@ -1505,6 +1541,13 @@ function checkConflicts(did, day, val) {
     const cnt=Object.values(S.schedule[mKey]?.[did]||{}).filter(v=>v==='A').length;
     if(cnt>d.chiefLimit) warnings.push(`A เกิน ${d.chiefLimit} เวร/เดือนที่กำหนดไว้`);
   }
+  // WARN: เกินเวรสูงสุด/เดือนที่ตั้งไว้ในหน้า Condition (manual edit only — auto-generate never exceeds it)
+  const mx=maxKeyOf(val);
+  const cap=mx&&d.maxShifts?.[mx.k];
+  if(cap!=null){
+    const cnt=monthlyCount(did,daysIn(),mx.types);
+    if(cnt>cap) warnings.push(`${mx.label} เกินสูงสุด ${cap} เวร/เดือน (มี ${cnt})`);
+  }
   // WARN: Want request — got a different shift than requested
   const wantDay=d.wantRequests?.[dk(day)];
   if(wantDay && !['TOW','OFF','-'].includes(val)) {
@@ -1750,7 +1793,13 @@ function autoGenerate(randomize){
   }
 
   save();renderSchedule();renderCumulative();
-  showToast(randomize?'สุ่มตารางแบบใหม่แล้ว ✓':'Auto-generate เสร็จแล้ว ✓');
+  // A slot nobody could legally take (e.g. everyone eligible is at their เวรสูงสุด cap) stays empty
+  let unfilled=0;
+  for(let day=1;day<=days;day++){
+    (isOffDay(day)?HOLIDAY_SHIFTS:WORKDAY_SHIFTS).forEach(sh=>{ if(!slotAlreadyFilled(day,sh)) unfilled++; });
+  }
+  if(unfilled) showToast(`⚠️ จัดเสร็จ แต่มี ${unfilled} เวรว่าง (ไม่มีใครอยู่ได้ — ตรวจเวรสูงสุด/เงื่อนไข)`);
+  else showToast(randomize?'สุ่มตารางแบบใหม่แล้ว ✓':'Auto-generate เสร็จแล้ว ✓');
 }
 
 function canTakeShift(d, day, shiftType, mKey){
@@ -1800,6 +1849,10 @@ function canTakeShift(d, day, shiftType, mKey){
     const cnt=Object.values(S.schedule[mKey]?.[d.id]||{}).filter(v=>Array.isArray(v)?v.includes('A'):v==='A').length;
     if(cnt>=d.chiefLimit) return false;
   }
+  // Per-person max cap — M1 and M2 share one combined ceiling
+  const mx=maxKeyOf(shiftType);
+  const cap=mx&&d.maxShifts?.[mx.k];
+  if(cap!=null&&monthlyCount(d.id,daysIn(),mx.types)>=cap) return false;
   return true;
 }
 
@@ -1815,9 +1868,9 @@ function score(d, shiftType, tally, day){
   // Total OT (M+E+N) is the tightest — must land within ±1 across everyone, including the chief,
   // so it dominates every other scoring factor below (preferences, want-requests, etc.)
   // A is kept fairly tight on its own. M1/M2 ride on the overall workday total.
-  if(OT_SHIFTS.includes(shiftType)) s += t.OT*50;
+  if(OT_SHIFTS.includes(shiftType)) s += (t.OT+capCredit(d,OT_SHIFTS))*50;
   else if(shiftType==='A') s += t.A*20;
-  else if(shiftType==='M1'||shiftType==='M2') s += t.workday*15;
+  else if(shiftType==='M1'||shiftType==='M2') s += (t.workday+capCredit(d,['M1','M2','A']))*15;
   // Light tie-breaker within the specific shift type, so N/M/E still spread individually too
   s += t[shiftType]*4;
 
@@ -1924,72 +1977,55 @@ function monthlyCount(did, days, typeOrTypes){
 // Hand ONE shift of `shiftType` at a time from whoever in `pool` has the most to whoever has the
 // least, until the gap is ≤1 or no legal swap is left (never touches a 📌 locked shift)
 function rebalanceType(tally, mKey, days, shiftType, pool){
+  rebalanceTotal(tally, mKey, days, [shiftType], pool);
+}
+
+// Same idea, but balances the COMBINED total of several shift types at once
+// (e.g. total OT = E+M+N). `types` order is a preference order for which shift to give up first —
+// putting the type(s) already narrow-balanced by rebalanceType last means this pass only touches
+// them as a last resort, so it doesn't undo that earlier, tighter balancing.
+// The most-loaded → least-loaded pair is tried first; if that pair has no legal swap (e.g. the
+// least-loaded doctor is at their own เวรสูงสุด cap), the next pair still ≥2 apart is tried, so one
+// capped doctor doesn't stop everyone else from being balanced. Each swap strictly narrows a ≥2 gap,
+// so the loop always terminates.
+function rebalanceTotal(tally, mKey, days, types, pool){
   if(pool.length<2) return;
   let guard=0;
   while(guard++<300){
-    let maxDoc=pool[0], minDoc=pool[0], maxC=monthlyCount(maxDoc.id,days,shiftType), minC=monthlyCount(minDoc.id,days,shiftType);
-    pool.forEach(d=>{
-      const c=monthlyCount(d.id,days,shiftType);
-      if(c>maxC){maxC=c;maxDoc=d;}
-      if(c<minC){minC=c;minDoc=d;}
-    });
-    if(maxC-minC<=1) break;
+    const counts=pool.map(d=>({d,c:monthlyCount(d.id,days,types)+(types.length>1?capCredit(d,types):0)}));
+    const donors=counts.slice().sort((a,b)=>b.c-a.c);
+    const takers=counts.slice().sort((a,b)=>a.c-b.c);
     let swapped=false;
-    // Two passes: first avoid breaking a consecutive-night streak, only allow it if truly no other option
-    for(const avoidStreaks of [true,false]){
-      if(swapped) break;
-      for(let day=1;day<=days&&!swapped;day++){
-        if(!getCells(maxDoc.id,day).includes(shiftType)) continue;
-        if(getCondition(maxDoc.id,day,shiftType)==='lock') continue; // never undo an explicit 📌 condition lock
-        if(isCellLocked(maxDoc.id,day,mKey)) continue; // never undo an explicit 🔒 schedule-page lock
-        if(avoidStreaks && breaksNightStreak(maxDoc.id,day,shiftType)) continue;
-        if(!canTakeShift(minDoc,day,shiftType,mKey)) continue;
-        removeShift(maxDoc.id,day,shiftType,tally,mKey);
-        assign(minDoc.id,day,shiftType,tally,mKey);
-        swapped=true;
-        break;
+    for(const hi of donors){
+      for(const lo of takers){
+        if(hi.c-lo.c<=1) break; // takers ascending — every later one is even closer
+        if(trySwapShift(hi.d, lo.d, days, types, tally, mKey)){ swapped=true; break; }
       }
+      if(swapped) break;
     }
     if(!swapped) break; // no legal swap exists — remaining gap is a genuine hard-constraint limit
   }
 }
 
-// Same idea as rebalanceType, but balances the COMBINED total of several shift types at once
-// (e.g. total OT = E+M+N). `types` order is a preference order for which shift to give up first —
-// putting the type(s) already narrow-balanced by rebalanceType last means this pass only touches
-// them as a last resort, so it doesn't undo that earlier, tighter balancing.
-function rebalanceTotal(tally, mKey, days, types, pool){
-  if(pool.length<2) return;
-  let guard=0;
-  while(guard++<300){
-    let maxDoc=pool[0], minDoc=pool[0], maxC=monthlyCount(maxDoc.id,days,types), minC=monthlyCount(minDoc.id,days,types);
-    pool.forEach(d=>{
-      const c=monthlyCount(d.id,days,types);
-      if(c>maxC){maxC=c;maxDoc=d;}
-      if(c<minC){minC=c;minDoc=d;}
-    });
-    if(maxC-minC<=1) break;
-    let swapped=false;
-    for(const avoidStreaks of [true,false]){
-      if(swapped) break;
-      for(let day=1;day<=days&&!swapped;day++){
-        const donorShifts=getCells(maxDoc.id,day);
-        for(const st of types){
-          if(!donorShifts.includes(st)) continue;
-          if(getCondition(maxDoc.id,day,st)==='lock') continue;
-          if(isCellLocked(maxDoc.id,day,mKey)) continue;
-          if(avoidStreaks && breaksNightStreak(maxDoc.id,day,st)) continue;
-          if(!canTakeShift(minDoc,day,st,mKey)) continue;
-          removeShift(maxDoc.id,day,st,tally,mKey);
-          assign(minDoc.id,day,st,tally,mKey);
-          swapped=true;
-          break;
-        }
-        if(swapped) break;
+// Move one shift (any of `types`) from maxDoc to minDoc if some day allows it.
+// Two passes: first avoid breaking a consecutive-night streak, only allow it if truly no other option
+function trySwapShift(maxDoc, minDoc, days, types, tally, mKey){
+  for(const avoidStreaks of [true,false]){
+    for(let day=1;day<=days;day++){
+      const donorShifts=getCells(maxDoc.id,day);
+      for(const st of types){
+        if(!donorShifts.includes(st)) continue;
+        if(getCondition(maxDoc.id,day,st)==='lock') continue; // never undo an explicit 📌 condition lock
+        if(isCellLocked(maxDoc.id,day,mKey)) continue; // never undo an explicit 🔒 schedule-page lock
+        if(avoidStreaks && breaksNightStreak(maxDoc.id,day,st)) continue;
+        if(!canTakeShift(minDoc,day,st,mKey)) continue;
+        removeShift(maxDoc.id,day,st,tally,mKey);
+        assign(minDoc.id,day,st,tally,mKey);
+        return true;
       }
     }
-    if(!swapped) break;
   }
+  return false;
 }
 
 // A slot can already be filled by a 📌 lock assignment from the first pass — never double-fill it
@@ -2290,9 +2326,21 @@ function renderCondition(){
       <span>หัวหน้า</span>
     </label>
     <span style="color:var(--muted)">| กำหนด A =</span>
-    <input type="number" id="cond-chief-lim" value="${d.chiefLimit||4}" min="0" max="15"
+    <input type="number" id="cond-chief-lim" value="${d.chiefLimit??4}" min="0" max="15"
       style="width:46px;font-size:13px;text-align:center" onchange="setChiefLimit('${condDocId}',this.value)">
     <span style="color:var(--muted)">เวร/เดือน</span>
+    <div style="flex-basis:100%;height:0"></div>
+    <span style="color:var(--muted)" title="auto = เฉลี่ยเท่ากับคนอื่น · ตัวเลข = ไม่เกินเท่านี้ต่อเดือน (0 = ไม่อยู่เวรนี้เลย)">เวรสูงสุด/เดือน:</span>
+    ${MAX_KEYS.map(({k,label})=>{
+      const cur=d.maxShifts?.[k];
+      const opts=['<option value="">auto</option>'];
+      for(let n=0;n<=31;n++) opts.push(`<option value="${n}"${cur===n?' selected':''}>${n}</option>`);
+      return `<label style="display:flex;gap:4px;align-items:center">
+        <b style="font-size:12px">${label}</b>
+        <select style="font-size:13px;padding:1px 2px;${cur!=null?'background:#fef3c7;border-color:#f59e0b':''}"
+          onchange="setMaxShift('${condDocId}','${k}',this.value)">${opts.join('')}</select>
+      </label>`;
+    }).join('')}
   </div>`;
 
   // Slot dimensions
@@ -2396,7 +2444,14 @@ function saveCondPrefs(){
   save(); showToast('บันทึก preference แล้ว ✓');
 }
 function toggleChief(id,val){const d=doc(id);if(d){d.chief=val;save();}}
-function setChiefLimit(id,val){const d=doc(id);if(d){d.chiefLimit=parseInt(val)||4;save();}}
+function setChiefLimit(id,val){const d=doc(id);if(d){const n=parseInt(val);d.chiefLimit=isNaN(n)?4:Math.max(0,n);save();}}
+// '' = auto (balanced with everyone else), otherwise a hard monthly ceiling (0 = never this shift)
+function setMaxShift(id,key,val){
+  const d=doc(id); if(!d) return;
+  if(!d.maxShifts) d.maxShifts={};
+  if(val==='') delete d.maxShifts[key]; else d.maxShifts[key]=Math.max(0,parseInt(val));
+  save(); renderCondition();
+}
 
 // Helper: get condition state for auto-gen
 function getCondition(docId, day, slot){
@@ -2442,7 +2497,7 @@ Object.assign(window, {
   copySheet,exportJSON,importJSON,resetAll,exportSchedulePNG,exportScheduleExcel,
   setReqMode,initOffShifts,toggleOffShift,
   renderOffList,setBalanceStartMonth,
-  selectStamp,stampSlot,saveCondPrefs,renderCondition,toggleChief,setChiefLimit,
+  selectStamp,stampSlot,saveCondPrefs,renderCondition,toggleChief,setChiefLimit,setMaxShift,
   toggleLock,saveLockPassword,
 });
 // inline onchange handlers use save() directly
