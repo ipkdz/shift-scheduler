@@ -512,13 +512,19 @@ const MAX_KEYS = [
   {k:'N',label:'N',types:['N']},
 ];
 function maxKeyOf(shiftType){ return MAX_KEYS.find(m=>m.types.includes(shiftType)); }
+// The chief's old "กำหนด A" quota (d.chiefLimit) now lives in maxShifts.A — a chief who has never
+// touched the เวรสูงสุด row still uses their legacy chiefLimit, until the row is first edited
+function capOf(d,k){
+  if(d.maxShifts) return d.maxShifts[k]??null;
+  return (k==='A'&&d.chief&&d.chiefLimit!=null)?d.chiefLimit:null;
+}
 // When balancing a combined total (OT = M+E+N, in-hours = M1+M2+A), a doctor capped below their
 // fair share of one type is credited the difference — so the cap lowers their load instead of being
 // "made up" with extra shifts of the other (auto) types, which stay equal to everyone else's.
 function capCredit(d, groupTypes){
   let credit=0;
   MAX_KEYS.forEach(m=>{
-    const cap=d.maxShifts?.[m.k];
+    const cap=capOf(d,m.k);
     if(cap==null||!m.types.some(t=>groupTypes.includes(t))) return;
     const share=fairShare(m);
     if(share>cap) credit+=share-cap;
@@ -532,7 +538,11 @@ function fairShare(m){
   // Chief never takes M1/M2, and her A is a fixed quota taken off the top
   if(m.k==='A'||m.k==='M12'){
     const chiefs=S.doctors.filter(d=>d.chief);
-    if(m.k==='A') slots-=chiefs.reduce((a,d)=>a+(d.chiefLimit||0),0);
+    if(m.k==='A'){
+      const fixed=chiefs.filter(d=>capOf(d,'A')!=null);
+      slots-=fixed.reduce((a,d)=>a+capOf(d,'A'),0);
+      return Math.max(0,slots)/Math.max(1,S.doctors.length-fixed.length);
+    }
     return Math.max(0,slots)/Math.max(1,S.doctors.length-chiefs.length);
   }
   return slots/Math.max(1,S.doctors.length);
@@ -771,8 +781,8 @@ function renderDocList() {
       <div class="avatar${d.chief?' chief':''}" onclick="editInitials('${d.id}')" title="คลิกเพื่อแก้ตัวย่อ" style="cursor:pointer">${avatarInitials(d)}</div>
       <div style="flex:1">
         <div style="font-weight:500;font-size:13px">${d.name}
-          ${d.chief?`<span class="badge badge-chief">หัวหน้า A=${d.chiefLimit}</span>`:''}
-          ${MAX_KEYS.filter(m=>d.maxShifts?.[m.k]!=null).map(m=>`<span class="badge badge-chief" title="เวรสูงสุด/เดือน">${m.label}≤${d.maxShifts[m.k]}</span>`).join('')}
+          ${d.chief?`<span class="badge badge-chief">หัวหน้า</span>`:''}
+          ${MAX_KEYS.filter(m=>capOf(d,m.k)!=null).map(m=>`<span class="badge badge-chief" title="เวรสูงสุด/เดือน">${m.label}≤${capOf(d,m.k)}</span>`).join('')}
         </div>
         ${d.prefs.length?`<div class="pref-chip">${d.prefs.map(p=>PREFS_LABEL[p]||p).join(' · ')}</div>`:''}
       </div>
@@ -1536,14 +1546,9 @@ function checkConflicts(did, day, val) {
 
   // WARN: หัวหน้า M1/M2 (ทำได้ถ้าแก้เอง แต่ขึ้นเตือน)
   if(d.chief&&(val==='M1'||val==='M2')) warnings.push('หัวหน้าไม่ควรอยู่ M1/M2');
-  // WARN: หัวหน้า A เกินจำนวนที่กำหนดไว้ (A ควรเท่ากับ chiefLimit พอดี)
-  if(d.chief&&val==='A') {
-    const cnt=Object.values(S.schedule[mKey]?.[did]||{}).filter(v=>v==='A').length;
-    if(cnt>d.chiefLimit) warnings.push(`A เกิน ${d.chiefLimit} เวร/เดือนที่กำหนดไว้`);
-  }
   // WARN: เกินเวรสูงสุด/เดือนที่ตั้งไว้ในหน้า Condition (manual edit only — auto-generate never exceeds it)
   const mx=maxKeyOf(val);
-  const cap=mx&&d.maxShifts?.[mx.k];
+  const cap=mx?capOf(d,mx.k):null;
   if(cap!=null){
     const cnt=monthlyCount(did,daysIn(),mx.types);
     if(cnt>cap) warnings.push(`${mx.label} เกินสูงสุด ${cap} เวร/เดือน (มี ${cnt})`);
@@ -1784,7 +1789,8 @@ function autoGenerate(randomize){
     // buckets (A, N) run first so the broader totals that contain them (in-hours, OT) don't need to
     // touch them again except as a last resort — see the type order inside rebalanceTotal.
     const nonChief=S.doctors.filter(d=>!d.chief);
-    rebalanceType(tally, mKey, days, 'A', nonChief);
+    // A chief whose A is "auto" is balanced on A like everyone else; one with a set A is a fixed quota
+    rebalanceType(tally, mKey, days, 'A', S.doctors.filter(d=>!d.chief||capOf(d,'A')==null));
     rebalanceTotal(tally, mKey, days, ['M1','M2','A'], nonChief);
     rebalanceType(tally, mKey, days, 'N', S.doctors);
     rebalanceTotal(tally, mKey, days, ['E','M','N'], S.doctors);
@@ -1845,13 +1851,9 @@ function canTakeShift(d, day, shiftType, mKey){
   if(or){const arr=Array.isArray(or)?or:(or==='all'?['N','M','E']:[or]);const grp=(['M','M1','M2','A'].includes(shiftType))?'M':shiftType;if(arr.includes(grp))return false;}
   // Chief: block M1/M2, limit A
   if(d.chief&&(shiftType==='M1'||shiftType==='M2')) return false;
-  if(d.chief&&shiftType==='A'){
-    const cnt=Object.values(S.schedule[mKey]?.[d.id]||{}).filter(v=>Array.isArray(v)?v.includes('A'):v==='A').length;
-    if(cnt>=d.chiefLimit) return false;
-  }
   // Per-person max cap — M1 and M2 share one combined ceiling
   const mx=maxKeyOf(shiftType);
-  const cap=mx&&d.maxShifts?.[mx.k];
+  const cap=mx?capOf(d,mx.k):null;
   if(cap!=null&&monthlyCount(d.id,daysIn(),mx.types)>=cap) return false;
   return true;
 }
@@ -1874,9 +1876,10 @@ function score(d, shiftType, tally, day){
   // Light tie-breaker within the specific shift type, so N/M/E still spread individually too
   s += t[shiftType]*4;
 
-  // Chief's A count is a fixed target (A = chiefLimit), not just a ceiling — strongly prioritize
+  // A chief's max A (เวรสูงสุด A) is a fixed target, not just a ceiling — strongly prioritize
   // her for A until she reaches it, so she reliably lands on exactly that number every month
-  if(shiftType==='A'&&d.chief&&t.A<d.chiefLimit) s-=200;
+  const chiefA=d.chief?capOf(d,'A'):null;
+  if(shiftType==='A'&&chiefA!=null&&t.A<chiefA) s-=200;
 
   // Condition system boost/penalty — kept small so real balance need always wins over a soft preference
   const cond=getCondition(d.id,day,shiftType==='M1'||shiftType==='M2'||shiftType==='A'?shiftType:shiftType);
@@ -2325,14 +2328,9 @@ function renderCondition(){
       <input type="checkbox" id="cond-is-chief" ${d.chief?'checked':''} onchange="toggleChief('${condDocId}',this.checked)">
       <span>หัวหน้า</span>
     </label>
-    <span style="color:var(--muted)">| กำหนด A =</span>
-    <input type="number" id="cond-chief-lim" value="${d.chiefLimit??4}" min="0" max="15"
-      style="width:46px;font-size:13px;text-align:center" onchange="setChiefLimit('${condDocId}',this.value)">
-    <span style="color:var(--muted)">เวร/เดือน</span>
-    <div style="flex-basis:100%;height:0"></div>
-    <span style="color:var(--muted)" title="auto = เฉลี่ยเท่ากับคนอื่น · ตัวเลข = ไม่เกินเท่านี้ต่อเดือน (0 = ไม่อยู่เวรนี้เลย)">เวรสูงสุด/เดือน:</span>
+    <span style="color:var(--muted)" title="auto = เฉลี่ยเท่ากับคนอื่น · ตัวเลข = ไม่เกินเท่านี้ต่อเดือน (0 = ไม่อยู่เวรนี้เลย) · หัวหน้า: A ที่ตั้งไว้ = ได้ A ครบเท่านี้พอดี">| เวรสูงสุด/เดือน:</span>
     ${MAX_KEYS.map(({k,label})=>{
-      const cur=d.maxShifts?.[k];
+      const cur=capOf(d,k);
       const opts=['<option value="">auto</option>'];
       for(let n=0;n<=31;n++) opts.push(`<option value="${n}"${cur===n?' selected':''}>${n}</option>`);
       return `<label style="display:flex;gap:4px;align-items:center">
@@ -2443,12 +2441,11 @@ function saveCondPrefs(){
   d.prefs=[...document.querySelectorAll('#cond-pref-tags .tag.on')].map(t=>t.dataset.p);
   save(); showToast('บันทึก preference แล้ว ✓');
 }
-function toggleChief(id,val){const d=doc(id);if(d){d.chief=val;save();}}
-function setChiefLimit(id,val){const d=doc(id);if(d){const n=parseInt(val);d.chiefLimit=isNaN(n)?4:Math.max(0,n);save();}}
+function toggleChief(id,val){const d=doc(id);if(d){d.chief=val;save();renderCondition();}}
 // '' = auto (balanced with everyone else), otherwise a hard monthly ceiling (0 = never this shift)
 function setMaxShift(id,key,val){
   const d=doc(id); if(!d) return;
-  if(!d.maxShifts) d.maxShifts={};
+  if(!d.maxShifts) d.maxShifts=(d.chief&&d.chiefLimit!=null)?{A:d.chiefLimit}:{};
   if(val==='') delete d.maxShifts[key]; else d.maxShifts[key]=Math.max(0,parseInt(val));
   save(); renderCondition();
 }
@@ -2497,7 +2494,7 @@ Object.assign(window, {
   copySheet,exportJSON,importJSON,resetAll,exportSchedulePNG,exportScheduleExcel,
   setReqMode,initOffShifts,toggleOffShift,
   renderOffList,setBalanceStartMonth,
-  selectStamp,stampSlot,saveCondPrefs,renderCondition,toggleChief,setChiefLimit,setMaxShift,
+  selectStamp,stampSlot,saveCondPrefs,renderCondition,toggleChief,setMaxShift,
   toggleLock,saveLockPassword,
 });
 // inline onchange handlers use save() directly
