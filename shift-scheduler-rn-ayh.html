@@ -723,10 +723,10 @@ function loadFromFirebase(cb){
         if(p.holidays)shiftState.holidays[id]=p.holidays;
         if(p.special)shiftState.special[id]=p.special;
       } else {
-        // migrate: doc main เก่า — โหลดครั้งเดียวแล้วทิ้ง
-        if(p.data)Object.assign(shiftState.data,p.data);
-        if(p.holidays)Object.assign(shiftState.holidays,p.holidays);
-        if(p.special)Object.assign(shiftState.special,p.special);
+        // migrate: doc main เก่า — โหลดเฉพาะ key ที่ยังไม่มี (ไม่ทับข้อมูลใหม่)
+        if(p.data)Object.keys(p.data).forEach(function(mk){if(!shiftState.data[mk])shiftState.data[mk]=p.data[mk];});
+        if(p.holidays)Object.keys(p.holidays).forEach(function(mk){if(!shiftState.holidays[mk])shiftState.holidays[mk]=p.holidays[mk];});
+        if(p.special)Object.keys(p.special).forEach(function(mk){if(!shiftState.special[mk])shiftState.special[mk]=p.special[mk];});
         if(p.threshold)shiftState.threshold=p.threshold;
       }
     });
