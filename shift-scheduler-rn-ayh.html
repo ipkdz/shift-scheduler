@@ -680,7 +680,7 @@ function loadLocal(){
     var s=localStorage.getItem('erShift');
     if(s){var p=JSON.parse(s);
       if(p.year)shiftState.year=p.year;
-      if(p.month!==undefined)shiftState.month=p.month;
+      // ไม่ restore month — ใช้เดือนปัจจุบันเสมอเมื่อเปิด app (กัน refresh แล้วแสดงเดือนผิด)
       if(p.data)shiftState.data=p.data;
       if(p.holidays)shiftState.holidays=p.holidays;
       if(p.special)shiftState.special=p.special;
@@ -2178,7 +2178,11 @@ document.getElementById('btnPrevSch').addEventListener('click',function(){shiftS
 document.getElementById('btnNextSch').addEventListener('click',function(){shiftState.month++;if(shiftState.month>11){shiftState.month=0;shiftState.year++;}updateMonthDisplay();renderSchedule();saveShift();});
 
 // ===== INIT =====
+// รีเซ็ต month เป็นเดือนปัจจุบันก่อนเสมอ (กัน localStorage บันทึกเดือนเก่าแล้ว refresh ไปแสดงผิด)
+(function(){var now=new Date();shiftState.year=now.getFullYear();shiftState.month=now.getMonth();})();
 loadLocal();
+// หลัง loadLocal ตั้งเดือนปัจจุบันอีกครั้ง (loadLocal อาจโหลด year มาแต่ month เราไม่ restore แล้ว)
+(function(){var now=new Date();shiftState.month=now.getMonth();shiftState.year=now.getFullYear();})();
 updateMonthDisplay();
 
 // sync สองทิศทาง: persons ↔ staff — ไม่ reorder ที่มีอยู่แล้ว
