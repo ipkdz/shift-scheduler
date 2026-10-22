@@ -655,16 +655,10 @@ function saveShift(){
   if(window.db){
     // แยก save ตามเดือนปัจจุบัน เพื่อกัน document ใหญ่เกิน Firestore limit
     var k=mk(shiftState.year,shiftState.month);
-    var monthData={};
-    if(shiftState.data[k])monthData[k]=shiftState.data[k];
-    var monthHol={};
-    if(shiftState.holidays[k])monthHol[k]=shiftState.holidays[k];
-    var monthSpc={};
-    if(shiftState.special[k])monthSpc[k]=shiftState.special[k];
     window.db.collection('schedules').doc(k).set({
-      data:monthData,
-      holidays:monthHol,
-      special:monthSpc
+      data:shiftState.data[k]||{},
+      holidays:shiftState.holidays[k]||{},
+      special:shiftState.special[k]||{}
     }).catch(function(e){console.error('saveShift:',e);});
     // threshold เก็บแยก (ไม่ขึ้นกับเดือน)
     window.db.collection('schedules').doc('_threshold').set({
@@ -724,10 +718,10 @@ function loadFromFirebase(cb){
       if(id==='_threshold'){
         if(p.threshold)shiftState.threshold=p.threshold;
       } else if(id!=='main'){
-        // id คือ month key เช่น "2026-10"
-        if(p.data)Object.assign(shiftState.data,p.data);
-        if(p.holidays)Object.assign(shiftState.holidays,p.holidays);
-        if(p.special)Object.assign(shiftState.special,p.special);
+        // id คือ month key เช่น "2026-10" — data เก็บตรงๆ (ไม่ wrap key)
+        if(p.data)shiftState.data[id]=p.data;
+        if(p.holidays)shiftState.holidays[id]=p.holidays;
+        if(p.special)shiftState.special[id]=p.special;
       } else {
         // migrate: doc main เก่า — โหลดครั้งเดียวแล้วทิ้ง
         if(p.data)Object.assign(shiftState.data,p.data);
@@ -771,9 +765,9 @@ function listenMonthDoc(k){
     _syncDebounce=setTimeout(function(){
       if(Date.now()-_lastLocalSave<_SKIP_WINDOW)return;
       var p=doc.data();
-      if(p.data)Object.assign(shiftState.data,p.data);
-      if(p.holidays)Object.assign(shiftState.holidays,p.holidays);
-      if(p.special)Object.assign(shiftState.special,p.special);
+      if(p.data)shiftState.data[k]=p.data;
+      if(p.holidays)shiftState.holidays[k]=p.holidays;
+      if(p.special)shiftState.special[k]=p.special;
       migrateDataToNameBased();
       try{localStorage.setItem('erShift',JSON.stringify(shiftState));}catch(e){}
       renderSchedule();renderPersonList();
@@ -2208,8 +2202,8 @@ var mnDiv=document.createElement('div');
 mnDiv.style.cssText='display:flex;align-items:center;gap:10px;margin-bottom:12px;';
 mnDiv.innerHTML='<button id="btnPrevSch" style="background:var(--surface);border:1px solid var(--border);color:var(--text);width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:14px;">‹</button><div id="monthDisplay" style="font-family:Prompt,sans-serif;font-weight:600;font-size:1rem;min-width:140px;text-align:center;color:var(--accent);"></div><button id="btnNextSch" style="background:var(--surface);border:1px solid var(--border);color:var(--text);width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:14px;">›</button>';
 schedPage.insertBefore(mnDiv,schedPage.firstChild);
-document.getElementById('btnPrevSch').addEventListener('click',function(){shiftState.month--;if(shiftState.month<0){shiftState.month=11;shiftState.year--;}updateMonthDisplay();renderSchedule();saveShift();});
-document.getElementById('btnNextSch').addEventListener('click',function(){shiftState.month++;if(shiftState.month>11){shiftState.month=0;shiftState.year++;}updateMonthDisplay();renderSchedule();saveShift();});
+document.getElementById('btnPrevSch').addEventListener('click',function(){shiftState.month--;if(shiftState.month<0){shiftState.month=11;shiftState.year--;}updateMonthDisplay();renderSchedule();saveShift();if(window.db)listenMonthDoc(mk(shiftState.year,shiftState.month));});
+document.getElementById('btnNextSch').addEventListener('click',function(){shiftState.month++;if(shiftState.month>11){shiftState.month=0;shiftState.year++;}updateMonthDisplay();renderSchedule();saveShift();if(window.db)listenMonthDoc(mk(shiftState.year,shiftState.month));});
 
 // ===== INIT =====
 loadLocal();
