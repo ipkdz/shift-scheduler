@@ -730,8 +730,7 @@ function loadFromFirebase(cb){
     migrateDataToNameBased();
     try{localStorage.setItem('erAssign3',JSON.stringify(assignState));}catch(e){}
     try{localStorage.setItem('erShift',JSON.stringify(shiftState));}catch(e){}
-    // save migrated data กลับ Firebase เพื่อ overwrite index-based data เก่า
-    saveShift();
+    // saveShift ไม่จำเป็นอีกต่อไป — migration เก่าทำเสร็จแล้ว
     check();
   }).catch(function(){check();});
 }
@@ -2205,6 +2204,9 @@ renderStaffTable();
 renderStampButtons();
 renderAssignCalendar();
 if(window.db){
+  // ตั้ง timestamp ก่อน subscribe เพื่อให้ initial snapshot ถูก skip
+  _lastLocalSave=Date.now();
+  _lastLocalSaveAssign=Date.now();
   loadFromFirebase(function(){
     syncStaffAndPersons();
     updateMonthDisplay();renderSchedule();renderPersonList();renderStaffTable();loadThrInputs();
