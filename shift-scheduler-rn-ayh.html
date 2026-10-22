@@ -1361,9 +1361,9 @@ function renderAssignCalendar(){
     var dow=new Date(calYear,calMonth,day).getDay(),isWE=dow===0||dow===6;
     var isToday=today.getFullYear()===calYear&&today.getMonth()===calMonth&&today.getDate()===day;
     var dt=ds(calYear,calMonth,day);
-    var hasN=assignState.assignments[dt]&&assignState.assignments[dt]['night']&&Object.keys(assignState.assignments[dt]['night']).length>0;
-    var hasM=assignState.assignments[dt]&&assignState.assignments[dt]['morning']&&Object.keys(assignState.assignments[dt]['morning']).length>0;
-    var hasA=assignState.assignments[dt]&&assignState.assignments[dt]['afternoon']&&Object.keys(assignState.assignments[dt]['afternoon']).length>0;
+    var hasN=(assignState.assignments[dt]&&assignState.assignments[dt]['night']&&Object.keys(assignState.assignments[dt]['night']).length>0)||(assignState.rosters[dt]&&assignState.rosters[dt]['night']&&assignState.rosters[dt]['night'].length>0);
+    var hasM=(assignState.assignments[dt]&&assignState.assignments[dt]['morning']&&Object.keys(assignState.assignments[dt]['morning']).length>0)||(assignState.rosters[dt]&&assignState.rosters[dt]['morning']&&assignState.rosters[dt]['morning'].length>0);
+    var hasA=(assignState.assignments[dt]&&assignState.assignments[dt]['afternoon']&&Object.keys(assignState.assignments[dt]['afternoon']).length>0)||(assignState.rosters[dt]&&assignState.rosters[dt]['afternoon']&&assignState.rosters[dt]['afternoon'].length>0);
     html+='<div class="cal-cell-a'+(isWE?' we':'')+(isToday?' today':'')+(hasM||hasA||hasN?' done':'')+'" data-date="'+dt+'">';
     html+='<div class="cal-date-a">'+day+'</div>';
     if(hasN||hasM||hasA){html+='<div class="cal-dots-a">';
