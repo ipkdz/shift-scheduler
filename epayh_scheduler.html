@@ -266,7 +266,7 @@ table.sum tr:nth-child(even) td{background:var(--bg)}
   <!-- Cumulative shift totals (reference only — auto-generate balances within each month, not across months) -->
   <div class="card" style="margin-top:14px">
     <div class="card-title">📊 ยอดสะสมเวร (ไว้ดูอ้างอิง)</div>
-    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">นับจริงจากตารางที่จัดไว้ ไม่ต้องกรอกเอง — เอาไว้ดูเทียบเฉยๆ auto-generate จะเกลี่ยให้ใกล้กันที่สุดเฉพาะภายในเดือนนั้นๆ ไม่ได้ปรับตามยอดสะสมนี้<br><b>Add เวร</b> = เวรที่คนนั้นโดนแอดเพิ่ม (มากกว่าคนอื่น) — IT +1 จะหักออกจาก M1+M2 1 เวร, OT +1 จะหักออกจาก OT 1 เวร</p>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:8px">นับจริงจากตารางที่จัดไว้ ไม่ต้องกรอกเอง — เอาไว้ดูเทียบเฉยๆ auto-generate จะเกลี่ยให้ใกล้กันที่สุดเฉพาะภายในเดือนนั้นๆ ไม่ได้ปรับตามยอดสะสมนี้<br><b>Handicap</b> = ปรับยอดสะสมของแต่ละคน — IT 1 = หักออกจาก M1+M2 1 เวร, OT 1 = หักออกจาก OT 1 เวร · ติดลบได้ เช่น -2 = บวกเพิ่มเข้าไป 2 เวร</p>
     <div class="row" style="gap:8px;margin-bottom:10px;align-items:center">
       <label style="font-size:12px;color:var(--muted)">เริ่มนับจาก</label>
       <input type="month" id="balance-start-month" onchange="setBalanceStartMonth(this.value)" style="width:150px">
@@ -996,28 +996,31 @@ function renderCumulative(){
   const totals=cumulativeTotals(null);
   const ADD_HEAD='background:#fde68a;color:#78350f';
   const DIV='border-left:3px solid #1a1a18';
+  // Handicap > 0 lowers the shown total (orange), < 0 raises it (blue)
+  const HC_COLOR=n=>n>0?'#b45309':'#1d4ed8';
   const stepper=(d,kind,n)=>`<span class="add-step">
-      <button onclick="changeAddShift('${d.id}','${kind}',-1)" ${n<=0?'disabled':''}>−</button>
-      <span style="${n>0?'font-weight:700;color:#b45309':'color:var(--muted)'}">${n}</span>
+      <button onclick="changeAddShift('${d.id}','${kind}',-1)">−</button>
+      <span style="${n?`font-weight:700;color:${HC_COLOR(n)}`:'color:var(--muted)'}">${n}</span>
       <button onclick="changeAddShift('${d.id}','${kind}',1)">+</button>
     </span>`;
   let html=`<table class="sum" style="table-layout:fixed;width:100%">
     <colgroup><col style="width:22%"><col style="width:10%"><col style="width:10%"><col style="width:10%"><col style="width:10%"><col style="width:10%"><col style="width:14%"><col style="width:14%"></colgroup>
     <thead>
       <tr><th rowspan="2">แพทย์</th><th rowspan="2">M1+M2</th><th rowspan="2">A</th><th rowspan="2">N</th><th rowspan="2">OT</th><th rowspan="2">H</th>
-        <th colspan="2" style="${ADD_HEAD};${DIV}">Add เวร</th></tr>
+        <th colspan="2" style="${ADD_HEAD};${DIV}">Handicap</th></tr>
       <tr><th style="${ADD_HEAD};${DIV}">IT</th><th style="${ADD_HEAD}">OT</th></tr>
     </thead><tbody>`;
   S.doctors.forEach(d=>{
     const t=totals[d.id];
     const add=addShiftsOf(d.id);
-    const adj=(real,n)=>n?` title="นับจริง ${real} − add ${n}" style="font-weight:600;color:#b45309"`:'';
+    const tip=(real,n)=>n?` title="นับจริง ${real} ${n>0?'−':'+'} handicap ${Math.abs(n)}"`:'';
+    const hcStyle=n=>n?`font-weight:600;color:${HC_COLOR(n)}`:'';
     html+=`<tr>
       <td>${d.name}${d.chief?'<span class="badge badge-chief" style="margin-left:4px">หน.</span>':''}</td>
-      <td${adj(t.M1M2,add.IT)}>${t.M1M2-add.IT}</td>
+      <td style="${hcStyle(add.IT)}"${tip(t.M1M2,add.IT)}>${t.M1M2-add.IT}</td>
       <td>${t.A}</td>
       <td>${t.N}</td>
-      <td style="font-weight:600${add.OT?';color:#b45309':''}"${add.OT?` title="นับจริง ${t.OT} − add ${add.OT}"`:''}>${t.OT-add.OT}</td>
+      <td style="font-weight:600;${hcStyle(add.OT)}"${tip(t.OT,add.OT)}>${t.OT-add.OT}</td>
       <td style="font-weight:600">${t.holiday}</td>
       <td style="${DIV}">${stepper(d,'IT',add.IT)}</td>
       <td>${stepper(d,'OT',add.OT)}</td>
@@ -1026,8 +1029,8 @@ function renderCumulative(){
   html+=`</tbody>`;
   document.getElementById('cumulative-list').innerHTML=html;
 }
-// "Add เวร" — extra shifts a doctor was given on top of everyone else (IT = in-hours M1/M2, OT).
-// They're subtracted from that doctor's cumulative M1+M2 / OT so the totals compare fairly.
+// "Handicap" (stored as S.addShifts — key kept from its old "Add เวร" name so saved data still loads).
+// Per-doctor adjustment to the cumulative M1+M2 (IT) / OT shown: positive subtracts, negative adds.
 function addShiftsOf(did){
   const a=(S.addShifts||{})[did]||{};
   return {IT:a.IT||0, OT:a.OT||0};
@@ -1036,7 +1039,7 @@ function changeAddShift(did,kind,delta){
   if(!requireUnlocked())return;
   if(!S.addShifts) S.addShifts={};
   const a=addShiftsOf(did);
-  a[kind]=Math.max(0,a[kind]+delta);
+  a[kind]+=delta;
   S.addShifts[did]=a;
   save(); renderCumulative();
 }
