@@ -56,6 +56,7 @@ td.shift-cell.weekend-col{background:rgba(13, 72, 161, 0.075);}
 td.shift-cell.holiday-col{background:rgba(13, 72, 161, 0.075);}
 .shift-display{display:flex;justify-content:center;align-items:center;gap:1px;height:100%;font-weight:700;font-size:12px;}
 .shift-char{display:inline-block;line-height:1;}
+.shift-char-black{display:inline-block;line-height:1;color:#111;font-weight:700;background:#d1d5db;border-radius:3px;padding:0 2px;}
 .pc-1{color:var(--pos1);}.pc-2{color:var(--pos2);}.pc-3{color:var(--pos3);}.pc-4{color:var(--pos4);}.pc-5{color:var(--pos5);}
 td.special-cell{height:32px;text-align:center;vertical-align:middle;font-weight:700;font-size:13px;cursor:pointer;}
 td.cell-meeting{background:#C4FFB2!important;color:#000;}
@@ -316,7 +317,7 @@ td.col-total{background:#e8eaf6;font-size:12px;font-weight:700;padding:2px 3px;t
 }
 .print-header{display:none;font-family:'Prompt',sans-serif;font-size:16px;font-weight:700;text-align:center;margin-bottom:12px;}
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 </head>
 <body>
 
@@ -391,6 +392,7 @@ td.col-total{background:#e8eaf6;font-size:12px;font-weight:700;padding:2px 3px;t
       <button onclick="importRosterFromSchedule()" style="margin-left:auto;background:var(--ok);border:none;border-radius:8px;color:white;padding:7px 14px;cursor:pointer;font-size:12px;font-family:Sarabun,sans-serif;font-weight:600;">📥 Import เวรจากตาราง</button>
       <button onclick="autoAssign()" style="background:var(--accent);border:none;border-radius:8px;color:white;padding:7px 14px;cursor:pointer;font-size:12px;font-family:Sarabun,sans-serif;font-weight:600;">✨ AI จัดทั้งเดือน</button>
       <button onclick="clearAssignMonth()" style="background:#ef4444;border:none;border-radius:8px;color:white;padding:7px 14px;cursor:pointer;font-size:12px;font-family:Sarabun,sans-serif;font-weight:600;">🗑 ล้าง Assignment</button>
+      <button onclick="exportAssignMonth()" style="background:#1d4ed8;border:none;border-radius:8px;color:white;padding:7px 14px;cursor:pointer;font-size:12px;font-family:Sarabun,sans-serif;font-weight:600;">📊 Export Excel ทั้งเดือน</button>
     </div>
     <div class="cal-grid-a" id="calGrid"></div>
   </div>
@@ -403,6 +405,7 @@ td.col-total{background:#e8eaf6;font-size:12px;font-weight:700;padding:2px 3px;t
       <button class="auto-btn" id="btnAuto">✨ AI จัดให้</button>
       <button onclick="clearAssignDay()" style="background:#ef4444;border:none;border-radius:8px;color:white;padding:7px 14px;cursor:pointer;font-size:12px;font-family:Sarabun,sans-serif;font-weight:600;">🗑 ล้างวันนี้</button>
       <button class="export-btn" id="btnExport">📤 Export</button>
+      <button onclick="exportAssignDay()" style="background:#1d4ed8;border:none;border-radius:8px;color:white;padding:7px 14px;cursor:pointer;font-size:12px;font-family:Sarabun,sans-serif;font-weight:600;">📊 Export Excel วันนี้</button>
     </div>
     <div class="shift-cols" id="shiftCols"></div>
   </div>
@@ -1014,6 +1017,7 @@ function renderSchedule(){
       for(var si1=0;si1<c0.shifts.length;si1++){
         var sh0=c0.shifts[si1],co0=c0.colors[sh0]||0;
         if(co0===4)continue; // EMD ไม่นับเป็นคนขึ้นเวร
+        if(co0===0)continue; // สีดำ (ไม่ระบุตำแหน่ง) ไม่นับในรวมเวร
         // special canPair แต่ countsShift=false → ไม่นับเป็นคนขึ้นเวร
         if(sp0&&spInf0&&!spInf0.countsShift)continue;
         dayCounts[d0][sh0].total++;
@@ -1072,7 +1076,7 @@ function renderSchedule(){
           var content2='<div class="shift-display" style="flex-direction:column;gap:0;">';
           content2+='<span style="font-size:10px;font-weight:700;color:'+spColor+';">'+spInf.char+'</span>';
           for(var si5=0;si5<cell2.shifts.length;si5++){var sh2=cell2.shifts[si5],co2=cell2.colors[sh2]||0;
-            content2+='<span class="'+(co2?'shift-char '+POS_CLASS[co2]:'shift-char')+'">'+sh2+'</span>';}
+            content2+='<span class="'+(co2?'shift-char '+POS_CLASS[co2]:'shift-char-black')+'">'+sh2+'</span>';}
           content2+='</div>';
           html+='<td class="shift-cell'+extraCls+'" data-pi="'+pi+'" data-d="'+d2+'">'+content2+'</td>';
         }else{
@@ -1083,7 +1087,7 @@ function renderSchedule(){
         var content='';
         if(cell.shifts&&cell.shifts.length>0){content='<div class="shift-display">';
           for(var si3=0;si3<cell.shifts.length;si3++){var sh=cell.shifts[si3],co=cell.colors[sh]||0;
-            content+='<span class="'+(co?'shift-char '+POS_CLASS[co]:'shift-char')+'">'+sh+'</span>';}
+            content+='<span class="'+(co?'shift-char '+POS_CLASS[co]:'shift-char-black')+'">'+sh+'</span>';}
           content+='</div>';}
         html+='<td class="'+cellCls+'" data-pi="'+pi+'" data-d="'+d2+'">'+content+'</td>';
       }
@@ -1897,6 +1901,208 @@ function exportScheduleExcel(){
   XLSX.writeFile(wb,'ตารางเวร_'+monthName+'.xlsx');
   showToast('📊 Export Excel เรียบร้อย');
 }
+// ===== EXPORT ASSIGNMENT EXCEL =====
+// สีตาม template ตารางมอบหมายงาน
+var XL_COLORS={
+  title:    'FF999999',
+  header:   'FFD9D9D9',
+  // area headers (เข้ม)
+  aIncharge:'FFFF9900',
+  aTriage:  'FF6D9EEB',
+  aResus:   'FFE06666',
+  aTreatment:'FFFFFF00',
+  aObserve: 'FF93C47D',
+  aDispatch:'FFC27BA0',
+  aEMS:     'FF8E7CC3',
+  aPN:      'FFF1C232',
+  // row (อ่อน)
+  rIncharge:'FFF9CB9C',
+  rTriage:  'FFC9DAF8',
+  rResus:   'FFF4CCCC',
+  rTreatment:'FFFFF2CC',
+  rObserve: 'FFD9EAD3',
+  rDispatch:'FFEAD1DC',
+  rEMS:     'FFD9D2E9',
+  rPN:      'FFFFF2CC'
+};
+
+// map roleId → {area, rowColor, areaColor, areaLabel}
+var XL_ROLE_META={
+  IC:  {area:'Incharge',         areaColor:'aIncharge', rowColor:'rIncharge'},
+  TL:  {area:'Resusucitation Area',areaColor:'aResus',   rowColor:'rResus'},
+  TR:  {area:'Triage Area',      areaColor:'aTriage',   rowColor:'rTriage'},
+  R1:  {area:'Resusucitation Area',areaColor:'aResus',   rowColor:'rResus'},
+  R2:  {area:'Resusucitation Area',areaColor:'aResus',   rowColor:'rResus'},
+  RF1: {area:'Resusucitation Area',areaColor:'aResus',   rowColor:'rResus'},
+  M1:  {area:'Treatment Area',   areaColor:'aTreatment',rowColor:'rTreatment'},
+  M2:  {area:'Treatment Area',   areaColor:'aTreatment',rowColor:'rTreatment'},
+  RF2: {area:'Treatment Area',   areaColor:'aTreatment',rowColor:'rTreatment'},
+  OB:  {area:'Observation Area', areaColor:'aObserve',  rowColor:'rObserve'},
+  C2:  {area:'Dispatch Area',    areaColor:'aDispatch', rowColor:'rDispatch'},
+  EMD: {area:'Dispatch Area',    areaColor:'aDispatch', rowColor:'rDispatch'},
+  EMS: {area:'EMS',              areaColor:'aEMS',      rowColor:'rEMS'}
+};
+
+function xlFill(rgb){return {patternType:'solid',fgColor:{rgb:rgb}};}
+function xlBorder(){
+  var s={style:'thin',color:{rgb:'FFD0D0D0'}};
+  return {top:s,bottom:s,left:s,right:s};
+}
+
+// สร้าง sheet ของวันเดียว
+function buildAssignSheet(dateStr){
+  var parts=dateStr.split('-'),y=parseInt(parts[0]),m=parseInt(parts[1])-1,d=parseInt(parts[2]);
+  var dow=new Date(y,m,d).getDay();
+  var DAYS=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+  var thaiDate=d+' '+MONTHS_TH[m]+' '+(y+543)+' ('+DAYS[dow]+')';
+
+  var dayAssign=assignState.assignments[dateStr]||{};
+  var shifts=['morning','afternoon','night'];
+  var shiftLabel={morning:'เช้า',afternoon:'บ่าย',night:'ดึก'};
+
+  // header rows
+  var aoa=[];
+  // row 0: title
+  aoa.push(['ตารางมอบหมายงาน งานอุบัติเหตุฉุกเฉิน  ('+thaiDate+')','','','','','','']);
+  aoa.push([]);
+  // row 2: วัน/เดือน/ปี merged
+  aoa.push(['วัน/เดือน/ปี','','','','','','']);
+  aoa.push([]);
+  // row 4: col headers
+  aoa.push(['ตำแหน่ง','ดึก','เช้า','บ่าย','เวลาพัก','','']);
+  // row 5: break sub-headers
+  aoa.push(['','','','','ดึก','เช้า','บ่าย']);
+
+  // role rows — ตามลำดับ template
+  var ROLE_ORDER=[
+    {section:'Incharge',      areaKey:'aIncharge', rowKey:'rIncharge',  roles:['IC']},
+    {section:'Triage Area',   areaKey:'aTriage',   rowKey:'rTriage',    roles:['TR']},
+    {section:'Resusucitation Area', areaKey:'aResus', rowKey:'rResus',  roles:['TL','R1','R2','RF1']},
+    {section:'Treatment Area',areaKey:'aTreatment',rowKey:'rTreatment', roles:['M1','M2','RF2']},
+    {section:'Observation Area',areaKey:'aObserve',rowKey:'rObserve',   roles:['OB']},
+    {section:'Dispatch Area', areaKey:'aDispatch', rowKey:'rDispatch',  roles:['C2','EMD']},
+    {section:'EMS',           areaKey:'aEMS',      rowKey:'rEMS',       roles:['EMS']}
+  ];
+
+  var ROLE_LABEL_XL={IC:'Incharge',TL:'TeamLead',TR:'Triage Nurse',
+    R1:'Resus(1)',R2:'Resus(2)',RF1:'Refer1**',
+    M1:'Member(1)',M2:'Member(2)',RF2:'Refer2**',
+    OB:'Obs Nurse',C2:'C2',EMD:'EMD',EMS:'Nurse/Paramedic'};
+
+  // break times per role per shift (จาก SHIFT_ROLES)
+  function getBreak(shift,roleId){
+    var list=SHIFT_ROLES[shift]||[];
+    for(var i=0;i<list.length;i++)if(list[i].id===roleId)return list[i].break||'-';
+    return '-';
+  }
+  function getName(shift,roleId){
+    return (dayAssign[shift]&&dayAssign[shift][roleId])||'';
+  }
+
+  var metaRows=[]; // {rowIdx, type:'area'|'role', areaKey, rowKey}
+  ROLE_ORDER.forEach(function(sec){
+    // area header row
+    aoa.push([sec.section,'','','','','','']);
+    metaRows.push({type:'area',areaKey:sec.areaKey});
+    // role rows
+    sec.roles.forEach(function(rid){
+      var label=ROLE_LABEL_XL[rid]||rid;
+      var n=getName('night',rid), mo=getName('morning',rid), af=getName('afternoon',rid);
+      var bN=getBreak('night',rid), bM=getBreak('morning',rid), bA=getBreak('afternoon',rid);
+      // ดึกไม่มีเวลาพัก
+      aoa.push([label, n||'-', mo||'-', af||'-', bN, bM, bA]);
+      metaRows.push({type:'role',rowKey:sec.rowKey});
+    });
+  });
+
+  // สร้าง worksheet
+  var ws=XLSX.utils.aoa_to_sheet(aoa);
+
+  // กำหนด styles — ใช้ cell reference loop
+  var totalRows=aoa.length;
+  var cols=['A','B','C','D','E','F','G'];
+
+  function styleCells(rowIdx,fillRgb,bold){
+    cols.forEach(function(c){
+      var addr=c+(rowIdx+1);
+      if(!ws[addr])ws[addr]={t:'s',v:''};
+      ws[addr].s={
+        fill:xlFill(fillRgb),
+        font:{name:'TH SarabunPSK',sz:14,bold:!!bold},
+        alignment:{vertical:'center',horizontal:'center',wrapText:true},
+        border:xlBorder()
+      };
+    });
+  }
+
+  // title row
+  styleCells(0,XL_COLORS.title,true);
+  // วัน/เดือน/ปี
+  styleCells(2,XL_COLORS.header,false);
+  // col headers
+  styleCells(4,XL_COLORS.header,true);
+  styleCells(5,XL_COLORS.header,true);
+
+  // area + role rows
+  var metaStart=6;
+  metaRows.forEach(function(m2,i){
+    var ri=metaStart+i;
+    var rgb=m2.type==='area'?XL_COLORS[m2.areaKey]:XL_COLORS[m2.rowKey];
+    styleCells(ri,rgb,m2.type==='area');
+    // ชื่อคนใน col B,C,D ทำ bold ถ้ามีชื่อ
+    if(m2.type==='role'){
+      ['B','C','D'].forEach(function(c){
+        var addr=c+(ri+1);
+        if(ws[addr]&&ws[addr].v&&ws[addr].v!=='-'){
+          ws[addr].s.font.bold=true;
+          ws[addr].s.fill=xlFill('FFFFFFFF');
+        }
+      });
+    }
+  });
+
+  // col widths
+  ws['!cols']=[{wch:20},{wch:16},{wch:16},{wch:16},{wch:14},{wch:14},{wch:14}];
+  // row heights
+  var rowH=[];
+  for(var ri2=0;ri2<totalRows;ri2++)rowH.push({hpt:22});
+  ws['!rows']=rowH;
+
+  // merges: title A1:G1, วัน/เดือ A3:D3, เวลาพัก E5:G5
+  ws['!merges']=[
+    {s:{r:0,c:0},e:{r:0,c:6}},
+    {s:{r:2,c:0},e:{r:2,c:6}},
+    {s:{r:4,c:4},e:{r:4,c:6}}
+  ];
+
+  return ws;
+}
+
+function exportAssignDay(){
+  if(!curDate){showToast('ไม่มีวันที่เลือก');return;}
+  if(typeof XLSX==='undefined'){showToast('⚠️ ยังโหลด SheetJS ไม่เสร็จ');return;}
+  var wb=XLSX.utils.book_new();
+  var ws=buildAssignSheet(curDate);
+  var parts=curDate.split('-');
+  XLSX.utils.book_append_sheet(wb,ws,parts[2]);
+  XLSX.writeFile(wb,'Assignment_'+curDate+'.xlsx');
+  showToast('📊 Export Assignment '+curDate+' เรียบร้อย');
+}
+
+function exportAssignMonth(){
+  if(typeof XLSX==='undefined'){showToast('⚠️ ยังโหลด SheetJS ไม่เสร็จ');return;}
+  var y=shiftState.year,m=shiftState.month,days=daysIn(y,m);
+  var wb=XLSX.utils.book_new();
+  for(var d=1;d<=days;d++){
+    var dateStr=ds(y,m,d);
+    var ws=buildAssignSheet(dateStr);
+    XLSX.utils.book_append_sheet(wb,ws,String(d));
+  }
+  var monthName=MONTHS_TH[m]+'_'+(y+543);
+  XLSX.writeFile(wb,'Assignment_'+monthName+'.xlsx');
+  showToast('📊 Export Assignment ทั้งเดือน '+MONTHS_TH[m]+' เรียบร้อย');
+}
+
 function printSchedule(){
   var y=shiftState.year,m=shiftState.month,days=daysIn(y,m);
   var thaiMonth=MONTHS_TH[m],thaiYear=y+543;
