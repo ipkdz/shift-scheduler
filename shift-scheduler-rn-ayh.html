@@ -506,6 +506,12 @@ td.col-total{background:#e8eaf6;font-size:12px;font-weight:700;padding:2px 3px;t
     <div class="limit-grid" id="limitGrid"></div>
     <div class="field-label">Note</div>
     <textarea class="note-input" id="noteInput" placeholder="หมายเหตุ..."></textarea>
+    <div style="margin-top:10px;">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text);">
+        <input type="checkbox" id="noCountBlackCheck" style="width:16px;height:16px;cursor:pointer;">
+        <span>⭐ กลุ่มพิเศษ — เช้าสีดำไม่นับในรวมเวร</span>
+      </label>
+    </div>
     <div class="modal-actions" style="margin-top:12px;">
       <button class="btn btn-ghost" id="btnSModalClose">ยกเลิก</button>
       <button class="btn btn-primary" id="btnSModalSave">บันทึก</button>
@@ -1017,7 +1023,9 @@ function renderSchedule(){
       for(var si1=0;si1<c0.shifts.length;si1++){
         var sh0=c0.shifts[si1],co0=c0.colors[sh0]||0;
         if(co0===4)continue; // EMD ไม่นับเป็นคนขึ้นเวร
-        if(co0===0)continue; // สีดำ (ไม่ระบุตำแหน่ง) ไม่นับในรวมเวร
+        // กลุ่มพิเศษ (noCountBlack) + สีดำ → ไม่นับในรวมเวร
+        var stf0=getStaffByName(shiftState.persons[pi0]);
+        if(co0===0&&stf0&&stf0.noCountBlack)continue;
         // special canPair แต่ countsShift=false → ไม่นับเป็นคนขึ้นเวร
         if(sp0&&spInf0&&!spInf0.countsShift)continue;
         dayCounts[d0][sh0].total++;
@@ -1076,7 +1084,9 @@ function renderSchedule(){
           var content2='<div class="shift-display" style="flex-direction:column;gap:0;">';
           content2+='<span style="font-size:10px;font-weight:700;color:'+spColor+';">'+spInf.char+'</span>';
           for(var si5=0;si5<cell2.shifts.length;si5++){var sh2=cell2.shifts[si5],co2=cell2.colors[sh2]||0;
-            content2+='<span class="'+(co2?'shift-char '+POS_CLASS[co2]:'shift-char-black')+'">'+sh2+'</span>';}
+            var stfPi2=getStaffByName(shiftState.persons[pi]);
+            var isBlackSpecial2=co2===0&&stfPi2&&stfPi2.noCountBlack;
+            content2+='<span class="'+(co2?'shift-char '+POS_CLASS[co2]:(isBlackSpecial2?'shift-char-black':'shift-char'))+'">'+sh2+'</span>';}
           content2+='</div>';
           html+='<td class="shift-cell'+extraCls+'" data-pi="'+pi+'" data-d="'+d2+'">'+content2+'</td>';
         }else{
@@ -1084,10 +1094,12 @@ function renderSchedule(){
         }
       }else{
         var cell=getCell(pi,d2),cellCls='shift-cell'+extraCls;
+        var stfPi=getStaffByName(shiftState.persons[pi]);
         var content='';
         if(cell.shifts&&cell.shifts.length>0){content='<div class="shift-display">';
           for(var si3=0;si3<cell.shifts.length;si3++){var sh=cell.shifts[si3],co=cell.colors[sh]||0;
-            content+='<span class="'+(co?'shift-char '+POS_CLASS[co]:'shift-char-black')+'">'+sh+'</span>';}
+            var isBlackSpecial=co===0&&stfPi&&stfPi.noCountBlack;
+            content+='<span class="'+(co?'shift-char '+POS_CLASS[co]:(isBlackSpecial?'shift-char-black':'shift-char'))+'">'+sh+'</span>';}
           content+='</div>';}
         html+='<td class="'+cellCls+'" data-pi="'+pi+'" data-d="'+d2+'">'+content+'</td>';
       }
@@ -2194,7 +2206,7 @@ function renderStaffTable(){
     if(hasCond(st,'no_night'))condHtml+='<span class="cond-chip nonight">ไม่ดึก</span> ';
     if(hasCond(st,'pregnant'))condHtml+='<span class="cond-chip preg">ท้อง</span> ';
     html+='<td style="white-space:nowrap;">'+(condHtml||'—')+'</td>';
-    html+='<td style="font-size:11px;color:var(--text-dim);max-width:90px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(st.note||'—')+'</td>';
+    html+='<td style="font-size:11px;color:var(--text-dim);max-width:90px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(st.noCountBlack?'<span title="กลุ่มพิเศษ">⭐</span> ':'')+''+(st.note||'—')+'</td>';
     html+='<td style="white-space:nowrap;">';
     html+='<button onclick="staffMoveUp('+si+')" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--text-dim);padding:0 2px;" '+(isFirst?'disabled':'')+'>↑</button>';
     html+='<button onclick="staffMoveDown('+si+')" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--text-dim);padding:0 2px;" '+(isLast?'disabled':'')+'>↓</button>';
@@ -2234,10 +2246,11 @@ function removeStaff(idx){
 var sModalIdx=null,sModalDraft={caps:[],conds:[],limits:{},note:''};
 function openStaffModal(idx){
   sModalIdx=idx;var st=assignState.staff[idx];
-  sModalDraft={caps:(st.caps||[]).slice(),conds:(st.conds||[]).slice(),limits:Object.assign({},st.limits||{}),note:st.note||''};
+  sModalDraft={caps:(st.caps||[]).slice(),conds:(st.conds||[]).slice(),limits:Object.assign({},st.limits||{}),note:st.note||'',noCountBlack:st.noCountBlack||false};
   document.getElementById('sModalName').textContent=st.name;
   renderCapGrid();renderCondGrid();renderLimitGrid();
   document.getElementById('noteInput').value=sModalDraft.note;
+  document.getElementById('noCountBlackCheck').checked=sModalDraft.noCountBlack||false;
   document.getElementById('sModal').classList.add('open');
 }
 function renderCapGrid(){
@@ -2386,7 +2399,8 @@ document.getElementById('btnSModalSave').addEventListener('click',function(){
   if(sModalIdx===null)return;var st=assignState.staff[sModalIdx];
   document.getElementById('limitGrid').querySelectorAll('.limit-input').forEach(function(inp){sModalDraft.limits[inp.getAttribute('data-cap')]=parseInt(inp.value)||0;});
   sModalDraft.note=document.getElementById('noteInput').value;
-  st.caps=sModalDraft.caps.slice();st.conds=sModalDraft.conds.slice();st.limits=Object.assign({},sModalDraft.limits);st.note=sModalDraft.note;
+  sModalDraft.noCountBlack=document.getElementById('noCountBlackCheck').checked;
+  st.caps=sModalDraft.caps.slice();st.conds=sModalDraft.conds.slice();st.limits=Object.assign({},sModalDraft.limits);st.note=sModalDraft.note;st.noCountBlack=sModalDraft.noCountBlack;
   saveAssign();renderStaffTable();renderPersonList();document.getElementById('sModal').classList.remove('open');showToast('บันทึก "'+st.name+'" แล้ว ✓');
 });
 document.getElementById('sModal').addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});
