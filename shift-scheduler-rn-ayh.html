@@ -28,7 +28,7 @@ body{background:var(--bg);color:var(--text);font-family:'Sarabun',sans-serif;min
 .nav-tab:hover:not(.active){color:var(--text);}
 
 /* ===== STAMP BAR ===== */
-.stamp-bar{background:var(--surface);border-bottom:2px solid var(--border);padding:7px 16px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;position:sticky;top:48px;z-index:150;}
+.stamp-bar{background:var(--surface);border-bottom:2px solid var(--border);padding:7px 16px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;position:sticky;top:var(--header-h,48px);z-index:150;}
 .stamp-bar-label{font-size:11px;color:var(--text-dim);font-weight:600;white-space:nowrap;}
 .stamp-btns{display:flex;gap:3px;flex-wrap:wrap;align-items:center;}
 .sbtn{border:1.5px solid var(--border);border-radius:12px;padding:3px 8px;cursor:pointer;font-size:11px;font-family:'Sarabun',sans-serif;font-weight:700;background:var(--surface2);color:var(--text);display:inline-flex;align-items:center;gap:3px;}
@@ -46,7 +46,6 @@ body{background:var(--bg);color:var(--text);font-family:'Sarabun',sans-serif;min
 table{border-collapse:collapse;min-width:100%;font-size:12px;}
 th,td{border:1px solid var(--border);padding:0;text-align:center;vertical-align:middle;}
 thead th{background:var(--surface2);padding:5px 3px;font-size:11px;color:var(--text-dim);white-space:nowrap;position:sticky;top:0;z-index:2;}
-/* sticky offset จะถูก set ด้วย JS หลัง render */
 thead th.day-weekend{background:#5a9fd84e;color:#0d47a1;}
 thead th.day-holiday{background:#5a9fd84e!important;color:#0d47a1!important;}
 thead th.name-col{left:0;z-index:3;background:var(--surface2);min-width:100px;text-align:left;padding-left:8px;}
@@ -1131,10 +1130,6 @@ function renderSchedule(){
   table.querySelectorAll('td.shift-cell,td.special-cell').forEach(function(c){
     c.addEventListener('click',function(){handleCell(parseInt(this.getAttribute('data-pi')),parseInt(this.getAttribute('data-d')));});
   });
-  // sticky thead offset = header + stampBar height
-  var hdr=document.querySelector('.app-header'),sbar=document.getElementById('stampBar');
-  var topOffset=(hdr?hdr.offsetHeight:48)+(sbar&&sbar.style.display!=='none'?sbar.offsetHeight:0);
-  table.querySelectorAll('thead th').forEach(function(th){th.style.top=topOffset+'px';});
 }
 
 function handleCell(pi,d){
@@ -2458,6 +2453,11 @@ function syncStaffAndPersons(){
 }
 
 syncStaffAndPersons();
+// set CSS vars สำหรับ sticky offset
+(function(){
+  var hdr=document.querySelector('.app-header');
+  if(hdr)document.documentElement.style.setProperty('--header-h',hdr.offsetHeight+'px');
+})();
 renderSchedule();
 renderPersonList();
 renderStaffTable();
